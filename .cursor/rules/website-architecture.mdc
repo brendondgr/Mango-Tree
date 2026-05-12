@@ -1,0 +1,7 @@
+---
+description: Website architecture rules for the Mango Tree Astro frontend.
+globs: ["web/**/*", "docs/routes.md", "docs/component-map.md", "docs/data-flow.md", "docs/api-contract.md", "docs/deployment.md"]
+alwaysApply: false
+---
+
+The frontend lives under `web/` and uses Astro with Svelte and React islands, UnoCSS, and npm. Keep routes, data flow, API contracts, component ownership, and deployment docs synchronized before expanding UI behavior.

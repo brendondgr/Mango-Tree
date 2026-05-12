@@ -1,0 +1,15 @@
+---
+type Tone = "neutral" | "success" | "danger";
+
+const { tone = "neutral", label } = Astro.props as { tone?: Tone; label: string };
+
+const tones = {
+  neutral: "border-[var(--border-color)] text-[var(--text-secondary)] bg-[var(--surface-color)]",
+  success: "border-[var(--status-success)] text-[var(--accent-dark)] bg-[var(--surface-color)]",
+  danger: "border-[var(--status-danger)] text-[var(--status-danger)] bg-[var(--surface-color)]"
+};
+---
+
+<span class={`inline-flex min-h-8 items-center rounded-md border px-3 text-sm font-medium ${tones[tone] ?? tones.neutral}`}>
+  {label}
+</span>

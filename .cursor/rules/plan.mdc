@@ -1,0 +1,7 @@
+---
+description: Planning rules for Mango Tree phased implementation, validation, and handoff.
+globs: ["**/*.md", "docs/**/*.md"]
+alwaysApply: false
+---
+
+Use this rule when planning Mango Tree work. Plans should be decision complete, subsystem-oriented, and include validation for runtime contracts. Emphasize orchestrator routing, specialist boundaries, scoped tool access, structured outputs, traceability, and denial tests.

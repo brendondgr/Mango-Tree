@@ -1,0 +1,18 @@
+---
+import "../styles/theme.css";
+
+const { title = "Mango Tree" } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" class="theme-pulse-light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Mango Tree local agent runtime dashboard shell." />
+    <title>{title}</title>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
