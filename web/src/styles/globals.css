@@ -1,0 +1,25 @@
+/**
+ * Global styles for the React/Vite shell.
+ * Theme tokens are swappable via data-theme on <html>.
+ */
+
+@import "./themes/default.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}

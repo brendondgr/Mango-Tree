@@ -75,7 +75,7 @@ The coordinator routes and validates. The planner reasons and delegates. Special
 
 ## Frontend
 
-Target: React/Vite SPA with Mango theme (shadcn/Tailwind, derived from Pulse Light). Legacy Astro skeleton in `web/` must not be extended.
+Target: React/Vite SPA with swappable shadcn/Tailwind themes (Canva-inspired default). Legacy Astro skeleton in `web/` must not be extended.
 
 ### Routes (TanStack Router)
 

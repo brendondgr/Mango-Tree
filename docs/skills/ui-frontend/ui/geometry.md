@@ -1,24 +1,30 @@
 # Geometry
 
-Spacing, radius, and layout conventions for the Mango dashboard.
+Spacing, radius, and layout conventions for the Mango dashboard. Radius and spacing follow the Canva-inspired default theme; layout dimensions are app-specific.
 
 ## Spacing
 
-- Page padding: `p-6` (24px) on desktop; `p-4` (16px) on mobile.
-- Section gap: `gap-6` between major sections; `gap-4` within sections.
+Base unit: 4px. Scale: 4, 8, 12, 16, 24, 32, 48.
+
+- Page padding: `p-8` (32px) on desktop; `p-4` (16px) on mobile.
+- Section gap: `gap-6` (24px) between major sections; `gap-4` within sections.
 - Card internal padding: `p-4` or `p-6` depending on content density.
 - Form field gap: `gap-4` between fields; `gap-2` between label and input.
+- Card grid gap: `gap-4` mobile, `gap-6` desktop.
 
 ## Border Radius
 
-- Default (buttons, inputs): `rounded-md` (6px) via shadcn defaults.
-- Cards: `rounded-lg` (8px).
-- Modals and sheets: `rounded-lg` on top corners for sheets; `rounded-lg` all corners for dialogs.
+Theme tokens: `--radius-sm` (8px), `--radius-md` (12px), `--radius-lg` (16px), `--radius-pill` (9999px).
+
+- Buttons and inputs: `rounded-[var(--radius-sm)]` or Tailwind `rounded-lg` mapped to 8px.
+- Cards and tiles: `rounded-[var(--radius-md)]` (12px).
+- Panels and dialogs: `rounded-[var(--radius-lg)]` (16px).
+- Chips and tags: `rounded-full` / pill.
 
 ## Layout
 
-- Sidebar width: 240px collapsed to 64px icon-only mode.
-- Main content max-width: full width with inner constraint `max-w-7xl mx-auto` for data-heavy pages.
+- Sidebar width: 240px collapsed to 64px icon-only mode (editor-style apps may use 320px / 56px per Canva fixture).
+- Main content max-width: `max-w-[1320px] mx-auto` with 32px gutter on desktop.
 - Split panels (chat + workspace): 40/60 or 50/50 with resizable handles when needed.
 - Tables are full-width within their container; horizontal scroll on mobile.
 
@@ -29,4 +35,6 @@ Spacing, radius, and layout conventions for the Mango dashboard.
 
 ## Shadows
 
-Use shadcn default shadow tokens. Elevated surfaces (dropdowns, popovers) use `shadow-md`. Cards use `shadow-sm` or border-only for flat dashboard aesthetic.
+- Resting cards: `var(--shadow-raised)` or border-only for flat sections.
+- Hover lift: `translateY(-2px)` + `var(--shadow-card-hover)` over `var(--motion-fast)`.
+- Dropdowns and popovers: `shadow-md`.

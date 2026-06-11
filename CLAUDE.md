@@ -19,7 +19,7 @@ Mango Tree is a local agent platform with strong boundaries:
 - `utils/apps/{name}/` — app domain logic, services, and agent tools.
 - `utils/shared/` — cross-app auth, permissions, storage, search, embeddings, events.
 
-For frontend work, follow the React/Vite/shadcn architecture in `docs/skills/website-architecture/` and apply the Mango theme from `docs/skills/ui-frontend/`.
+For frontend work, follow the React/Vite/shadcn architecture in `docs/skills/website-architecture/` and apply the swappable theme from `docs/skills/ui-frontend/` (Canva-inspired default).
 
 For backend work, follow `docs/skills/django-backend/` and `docs/skills/app-modules/`.
 

@@ -63,7 +63,7 @@ App-specific UI fragments may also live under `utils/apps/{app_name}/frontend/` 
 - Page compositions belong in `web/src/pages/`.
 - API client calls belong in `web/src/services/`; no business logic beyond request/response handling.
 - App-specific components belong in `utils/apps/{app}/frontend/` when they are not shared across the shell.
-- Theme tokens live in `web/src/styles/` using Tailwind and shadcn CSS variables (Mango theme).
+- Theme tokens live in `web/src/styles/themes/` (swappable via `data-theme`); default is Canva-inspired. Runtime swapper: `web/src/lib/theme.ts`.
 - Do not invent backend endpoints before `docs/api.md` defines them.
 
 ## Legacy Note

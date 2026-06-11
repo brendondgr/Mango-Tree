@@ -5,7 +5,7 @@ Mango Tree uses a React/Vite frontend architecture. A legacy Astro skeleton may 
 ## Decisions
 
 - Application type: React/Vite SPA with TanStack Router and Query.
-- Styling: Tailwind CSS, shadcn/ui, Mango theme tokens.
+- Styling: Tailwind CSS, shadcn/ui, swappable theme tokens (Canva-inspired default).
 - Package manager: npm.
 - Auth: none implemented yet; docs should reserve future local operator or admin boundaries.
 - Data: static placeholder data only until DRF endpoints exist.

@@ -1,6 +1,6 @@
 # Icons
 
-Use Lucide React icons consistently across the application.
+Use Lucide React icons consistently across the application. Prefer rounded stroke icons where available to align with the Canva-inspired soft geometry.
 
 ## Rules
 
@@ -9,6 +9,7 @@ Use Lucide React icons consistently across the application.
 - Icon-only buttons require `aria-label`.
 - Status icons pair with text labels (e.g., CheckCircle + "Complete").
 - Navigation icons appear in the sidebar and command palette consistently.
+- Canva's fixture uses filled rounded iconography; Lucide outline icons are acceptable — do not switch libraries for fill style alone.
 
 ## Common Mappings
 

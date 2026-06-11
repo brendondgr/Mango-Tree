@@ -5,7 +5,7 @@ description: Use this skill when designing or implementing Mango Tree frontend U
 
 # Mango Tree Frontend UI Skill
 
-Mango Tree's interface should feel professional, calm, operational, and precise. It is a control surface for a local agent platform, so prioritize scanability, clear status, dense but organized information, and restrained visual polish.
+Mango Tree's interface should feel approachable, scannable, and operational. It is a control surface for a local agent platform, so prioritize clear status, organized information, and restrained polish. Visual language is Canva-inspired (white canvas, purple accent, soft geometry) applied to dashboard surfaces — not marketing pages.
 
 ## Stack
 
@@ -16,32 +16,18 @@ Mango Tree's interface should feel professional, calm, operational, and precise.
 - Radix UI for accessible primitives.
 - Framer Motion for transitions.
 
-## Mango Theme
+## Theme System
 
-The Mango theme derives from the Pulse Light palette, mapped to shadcn/Tailwind CSS variables:
+Themes are swappable at runtime via `data-theme` on `<html>`. Components consume shadcn semantic tokens only (`bg-background`, `text-primary`, `border-border`).
 
-```css
-:root {
-  --background: 210 33% 97%;        /* #F4F6F9 */
-  --foreground: 234 32% 22%;        /* #25284B */
-  --card: 0 0% 100%;                /* #FFFFFF */
-  --card-foreground: 234 32% 22%;
-  --primary: 209 63% 34%;           /* #20588D */
-  --primary-foreground: 0 0% 100%;
-  --secondary: 196 67% 92%;         /* #EAF6FB */
-  --secondary-foreground: 234 32% 22%;
-  --muted: 210 33% 97%;
-  --muted-foreground: 215 16% 47%;  /* #64748B */
-  --accent: 194 65% 55%;            /* #40B1D7 */
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 72% 51%;         /* #dc2626 */
-  --border: 204 38% 89%;            /* #D6E4F0 */
-  --ring: 209 63% 34%;
-  --success: 160 84% 39%;           /* #10b981 */
-}
-```
+- Default theme: Canva-inspired (`web/src/styles/themes/default.css`).
+- Entry point: `web/src/styles/globals.css`.
+- Runtime swapper: `web/src/lib/theme.ts` (`initTheme`, `setTheme`).
+- Visual source of truth: `docs/misc/canva/` (see bridge in `ui/design-system.md`).
 
-Apply via `web/src/styles/globals.css` and shadcn theme configuration.
+Add future themes by creating a new CSS file under `web/src/styles/themes/` with the same shadcn variable contract, importing it in `globals.css`, and registering the name in `THEMES`.
+
+Reserve the purple-to-cyan brand gradient for focal moments (empty states, one primary CTA per view, badges). Default button actions use solid `--primary` purple.
 
 ## Design Rules
 
@@ -55,6 +41,7 @@ Apply via `web/src/styles/globals.css` and shadcn theme configuration.
 - Do not rely on color alone for status; pair color with text or iconography.
 - Keep layouts stable across mobile and desktop.
 - Prefer shadcn/ui primitives over custom components when a primitive exists.
+- Do not hardcode hex or HSL in components; use theme tokens.
 
 ## Component Organization
 
@@ -62,4 +49,4 @@ Apply via `web/src/styles/globals.css` and shadcn theme configuration.
 - Feature modules: `web/src/features/`.
 - App-specific fragments: `utils/apps/{app}/frontend/`.
 
-See `docs/skills/ui-frontend/ui/` for token-level guidance on colors, buttons, modals, typography, and related patterns.
+See `docs/skills/ui-frontend/ui/design-system.md` for the theme bridge, then `ui/` for token-level guidance on colors, buttons, modals, typography, and related patterns.

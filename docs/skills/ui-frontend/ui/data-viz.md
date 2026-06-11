@@ -1,6 +1,6 @@
 # Data Visualization
 
-Use Recharts for analytics and dashboard charts within the Mango theme.
+Use Recharts for analytics and dashboard charts. Colors come from the active theme tokens.
 
 ## Chart Types
 
@@ -13,8 +13,9 @@ Use Recharts for analytics and dashboard charts within the Mango theme.
 
 ## Theming
 
-- Primary series: `hsl(var(--primary))` (#20588D).
-- Secondary series: `hsl(var(--accent))` (#40B1D7).
+- Primary series: `hsl(var(--primary))` (#7d2ae8 default).
+- Secondary series: `hsl(var(--accent))` (#00c4cc default).
+- Additional series: category tokens (`--category-coral`, `--category-mint`, `--category-sky`, `--category-lavender`, `--category-tangerine`).
 - Grid lines: `hsl(var(--border))`.
 - Axis text: `hsl(var(--muted-foreground))`.
 - Tooltip background: `hsl(var(--card))` with `border-border`.

@@ -48,7 +48,7 @@ App services are the single source of truth for domain behavior.
 
 ## Frontend
 
-The target frontend uses React, TypeScript, Vite, TanStack Router, TanStack Query, Zustand, Tailwind CSS, shadcn/ui, Radix UI, and Framer Motion. Apply the Mango theme (derived from Pulse Light palette) via shadcn/Tailwind tokens.
+The target frontend uses React, TypeScript, Vite, TanStack Router, TanStack Query, Zustand, Tailwind CSS, shadcn/ui, Radix UI, and Framer Motion. Apply the swappable shadcn/Tailwind theme system (Canva-inspired default) via `web/src/styles/themes/`.
 
 The current `web/` directory contains a legacy Astro skeleton that will be replaced. Do not expand legacy Astro behavior. New UI work follows the React/Vite architecture in `docs/skills/website-architecture/`.
 

@@ -1,0 +1,61 @@
+/**
+ * Default theme — Canva-inspired.
+ * Source: docs/misc/canva/tokens.css + docs/skills/ui-frontend/ui/design-system.md
+ * Swap via data-theme="default" on <html> (see web/src/lib/theme.ts).
+ */
+
+[data-theme="default"],
+:root {
+  /* shadcn semantic tokens (HSL components, no hsl() wrapper) */
+  --background: 0 0% 100%;
+  --foreground: 210 24% 7%;
+  --card: 0 0% 100%;
+  --card-foreground: 210 24% 7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 210 24% 7%;
+  --primary: 271 79% 54%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 210 24% 7%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 210 5% 39%;
+  --accent: 183 100% 40%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 100% 67%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 210 8% 89%;
+  --input: 210 8% 89%;
+  --ring: 271 79% 54%;
+  --success: 168 100% 36%;
+
+  /* Extended brand tokens — theme-local, not shadcn core */
+  --brand-gradient: linear-gradient(135deg, #7d2ae8, #00c4cc);
+  --brand-gradient-pro: linear-gradient(135deg, #7d2ae8, #ff5757);
+  --primary-hover: 271 82% 46%;
+  --surface-inset: 220 9% 91%;
+  --surface-cool: 234 62% 96%;
+  --ink-secondary: 210 4% 25%;
+  --ink-faint: 210 6% 63%;
+  --warn: 38 100% 56%;
+  --info: 204 100% 53%;
+  --category-coral: 8 100% 67%;
+  --category-tangerine: 30 100% 60%;
+  --category-mint: 156 52% 54%;
+  --category-sky: 207 100% 62%;
+  --category-lavender: 252 84% 75%;
+
+  /* Geometry & motion (shared contract across future themes) */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+  --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --focus-ring: 0 0 0 3px rgba(125, 42, 232, 0.16);
+  --motion-fast: 180ms;
+  --motion-base: 280ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --font-sans: "Canva Sans", "YS Text", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}

@@ -17,11 +17,11 @@ Use shadcn/ui Dialog and AlertDialog components for overlays.
 - Provide a visible close button and a clear title.
 - Destructive AlertDialogs require explicit confirmation text for high-risk actions.
 - Modal width: `max-w-lg` for forms, `max-w-2xl` for detail views, `max-w-4xl` for complex editors.
-- Use Framer Motion for enter/exit transitions sparingly; prefer shadcn built-in animations.
+- Use Framer Motion for enter/exit transitions sparingly; prefer shadcn built-in animations (280ms, `--ease-standard`).
 
 ## Overlay
 
-Use `bg-primary/85` overlay per Mango theme. Content panel uses `bg-card` with `border-border`.
+Use `bg-foreground/60` or `bg-primary/85` overlay. Content panel uses `bg-card` with `border-border` and `rounded-[var(--radius-lg)]`.
 
 ## Agent Output
 

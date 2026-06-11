@@ -1,29 +1,32 @@
 # Colors
 
-Use the Mango theme via Tailwind and shadcn CSS variables defined in `web/src/styles/globals.css`.
+Use shadcn semantic tokens from the active theme (`web/src/styles/themes/{name}.css`). Default theme values are Canva-inspired; see `design-system.md` for the full bridge and `docs/misc/canva/tokens.css` for canonical hex names.
 
-## Semantic Tokens
+## Semantic Tokens (default theme)
 
 | Token | HSL | Hex reference | Usage |
 | --- | --- | --- | --- |
-| background | 210 33% 97% | #F4F6F9 | Page background |
-| foreground | 234 32% 22% | #25284B | Primary text |
-| card | 0 0% 100% | #FFFFFF | Elevated surfaces |
-| primary | 209 63% 34% | #20588D | Primary actions, links |
-| secondary | 196 67% 92% | #EAF6FB | Secondary backgrounds |
-| accent | 194 65% 55% | #40B1D7 | Highlights, active states |
-| muted-foreground | 215 16% 47% | #64748B | Secondary text |
-| border | 204 38% 89% | #D6E4F0 | Dividers, borders |
-| destructive | 0 72% 51% | #dc2626 | Errors, destructive actions |
-| success | 160 84% 39% | #10b981 | Success states |
+| background | 0 0% 100% | #ffffff | Page canvas |
+| foreground | 210 24% 7% | #0e1318 | Primary text |
+| card | 0 0% 100% | #ffffff | Elevated surfaces |
+| primary | 271 79% 54% | #7d2ae8 | Primary actions, links, focus ring |
+| secondary | 220 14% 96% | #f4f5f7 | Section breaks, table headers |
+| accent | 183 100% 40% | #00c4cc | Highlights, secondary emphasis |
+| muted-foreground | 210 5% 39% | #5f6368 | Captions, secondary text |
+| border | 210 8% 89% | #e1e3e6 | Dividers, input borders |
+| destructive | 0 100% 67% | #ff5757 | Errors, destructive actions |
+| success | 168 100% 36% | #00b894 | Success states |
+
+Extended theme tokens (`--brand-gradient`, `--category-*`, `--surface-inset`) are defined per theme file for tags, badges, and gradient CTAs.
 
 ## Rules
 
-- Use semantic tokens (`bg-background`, `text-foreground`, `border-border`) rather than raw hex values.
+- Use semantic Tailwind classes (`bg-background`, `text-foreground`, `border-border`) — never raw hex in components.
 - Status colors must include text labels or icons; do not rely on color alone.
-- Overlay backgrounds use `bg-primary/85` with `text-primary-foreground`.
+- Overlay backgrounds use `bg-foreground/60` or `bg-primary/85`; content panel uses `bg-card`.
 - Table headers use `bg-secondary`; alternating rows use `bg-muted/50`.
+- Category accent colors (`--category-coral`, etc.) belong in tags and metadata only.
 
 ## shadcn Mapping
 
-Configure in `components.json` and `tailwind.config.ts`. Extend the default shadcn theme with Mango token values above.
+Configure in `components.json` and `tailwind.config.ts`. Theme CSS files supply HSL values; Tailwind maps them via `hsl(var(--primary))` pattern. When adding a theme, copy the variable contract from `default.css`.

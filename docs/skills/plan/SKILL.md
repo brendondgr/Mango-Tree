@@ -23,7 +23,7 @@ Plan work as a sequence of small, verifiable changes for a local-first agent pla
 - Name the layer being changed: `web`, `api`, `agents`, `utils/apps/{name}`, `utils/shared`, `config`, or `docs`.
 - Include acceptance criteria that prove routing, permission checks, schema validation, and traceability.
 - Include denial tests whenever a change touches tools, memory, datasets, filesystem access, shell access, or workflow permissions.
-- For frontend work, require architecture docs before UI expansion and apply the Mango shadcn theme.
+- For frontend work, require architecture docs before UI expansion and apply the swappable shadcn theme (Canva-inspired default).
 - For app work, ensure API and agent tool parity when exposing new capabilities.
 
 ## Build Sequence Reference
