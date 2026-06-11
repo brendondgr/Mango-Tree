@@ -4,4 +4,4 @@ globs: ["**/*.md", "docs/**/*.md"]
 alwaysApply: false
 ---
 
-Use this rule when planning Mango Tree work. Plans should be decision complete, subsystem-oriented, and include validation for runtime contracts. Emphasize orchestrator routing, specialist boundaries, scoped tool access, structured outputs, traceability, and denial tests.
+Use this rule when planning Mango Tree work. Plans should be decision complete, layer-oriented, and include validation for runtime contracts. Emphasize coordinator routing, app tool boundaries, scoped access, structured outputs, traceability, and denial tests. Name the affected layer: web, api, agents, utils/apps/{name}, or utils/shared.

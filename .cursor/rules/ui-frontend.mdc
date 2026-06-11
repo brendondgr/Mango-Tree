@@ -1,7 +1,7 @@
 ---
-description: UI rules for Mango Tree Pulse Light frontend design and accessibility.
-globs: ["web/src/**/*", "ui-frontend/**/*.md"]
+description: UI rules for Mango Tree Mango theme frontend design and accessibility.
+globs: ["web/src/**/*", "docs/skills/ui-frontend/**/*.md"]
 alwaysApply: false
 ---
 
-Use the Pulse Light theme. Build professional operational dashboard surfaces with compact, stable layouts, accessible focus states, readable text, and clear status treatment. Do not rely on color alone for status. Avoid marketing-style pages for app views.
+Use the Mango theme (shadcn/Tailwind CSS variables derived from Pulse Light). Build professional operational dashboard surfaces with compact, stable layouts, accessible focus states, readable text, and clear status treatment. Do not rely on color alone for status. Avoid marketing-style pages for app views. Prefer shadcn/ui primitives.

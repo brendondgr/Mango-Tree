@@ -1,19 +1,23 @@
 # Repository Structure Setup
 
-This repository is configured as a local-first Python agent runtime with a future Astro frontend.
+This repository is configured as a local-first Django/DRF platform with LangGraph agents and a React/Vite frontend.
 
 ## Defaults
 
 - Primary runtime: Python with `uv`.
+- Backend: Django, DRF, Celery, PostgreSQL.
+- Agent layer: LangGraph under `agents/`.
 - Frontend runtime: Node with `npm`, under `web/`.
-- Repository shape: single agent-runtime project with a nested frontend app.
-- Shared code: runtime schemas live in `src/agent_runtime/schemas/`; frontend/backend API contracts live in `docs/api-contract.md` until generated contracts are needed.
-- Tests: grouped by orchestration, tools, agents, workflows, memory, and sandbox.
+- Repository shape: monorepo with modular apps under `utils/apps/`.
+- Shared code: app services in `utils/apps/{name}/`; cross-app utilities in `utils/shared/`.
+- API contracts: `docs/api-contract.md` until generated OpenAPI schemas exist.
+- Tests: grouped by agents, api, utils/apps, utils/shared, and web.
 
 ## Required Documentation
 
 Maintain these files:
 
+- `docs/rebuild-plan.md`
 - `docs/documentation.md`
 - `docs/architecture.md`
 - `docs/structure.md`
@@ -22,3 +26,17 @@ Maintain these files:
 - `docs/data-flow.md`
 - `docs/deployment.md`
 - `docs/api-contract.md`
+
+## Validation Commands
+
+```bash
+# Backend (when implemented)
+uv run manage.py test
+uv run manage.py migrate
+
+# Agents and utils
+uv run pytest
+
+# Frontend (when React/Vite scaffold exists)
+cd web && npm run dev && npm run build
+```

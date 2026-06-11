@@ -7,15 +7,24 @@ This planning skill is configured for agentic coding workflows in the Mango Tree
 - Granularity: detailed engineering plans for phased implementation.
 - Validation: targeted tests first, then broader test/build checks when the touched area justifies it.
 - Git workflow: no automatic commit or push instructions.
-- Audience: coding agents and engineers maintaining a local-first, permissioned agent runtime.
+- Audience: coding agents and engineers maintaining a local-first, permissioned agent platform.
 
 ## Repository-Specific Focus
 
 Plans should protect these core ideas:
 
-- Orchestrator routes and validates.
-- General agent reasons and delegates.
-- Specialist LangGraph workflows execute narrow tasks.
+- Coordinator routes and validates under `agents/coordinator/`.
+- Planner reasons and delegates under `agents/planner/`.
+- Specialist LangGraph workflows and app tools execute narrow tasks.
 - Tools enforce permissions through execution context.
 - Memory, datasets, filesystem, shell, and network access are scoped by policy.
-- Web UI work stays under `web/` and follows the documented architecture.
+- Frontend stays under `web/` and follows documented React/Vite architecture.
+- App services in `utils/apps/{name}/backend/services/` are the single source of domain truth.
+
+## Validation Commands
+
+```bash
+uv run manage.py test
+uv run pytest
+cd web && npm run build
+```

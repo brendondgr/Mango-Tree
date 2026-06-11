@@ -1,17 +1,27 @@
 # UI Frontend Setup
 
-The initial frontend setup is a skeleton for future product work.
+The frontend target is a React/Vite SPA with shadcn/ui and the Mango theme.
 
 ## Decisions
 
 - Visual direction: professional operational dashboard.
-- Theme: Pulse Light.
-- Frameworks: Astro, Svelte, React.
-- Styling: UnoCSS plus `web/src/styles/theme.css`.
-- Component isolation: layout, UI primitives, and feature components are separated under `web/src/components/`.
+- Theme: Mango (derived from Pulse Light palette) via shadcn/Tailwind CSS variables.
+- Frameworks: React, TypeScript, Vite.
+- Styling: Tailwind CSS and shadcn/ui.
+- Component isolation: ui primitives, features, pages, and app fragments are separated.
 
 ## Implementation Expectations
 
-- Keep placeholders minimal and structural.
+- Keep placeholders minimal and structural until the React/Vite scaffold replaces the legacy Astro skeleton.
 - Use route, component-map, data-flow, deployment, and API docs as the source of truth.
 - Do not invent backend endpoints before `docs/api-contract.md` defines them.
+- Do not extend the legacy Astro/UnoCSS skeleton.
+
+## Commands
+
+```bash
+cd web
+npm install
+npm run dev
+npm run build
+```

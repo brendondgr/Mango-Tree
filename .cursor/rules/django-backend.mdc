@@ -1,0 +1,7 @@
+---
+description: Django/DRF backend rules for the Mango Tree platform.
+globs: ["api/**/*", "utils/apps/**/backend/**/*", "utils/shared/**/*", "config/**/*", "tests/**/*"]
+alwaysApply: false
+---
+
+Use `uv` for Python commands. Keep views and serializers thin; domain logic belongs in `utils/apps/{name}/backend/services/`. Enforce permissions in code via `utils/shared/permissions/`. Agent tools in `utils/apps/{name}/agent/tools.py` must call the same services as DRF views. Write tests for allowed and denied behavior.

@@ -1,7 +1,7 @@
 ---
-description: Repository structure rules for the Mango Tree local agent runtime.
-globs: ["src/agent_runtime/**/*", "tests/**/*", "configs/**/*", "workflows/**/*", "docs/**/*.md"]
+description: Repository structure rules for the Mango Tree agent platform.
+globs: ["agents/**/*", "api/**/*", "utils/**/*", "config/**/*", "tests/**/*", "docs/**/*.md"]
 alwaysApply: false
 ---
 
-Runtime code belongs under `src/agent_runtime/`, docs under `docs/`, and frontend code under `web/`. Use `uv` for Python. Keep orchestration, agents, workflows, tools, memory, storage, sandbox, schemas, and observability separated. Tests should include denied behavior for security boundaries.
+Runtime code belongs under `agents/`, `api/`, `utils/apps/`, and `utils/shared/`. Docs belong under `docs/`. Frontend code belongs under `web/`. Use `uv` for Python. Keep coordinator, planner, tools, memory, and providers separated under `agents/`. App domain logic belongs in `utils/apps/{name}/backend/services/`. Tests should include denied behavior for security boundaries.

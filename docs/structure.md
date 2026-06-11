@@ -2,30 +2,61 @@
 
 ```text
 .
-|-- .agents/                  # Codex project skill links
 |-- .claude/                  # Claude Code project skill links
+|-- .codex/                   # Codex project skill links
 |-- .cursor/                  # Cursor rules
 |-- .github/                  # Copilot instructions
+|-- agents/                   # LangGraph orchestration layer
+|   |-- coordinator/
+|   |-- planner/
+|   |-- memory/
+|   |-- tools/
+|   `-- providers/
+|-- api/                      # DRF route surface
+|   |-- routes/
+|   |-- serializers/
+|   |-- middleware/
+|   `-- schemas/
+|-- config/                   # Django settings and runtime YAML
 |-- docs/                     # Repository documentation
-|-- docs/skills/              # Source skill documents
-|-- web/                      # Astro frontend skeleton
-|-- initialize.md             # Initial setup guide, preserved
-|-- read-yaml.py              # Skill metadata scanner, preserved
+|   `-- skills/               # Source skill documents
+|-- utils/
+|   |-- apps/                 # Domain app modules
+|   |   |-- projects/
+|   |   |-- notes/
+|   |   |-- jobs/
+|   |   |-- calendar/
+|   |   |-- recipes/
+|   |   |-- imdbspy/
+|   |   |-- exercise/
+|   |   `-- timekeeper/
+|   `-- shared/               # Cross-app foundations
+|       |-- auth/
+|       |-- permissions/
+|       |-- storage/
+|       |-- search/
+|       |-- embeddings/
+|       `-- events/
+|-- tests/
+|-- scripts/
+|-- requirements/
+|-- web/                      # React/Vite frontend (legacy Astro skeleton until rebuild)
 |-- pyproject.toml            # Python project metadata
 `-- uv.lock                   # Python lockfile
 ```
 
-## Intended Runtime Structure
+## Layer Rules
 
-As implementation begins, add:
+- Agent orchestration belongs in `agents/`.
+- HTTP API surface belongs in `api/`.
+- App domain code belongs in `utils/apps/{app_name}/`.
+- Cross-app utilities belong in `utils/shared/`.
+- Configuration belongs in `config/`.
+- Documentation belongs in `docs/`.
+- Frontend code belongs in `web/`.
 
-```text
-configs/
-src/agent_runtime/
-workflows/
-data/
-workspaces/
-tests/
-```
+See `docs/rebuild-plan.md` for the full rebuild reference.
 
-Runtime code should stay under `src/agent_runtime/`, documentation under `docs/`, and frontend files under `web/`.
+## Migration Note
+
+The previous `src/agent_runtime/` layout is retired. See `docs/skills/repo-structure/SKILL.md` for the concept mapping.

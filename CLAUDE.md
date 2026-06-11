@@ -2,13 +2,27 @@
 
 Use the project skills in `.claude/skills/` when working in this repository.
 
-Mango Tree is a local agent runtime with strong boundaries:
+Mango Tree is a local agent platform with strong boundaries:
 
-- Orchestrator routes and validates.
-- General agent reasons and delegates.
-- Specialist LangGraph workflows execute constrained work.
-- Tools enforce permissions through execution context.
-- Memory and datasets are namespaced.
-- Shell, filesystem, and network access must be policy checked.
+- Coordinator routes and validates under `agents/coordinator/`.
+- Planner reasons and delegates under `agents/planner/`.
+- Specialist LangGraph workflows execute constrained work via app tools in `utils/apps/{name}/agent/`.
+- Tools enforce permissions through execution context in `agents/tools/`.
+- Memory and datasets are namespaced under `agents/memory/` and `utils/shared/`.
+- Shell, filesystem, and network access must be policy checked via `utils/shared/permissions/`.
 
-For frontend work, use the Astro/Svelte/React/UnoCSS skeleton under `web/` and keep the Pulse Light theme intact.
+## Layer Boundaries
+
+- `web/` — React/Vite SPA; API clients only, no business logic.
+- `api/` — DRF surface consumed by the frontend.
+- `agents/` — LangGraph orchestration layer.
+- `utils/apps/{name}/` — app domain logic, services, and agent tools.
+- `utils/shared/` — cross-app auth, permissions, storage, search, embeddings, events.
+
+For frontend work, follow the React/Vite/shadcn architecture in `docs/skills/website-architecture/` and apply the Mango theme from `docs/skills/ui-frontend/`.
+
+For backend work, follow `docs/skills/django-backend/` and `docs/skills/app-modules/`.
+
+For repository layout, follow `docs/skills/repo-structure/`.
+
+The canonical rebuild reference is `docs/rebuild-plan.md`.

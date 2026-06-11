@@ -1,11 +1,24 @@
-# Dropdowns And Selects
+# Dropdowns
 
-Use dropdowns for route filters, workflow selection, model selection, namespace selection, and table controls.
+Use shadcn/ui DropdownMenu, Select, and Popover components.
+
+## When to Use
+
+| Component | Usage |
+| --- | --- |
+| DropdownMenu | Action menus, context menus, user menus |
+| Select | Form field with fixed options |
+| Popover | Date pickers, filters, compact panels |
+| Command (cmdk) | Searchable option lists, command palette |
 
 ## Rules
 
-- Keep labels visible.
-- Use `--surface-color` backgrounds and `--border-color` borders.
-- Highlight active options with `--bg-secondary` and `--accent-dark`.
-- Preserve keyboard navigation and escape-to-close behavior.
-- Avoid hiding destructive or permission-changing actions inside unlabeled menus.
+- DropdownMenu items with destructive actions use `text-destructive` styling.
+- Select fields require visible labels; use `Label` from shadcn.
+- Keyboard navigation: arrow keys within menus, Enter to select, Escape to close.
+- Keep menu item text concise; use icons from Lucide for common actions.
+- Avoid nesting more than one level of submenu unless necessary.
+
+## Density
+
+Dashboard contexts use compact padding (`py-1.5 px-2` items). Settings and forms use standard padding.

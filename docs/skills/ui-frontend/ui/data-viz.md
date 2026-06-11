@@ -1,11 +1,36 @@
 # Data Visualization
 
-Visualizations should help operators understand runtime state, not decorate the page.
+Use Recharts for analytics and dashboard charts within the Mango theme.
+
+## Chart Types
+
+| Type | Usage |
+| --- | --- |
+| LineChart | Time series, agent activity, job throughput |
+| BarChart | Comparisons, category counts |
+| AreaChart | Cumulative metrics, memory usage |
+| PieChart | Proportional breakdowns (use sparingly) |
+
+## Theming
+
+- Primary series: `hsl(var(--primary))` (#20588D).
+- Secondary series: `hsl(var(--accent))` (#40B1D7).
+- Grid lines: `hsl(var(--border))`.
+- Axis text: `hsl(var(--muted-foreground))`.
+- Tooltip background: `hsl(var(--card))` with `border-border`.
 
 ## Rules
 
-- Use Pulse Light colors with neutral gridlines and restrained accents.
-- Pair status colors with labels, legends, or icons.
-- Prefer clear tables, timelines, and compact charts for tasks, events, traces, tool calls, and workflow outcomes.
-- Use tabular numerals for counts, durations, token totals, and run IDs.
-- Keep chart interactions keyboard accessible when possible.
+- Always label axes and provide chart titles.
+- Include a legend when more than one series is present.
+- Empty states show a message and optional action, not a blank chart area.
+- Responsive containers use `ResponsiveContainer` with `width="100%"`.
+- Do not use charts for single scalar values; use stat cards instead.
+
+## Stat Cards
+
+Use shadcn Card with large value text (`text-2xl font-semibold`) and muted label (`text-sm text-muted-foreground`). Trend indicators use success/destructive colors with arrow icons.
+
+## Tables
+
+Use shadcn Table for tabular data. Sortable columns, pagination, and row selection for bulk actions. Header background uses `bg-secondary`.

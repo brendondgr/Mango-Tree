@@ -1,15 +1,15 @@
 # Website Architecture Setup
 
-Mango Tree uses a frontend skeleton rather than a full UI prototype in the initial setup.
+Mango Tree uses a React/Vite frontend architecture. A legacy Astro skeleton may remain until Phase 1 of the rebuild replaces it.
 
 ## Decisions
 
-- Application type: Astro frontend with Svelte and React islands.
-- Styling: UnoCSS plus project CSS tokens.
+- Application type: React/Vite SPA with TanStack Router and Query.
+- Styling: Tailwind CSS, shadcn/ui, Mango theme tokens.
 - Package manager: npm.
 - Auth: none implemented yet; docs should reserve future local operator or admin boundaries.
-- Data: static placeholder data only until runtime endpoints exist.
-- API: documented contract placeholders only.
+- Data: static placeholder data only until DRF endpoints exist.
+- API: documented contract in `docs/api-contract.md`.
 - Deployment: local development first.
 
 ## Commands
@@ -20,7 +20,6 @@ npm install
 npm run dev
 npm run build
 npm run preview
-npm run check
 ```
 
 ## Required Docs
