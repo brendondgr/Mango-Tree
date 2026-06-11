@@ -20,5 +20,5 @@ Each app README should state:
 
 - Purpose of the app.
 - Subfolder layout.
-- Registered API endpoints (link to `docs/api-contract.md`).
+- Registered API endpoints (link to `docs/api.md`).
 - Registered agent tools.

@@ -25,4 +25,4 @@ For backend work, follow `docs/skills/django-backend/` and `docs/skills/app-modu
 
 For repository layout, follow `docs/skills/repo-structure/`.
 
-The canonical rebuild reference is `docs/rebuild-plan.md`.
+Read `docs/platform.md` for architecture and `docs/api.md` for the HTTP API contract.

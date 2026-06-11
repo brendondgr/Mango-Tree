@@ -52,7 +52,11 @@ The target frontend uses React, TypeScript, Vite, TanStack Router, TanStack Quer
 
 The current `web/` directory contains a legacy Astro skeleton that will be replaced. Do not expand legacy Astro behavior. New UI work follows the React/Vite architecture in `docs/skills/website-architecture/`.
 
-Do not expand UI behavior beyond the documented route map and API contract.
+Do not expand UI behavior beyond the documented route map and API contract in `docs/platform.md` and `docs/api.md`.
+
+## Documentation
+
+Read `docs/platform.md` for architecture, structure, routes, deployment, and testing. Read `docs/api.md` for the HTTP API contract. Detailed conventions live in `docs/skills/`.
 
 ## Skills
 

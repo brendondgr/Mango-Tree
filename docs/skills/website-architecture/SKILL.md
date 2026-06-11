@@ -9,16 +9,17 @@ The website is the control surface for the Mango platform. It lives under `web/`
 
 ## Required Before UI Expansion
 
-Define or update:
+Define or update sections in `docs/platform.md`:
 
 - application mode
-- route map (`docs/routes.md`)
+- route map
 - user roles and auth boundaries
-- data-flow map (`docs/data-flow.md`)
+- data-flow map
 - frontend/backend boundary
 - repository layout
-- documentation files
 - build, run, and test commands
+
+Also update `docs/api.md` when adding endpoints.
 
 ## Selected Mode
 
@@ -41,19 +42,11 @@ Supporting libraries:
 
 The repository may still contain a legacy Astro skeleton in `web/`. Do not extend it. The target architecture is React/Vite as documented in `docs/skills/repo-structure/structures/web-interfaces.md`.
 
-API contracts remain documented in `docs/api-contract.md` until runtime endpoints exist. Frontend code must not assume an endpoint exists until listed there.
+API contracts remain documented in `docs/api.md` until runtime endpoints exist. Frontend code must not assume an endpoint exists until listed there.
 
 ## Documentation Requirements
 
-Maintain:
-
-- `docs/architecture.md`
-- `docs/structure.md`
-- `docs/routes.md`
-- `docs/component-map.md`
-- `docs/data-flow.md`
-- `docs/deployment.md`
-- `docs/api-contract.md`
+Maintain `docs/platform.md` (routes, components, data flow, deployment) and `docs/api.md` (endpoints).
 
 ## Data Flow
 

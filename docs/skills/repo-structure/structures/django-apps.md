@@ -60,4 +60,4 @@ All API errors should include:
 }
 ```
 
-See `docs/api-contract.md` for endpoint groups.
+See `docs/api.md` for endpoint groups.

@@ -150,4 +150,4 @@ The previous `src/agent_runtime/` layout is retired. Map old concepts as follows
 | Specialist workflows | `utils/apps/{app}/agent/` |
 | Permissions, sandbox, storage | `utils/shared/` |
 
-See `docs/rebuild-plan.md` for the full rebuild reference.
+See `docs/platform.md` for the full platform reference.

@@ -10,22 +10,15 @@ This repository is configured as a local-first Django/DRF platform with LangGrap
 - Frontend runtime: Node with `npm`, under `web/`.
 - Repository shape: monorepo with modular apps under `utils/apps/`.
 - Shared code: app services in `utils/apps/{name}/`; cross-app utilities in `utils/shared/`.
-- API contracts: `docs/api-contract.md` until generated OpenAPI schemas exist.
+- API contracts: `docs/api.md` until generated OpenAPI schemas exist.
 - Tests: grouped by agents, api, utils/apps, utils/shared, and web.
 
 ## Required Documentation
 
 Maintain these files:
 
-- `docs/rebuild-plan.md`
-- `docs/documentation.md`
-- `docs/architecture.md`
-- `docs/structure.md`
-- `docs/routes.md`
-- `docs/component-map.md`
-- `docs/data-flow.md`
-- `docs/deployment.md`
-- `docs/api-contract.md`
+- `docs/platform.md` — architecture, structure, routes, deployment, testing
+- `docs/api.md` — HTTP API contract
 
 ## Validation Commands
 

@@ -16,4 +16,4 @@ tests/
 
 Tests must include denial cases for permission, path, namespace, dataset, schema, shell, and sandbox boundaries.
 
-See `docs/idea/test-rules.md`.
+See the Testing section in `docs/platform.md`.

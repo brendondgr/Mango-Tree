@@ -13,8 +13,8 @@ The frontend target is a React/Vite SPA with shadcn/ui and the Mango theme.
 ## Implementation Expectations
 
 - Keep placeholders minimal and structural until the React/Vite scaffold replaces the legacy Astro skeleton.
-- Use route, component-map, data-flow, deployment, and API docs as the source of truth.
-- Do not invent backend endpoints before `docs/api-contract.md` defines them.
+- Use `docs/platform.md` and `docs/api.md` as the source of truth.
+- Do not invent backend endpoints before `docs/api.md` defines them.
 - Do not extend the legacy Astro/UnoCSS skeleton.
 
 ## Commands

@@ -13,4 +13,4 @@ Django REST Framework surface consumed by the `web/` frontend.
 
 Views should be thin: validate input, call app services, serialize output. Domain logic belongs in `utils/apps/{app}/backend/services/`.
 
-See `docs/api-contract.md` and `docs/skills/django-backend/`.
+See `docs/api.md` and `docs/skills/django-backend/`.

@@ -1,0 +1,166 @@
+# Mango Platform
+
+Mango Tree is a local-first, permissioned agent platform. It routes requests through a coordinator, delegates broad reasoning to a planner, and executes narrow work through LangGraph workflows and app-scoped tools. The frontend consumes APIs; agents consume tools. Both reach the same app services.
+
+## Stack
+
+| Layer | Technology |
+| --- | --- |
+| Frontend | React, TypeScript, Vite, TanStack Router/Query, Zustand, Tailwind, shadcn/ui |
+| API | Django REST Framework |
+| Backend | Django, ASGI/Uvicorn, Celery, Redis |
+| Agents | LangGraph under `agents/` |
+| Database | PostgreSQL, pgvector |
+| Models | Llama-CPP, cloud provider abstraction |
+| Storage | S3-compatible object storage |
+| Python tooling | `uv` |
+
+## Repository Layout
+
+```text
+.
+|-- agents/                 # coordinator, planner, memory, tools, providers
+|-- api/                    # DRF routes, serializers, middleware, schemas
+|-- config/                 # Django settings and runtime YAML
+|-- docs/
+|   |-- platform.md         # this file
+|   |-- api.md              # HTTP API contract
+|   `-- skills/             # agent instruction packs (symlinked from .claude/ and .codex/)
+|-- utils/
+|   |-- apps/{name}/        # backend, frontend, agent, shared per app
+|   `-- shared/             # auth, permissions, storage, search, embeddings, events
+|-- tests/
+|-- web/                    # React/Vite SPA (legacy Astro skeleton until rebuild)
+`-- pyproject.toml
+```
+
+### App Standard
+
+```text
+utils/apps/{app_name}/
+|-- backend/{api,models,services,tasks}/
+|-- frontend/{components,pages,hooks}/
+|-- agent/{tools.py,prompts.py}/
+`-- shared/
+```
+
+Registered apps: projects, notes, jobs, calendar, recipes, imdbspy, exercise, timekeeper.
+
+**Code placement:** business logic in `backend/services/` or `shared/`; agent tools call services; UI in `web/src/` or `utils/apps/{app}/frontend/`; no business logic in `web/src/services/` beyond API clients.
+
+## Architecture
+
+```text
+User -> web/ -> api/ -> utils/apps/{app}/backend/services/
+User -> agents/coordinator -> agents/planner OR utils/apps/{app}/agent/tools -> same services
+```
+
+| Layer | Path | Role |
+| --- | --- | --- |
+| Frontend | `web/` | Dashboard, chat, command palette; API clients only |
+| API | `api/` | DRF surface for the UI |
+| Agents | `agents/` | LangGraph orchestration |
+| Apps | `utils/apps/{name}/` | Domain logic, UI fragments, agent tools |
+| Shared | `utils/shared/` | Auth, permissions, storage, search, embeddings, events |
+
+The coordinator routes and validates. The planner reasons and delegates. Specialists use app tools with scoped permissions enforced in code, not prompts.
+
+## Data Flow
+
+**UI:** `web/src/services/` → `api/routes/` → app services → PostgreSQL/S3/Redis → TanStack Query → React.
+
+**Agents:** coordinator → planner or app workflow → `agents/tools/` → `utils/apps/{app}/agent/tools.py` → app services → events/artifacts.
+
+**Background:** API or agent trigger → Celery task → app services → `utils/shared/events/`.
+
+## Frontend
+
+Target: React/Vite SPA with Mango theme (shadcn/Tailwind, derived from Pulse Light). Legacy Astro skeleton in `web/` must not be extended.
+
+### Routes (TanStack Router)
+
+| Route | Data Source |
+| --- | --- |
+| `/dashboard` | `/api/tasks/`, app summaries |
+| `/chat` | `/api/tasks/`, agent endpoints |
+| `/projects`, `/projects/:id` | `/api/projects/` |
+| `/notes`, `/notes/:id` | `/api/notes/` |
+| `/jobs` | `/api/jobs/` |
+| `/calendar` | `/api/calendar/events/` |
+| `/agents` | `/api/agents/` |
+| `/workflows` | `/api/workflows/` |
+| `/tools` | `/api/tools/` |
+| `/memory` | `/api/memory/` |
+| `/traces/:taskId` | `/api/traces/{task_id}/` |
+| `/settings` | TBD |
+
+Future: `/recipes`, `/imdbspy`, `/exercise`, `/timekeeper`. Do not implement a route until its endpoint exists in `docs/api.md`.
+
+### Component Map
+
+| Area | Path |
+| --- | --- |
+| Router, providers, layouts, stores | `web/src/app/` |
+| UI primitives (shadcn) | `web/src/components/ui/` |
+| Forms, tables, charts, markdown | `web/src/components/{forms,tables,charts,markdown}/` |
+| Features (chat, dashboard, command-palette, memory, settings) | `web/src/features/` |
+| Pages | `web/src/pages/` |
+| API clients, types, hooks, styles | `web/src/{services,types,hooks,lib,styles}/` |
+| App UI fragments | `utils/apps/{app}/frontend/` |
+
+## Build Sequence
+
+1. Replace `web/` Astro skeleton with React/Vite shell.
+2. Define app boundaries under `utils/apps/{app_name}`.
+3. Build shared API and tool interfaces.
+4. Migrate one app at a time (Flask apps: keep models/services/API; remove templates/static/routing).
+5. Connect agents to the same app tools used by the UI.
+6. Delete old frontend artifacts.
+
+## Deployment
+
+**Prerequisites:** Python 3.13+ (`uv`), Node/npm, PostgreSQL+pgvector, Redis, optional S3.
+
+```bash
+# Backend
+uv sync && uv run manage.py migrate && uv run manage.py runserver
+uv run uvicorn config.django.asgi:application --reload
+uv run celery -A config.django worker --loglevel=info
+uv run pytest
+
+# Frontend (target)
+cd web && npm install && npm run dev && npm run build
+```
+
+Config lives in `config/` (Django settings, models/agents/tools/permissions/workflows YAML). Secrets via `.env` only.
+
+| Service | Default |
+| --- | --- |
+| PostgreSQL | localhost:5432 |
+| Redis | localhost:6379 |
+| Django/DRF | localhost:8000 |
+| Vite dev | localhost:5173 |
+
+## Testing
+
+Tests prove routing, permissions, schemas, and boundaries — not just happy paths.
+
+```text
+tests/{agents,api,utils/apps,utils/shared,web}/
+```
+
+Core rules:
+
+- Tools reject calls outside `allowed_tools`, paths, namespaces, and datasets.
+- DRF views and agent tools must enforce the same permissions for equivalent operations.
+- Agent tools must call the same services as DRF views.
+- Include denial cases, not only success flows.
+- Mock local inference unless testing the model runtime.
+
+## Skills
+
+Detailed conventions live in `docs/skills/` (symlinked from `.claude/skills/` and `.codex/skills/`): repo-structure, django-backend, app-modules, website-architecture, ui-frontend, plan.
+
+## Migration Note
+
+The retired `src/agent_runtime/` layout maps to: orchestration → `agents/coordinator/`, general agent → `agents/planner/`, memory → `agents/memory/`, tools → `agents/tools/`, inference → `agents/providers/`, specialists → `utils/apps/{app}/agent/`.

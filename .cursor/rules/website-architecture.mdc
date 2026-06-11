@@ -1,6 +1,6 @@
 ---
 description: Website architecture rules for the Mango Tree React/Vite frontend.
-globs: ["web/**/*", "docs/routes.md", "docs/component-map.md", "docs/data-flow.md", "docs/api-contract.md", "docs/deployment.md"]
+globs: ["web/**/*", "docs/platform.md", "docs/api.md"]
 alwaysApply: false
 ---
 

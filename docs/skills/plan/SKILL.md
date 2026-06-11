@@ -28,7 +28,7 @@ Plan work as a sequence of small, verifiable changes for a local-first agent pla
 
 ## Build Sequence Reference
 
-Follow the phased sequence in `docs/rebuild-plan.md`:
+Follow the build sequence in `docs/platform.md`:
 
 1. Create the new `web/` application shell.
 2. Define app boundaries under `utils/apps/{app_name}`.

@@ -4,7 +4,7 @@ This directory contains the Mango Tree frontend.
 
 ## Status: Legacy Astro Skeleton
 
-The current contents are a **legacy Astro skeleton** (Astro, Svelte/React islands, UnoCSS) that will be replaced during Phase 1 of the rebuild documented in `docs/rebuild-plan.md`.
+The current contents are a **legacy Astro skeleton** (Astro, Svelte/React islands, UnoCSS) that will be replaced during Phase 1 of the rebuild documented in `docs/platform.md`.
 
 **Do not extend the Astro skeleton.** New frontend work follows the React/Vite architecture:
 

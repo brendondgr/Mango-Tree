@@ -64,7 +64,7 @@ App-specific UI fragments may also live under `utils/apps/{app_name}/frontend/` 
 - API client calls belong in `web/src/services/`; no business logic beyond request/response handling.
 - App-specific components belong in `utils/apps/{app}/frontend/` when they are not shared across the shell.
 - Theme tokens live in `web/src/styles/` using Tailwind and shadcn CSS variables (Mango theme).
-- Do not invent backend endpoints before `docs/api-contract.md` defines them.
+- Do not invent backend endpoints before `docs/api.md` defines them.
 
 ## Legacy Note
 

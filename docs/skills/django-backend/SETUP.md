@@ -24,7 +24,5 @@ uv run pytest tests/utils/
 
 Keep synchronized:
 
-- `docs/api-contract.md`
-- `docs/architecture.md`
-- `docs/data-flow.md`
-- `docs/deployment.md`
+- `docs/platform.md`
+- `docs/api.md`
