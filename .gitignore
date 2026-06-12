@@ -37,6 +37,7 @@ ENV/
 env.bak/
 venv.bak/
 .pytest_cache/
+.django-test.sqlite3
 .coverage
 htmlcov/
 .mypy_cache/
