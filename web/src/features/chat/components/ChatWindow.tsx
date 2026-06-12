@@ -11,6 +11,7 @@ import {
 import { useMemo, useRef, useState } from "react";
 
 import { useLlmConfigStore } from "@/app/stores/llmConfigStore";
+import { appQueryClient } from "@/app/providers";
 import type { ChatMessage } from "@/app/stores/workspaceStore";
 import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
@@ -33,9 +34,11 @@ import {
   formatLlmError,
 } from "@/features/chat/utils/buildLlmMessageContent";
 import { groupMessagesIntoTurns } from "@/features/chat/utils/groupMessagesIntoTurns";
+import { persistChatAttachments } from "@/features/chat/utils/persistChatAttachments";
 import { streamLlm } from "@/services/llmClient";
 import { useTheme } from "@/hooks/useTheme";
 import { WorkspaceSidebarShell } from "@/features/workspace/components/WorkspaceSidebarShell";
+import { ARTIFACTS_QUERY_KEY } from "@media-viewer/hooks/useArtifacts";
 
 export function ChatWindow() {
   const { isDark, toggleTheme } = useTheme();
@@ -93,12 +96,42 @@ export function ChatWindow() {
 
     const history = [...messages, pendingUserMessage];
 
-    addMessage({
+    const userMessageId = addMessage({
       role: "user",
       content: text,
       attachments: attachments.length > 0 ? attachments : undefined,
     });
     forceScrollToBottom();
+
+    if (pendingAttachments.length > 0) {
+      void persistChatAttachments(pendingAttachments, {
+        chatSessionId,
+        messageId: userMessageId,
+      })
+        .then((results) => {
+          if (results.length === 0) return;
+          const current = useWorkspaceStore
+            .getState()
+            .messages.find((entry) => entry.id === userMessageId);
+          if (!current?.attachments) return;
+
+          const artifactByAttachmentId = new Map(
+            results.map((result) => [result.attachmentId, result.artifactId]),
+          );
+          updateMessage(userMessageId, {
+            attachments: current.attachments.map((attachment) => ({
+              ...attachment,
+              artifactId:
+                artifactByAttachmentId.get(attachment.id) ?? attachment.artifactId,
+            })),
+          });
+          appQueryClient.invalidateQueries({ queryKey: ARTIFACTS_QUERY_KEY });
+        })
+        .catch((persistError) => {
+          console.warn("Failed to persist chat attachments as artifacts", persistError);
+        });
+    }
+
     setIsTyping(true);
 
     const agentMessageId = addMessage({

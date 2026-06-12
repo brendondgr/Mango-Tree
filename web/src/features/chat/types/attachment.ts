@@ -12,6 +12,7 @@ export interface ChatAttachment {
   dataUrl?: string;
   llmNote?: string;
   error?: string;
+  artifactId?: string;
 }
 
 export interface PendingAttachment {

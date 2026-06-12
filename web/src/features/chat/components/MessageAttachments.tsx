@@ -63,6 +63,11 @@ function TextAttachmentCard({
         <span className="min-w-0 flex-1 truncate font-medium">
           {attachment.name}
         </span>
+        {attachment.artifactId && (
+          <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+            Saved
+          </span>
+        )}
         {attachment.language && (
           <span className="shrink-0 rounded bg-background/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide opacity-80">
             {attachment.language}
@@ -203,6 +208,11 @@ export function MessageAttachments({
           >
             <AttachmentKindIcon kind={attachment.kind} />
             <span className="truncate font-medium">{attachment.name}</span>
+            {attachment.artifactId && (
+              <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                Saved to artifacts
+              </span>
+            )}
             <span className="text-[10px] opacity-70">
               {formatBytes(attachment.size)}
             </span>

@@ -10,6 +10,8 @@ const queryClient = new QueryClient({
   },
 });
 
+export const appQueryClient = queryClient;
+
 export function AppProviders({ children }: { children: ReactNode }) {
   const [client] = useState(() => queryClient);
 

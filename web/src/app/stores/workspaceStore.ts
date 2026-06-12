@@ -61,7 +61,9 @@ interface WorkspaceState {
   ) => void;
   updateMessage: (
     id: string,
-    update: Partial<Pick<ChatMessage, "content" | "thinking" | "isStreaming">>,
+    update: Partial<
+      Pick<ChatMessage, "content" | "thinking" | "isStreaming" | "attachments">
+    >,
   ) => void;
   startNewChat: () => void;
   clearMessages: () => void;
