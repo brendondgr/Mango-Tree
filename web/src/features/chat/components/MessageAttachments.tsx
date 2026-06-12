@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { MessageImageLightbox } from "@/features/chat/components/MessageImageLightbox";
+import { MessageImageStrip } from "@/features/chat/components/MessageImageStrip";
 import type { ChatAttachment } from "@/features/chat/types/attachment";
 import { formatBytes } from "@/features/chat/utils/fileType";
 import { cn } from "@/lib/utils";
@@ -111,15 +113,50 @@ function ErrorAttachmentChip({
   );
 }
 
+function isImageAttachment(attachment: ChatAttachment): boolean {
+  return (
+    !attachment.error &&
+    attachment.kind === "image" &&
+    Boolean(attachment.previewUrl)
+  );
+}
+
 export function MessageAttachments({
   attachments,
   variant = "user",
 }: MessageAttachmentsProps) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
   if (attachments.length === 0) return null;
+
+  const imageAttachments = attachments.filter(isImageAttachment);
+  const otherAttachments = attachments.filter(
+    (attachment) => !isImageAttachment(attachment),
+  );
 
   return (
     <div className="mb-2 flex w-full flex-col gap-2">
-      {attachments.map((attachment) => {
+      {imageAttachments.length > 0 && (
+        <>
+          <MessageImageStrip
+            images={imageAttachments}
+            variant={variant}
+            onImageClick={(index) => {
+              setLightboxIndex(index);
+              setLightboxOpen(true);
+            }}
+          />
+          <MessageImageLightbox
+            images={imageAttachments}
+            open={lightboxOpen}
+            initialIndex={lightboxIndex}
+            onOpenChange={setLightboxOpen}
+          />
+        </>
+      )}
+
+      {otherAttachments.map((attachment) => {
         if (attachment.error) {
           return (
             <ErrorAttachmentChip
@@ -127,24 +164,6 @@ export function MessageAttachments({
               attachment={attachment}
               variant={variant}
             />
-          );
-        }
-
-        if (attachment.kind === "image" && attachment.previewUrl) {
-          return (
-            <a
-              key={attachment.id}
-              href={attachment.previewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block overflow-hidden rounded-md"
-            >
-              <img
-                src={attachment.previewUrl}
-                alt={attachment.name}
-                className="max-h-48 w-auto max-w-full rounded-md object-contain"
-              />
-            </a>
           );
         }
 
