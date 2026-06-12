@@ -33,8 +33,14 @@ export function ArtifactsSidebar() {
         )}
 
         {isError && (
-          <div className="p-4 text-sm text-destructive">
-            {error instanceof Error ? error.message : "Failed to load artifacts"}
+          <div className="space-y-2 p-4 text-sm text-destructive">
+            <p>{error instanceof Error ? error.message : "Failed to load artifacts"}</p>
+            <p className="text-xs text-muted-foreground">
+              Run the Django API in a separate terminal:{" "}
+              <code className="rounded bg-muted px-1 py-0.5 text-foreground">
+                uv run manage.py runserver
+              </code>
+            </p>
           </div>
         )}
 

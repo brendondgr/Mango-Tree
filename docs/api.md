@@ -29,6 +29,10 @@ Stable codes: `validation_error`, `permission_denied`, `not_found`, `conflict`, 
 | Memory | `GET /api/memory/namespaces/`, `GET /api/memory/datasets/` |
 | Traces | `GET /api/traces/{task_id}/events|artifacts|logs/` |
 
+### Health
+
+`GET /api/health/` — returns `{"status":"ok"}` when the Django API is running.
+
 ## App Endpoints
 
 ### Projects

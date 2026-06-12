@@ -8,6 +8,14 @@ async function parseError(response: Response): Promise<ApiErrorBody> {
   try {
     return (await response.json()) as ApiErrorBody;
   } catch {
+    if (response.status >= 500) {
+      return {
+        code: "internal_error",
+        message:
+          "Artifact API is unavailable. Start the backend with `uv run manage.py runserver` on port 8000.",
+        details: {},
+      };
+    }
     return {
       code: "internal_error",
       message: response.statusText || "Request failed",
@@ -17,7 +25,14 @@ async function parseError(response: Response): Promise<ApiErrorBody> {
 }
 
 async function request<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
-  const response = await fetch(input, init);
+  let response: Response;
+  try {
+    response = await fetch(input, init);
+  } catch {
+    throw new Error(
+      "Cannot reach the artifact API. Start the backend with `uv run manage.py runserver` on port 8000.",
+    );
+  }
   if (!response.ok) {
     const error = await parseError(response);
     throw new Error(error.message || error.code);
