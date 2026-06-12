@@ -27,5 +27,6 @@
       "pdfjs-dist": ["./node_modules/pdfjs-dist"]
     }
   },
-  "include": ["src", "../utils/apps/media_viewer/frontend"]
+  "include": ["src", "../utils/apps/media_viewer/frontend"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }
