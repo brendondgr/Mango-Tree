@@ -2,12 +2,14 @@ import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { initColorPalette } from "@/app/stores/colorPaletteStore";
 import { router } from "@/app/router";
 import { initTheme } from "@/lib/theme";
 
 import "@/styles/globals.css";
 
 initTheme();
+initColorPalette();
 
 const rootEl = document.getElementById("root");
 if (!rootEl) {
