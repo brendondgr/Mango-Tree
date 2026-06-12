@@ -15,9 +15,11 @@ const sanitizeSchema = {
   tagNames: [...(defaultSchema.tagNames ?? []), "u"],
 };
 
+const textWrap = "min-w-0 break-words [overflow-wrap:anywhere]";
+
 const markdownComponents: Components = {
   p: ({ children }) => (
-    <p className="mb-2 leading-relaxed last:mb-0">{children}</p>
+    <p className={cn("mb-2 leading-relaxed last:mb-0", textWrap)}>{children}</p>
   ),
   a: ({ href, children }) => (
     <a
@@ -40,14 +42,21 @@ const markdownComponents: Components = {
     <u className="underline underline-offset-2">{children}</u>
   ),
   ul: ({ children }) => (
-    <ul className="mb-2 ml-4 list-disc last:mb-0">{children}</ul>
+    <ul className={cn("mb-2 ml-4 list-disc last:mb-0", textWrap)}>{children}</ul>
   ),
   ol: ({ children }) => (
-    <ol className="mb-2 ml-4 list-decimal last:mb-0">{children}</ol>
+    <ol className={cn("mb-2 ml-4 list-decimal last:mb-0", textWrap)}>{children}</ol>
   ),
-  li: ({ children }) => <li className="mb-1 last:mb-0">{children}</li>,
+  li: ({ children }) => (
+    <li className={cn("mb-1 last:mb-0", textWrap)}>{children}</li>
+  ),
   blockquote: ({ children }) => (
-    <blockquote className="mb-2 border-l-2 border-border pl-3 text-muted-foreground last:mb-0">
+    <blockquote
+      className={cn(
+        "mb-2 border-l-2 border-border pl-3 text-muted-foreground last:mb-0",
+        textWrap,
+      )}
+    >
       {children}
     </blockquote>
   ),
@@ -62,7 +71,10 @@ const markdownComponents: Components = {
     }
     return (
       <code
-        className="rounded bg-muted px-1 py-0.5 font-mono text-xs"
+        className={cn(
+          "rounded bg-muted px-1 py-0.5 font-mono text-xs",
+          textWrap,
+        )}
         {...props}
       >
         {children}
@@ -75,30 +87,52 @@ const markdownComponents: Components = {
     </pre>
   ),
   h1: ({ children }) => (
-    <h1 className="mt-2 mb-1 text-base font-bold tracking-tight first:mt-0 last:mb-0">
+    <h1
+      className={cn(
+        "mt-2 mb-1 text-base font-bold tracking-tight first:mt-0 last:mb-0",
+        textWrap,
+      )}
+    >
       {children}
     </h1>
   ),
   h2: ({ children }) => (
-    <h2 className="mb-1 text-sm font-bold last:mb-0">{children}</h2>
+    <h2 className={cn("mb-1 text-sm font-bold last:mb-0", textWrap)}>{children}</h2>
   ),
   h3: ({ children }) => (
-    <h3 className="mb-1 text-sm font-semibold text-foreground/90 last:mb-0">
+    <h3
+      className={cn("mb-1 text-sm font-semibold text-foreground/90 last:mb-0", textWrap)}
+    >
       {children}
     </h3>
   ),
   h4: ({ children }) => (
-    <h4 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase last:mb-0">
+    <h4
+      className={cn(
+        "mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase last:mb-0",
+        textWrap,
+      )}
+    >
       {children}
     </h4>
   ),
   h5: ({ children }) => (
-    <h5 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase last:mb-0">
+    <h5
+      className={cn(
+        "mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase last:mb-0",
+        textWrap,
+      )}
+    >
       {children}
     </h5>
   ),
   h6: ({ children }) => (
-    <h6 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase last:mb-0">
+    <h6
+      className={cn(
+        "mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase last:mb-0",
+        textWrap,
+      )}
+    >
       {children}
     </h6>
   ),
