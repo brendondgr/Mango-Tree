@@ -1,17 +1,28 @@
 import {
   FileText,
   Film,
+  FolderOpen,
   ImageIcon,
   Loader2,
   Paperclip,
+  Plus,
   Send,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useLlmConfigStore } from "@/app/stores/llmConfigStore";
 import type { ChatMessage } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ContextUsageRing } from "@/features/chat/components/ContextUsageRing";
 import { useContextUsage } from "@/features/chat/hooks/useContextUsage";
 import { useComposerArtifactStore } from "@/features/chat/stores/composerArtifactStore";
@@ -28,6 +39,13 @@ import {
   revokeAttachmentUrls,
 } from "@/features/chat/utils/processAttachment";
 import { cn } from "@/lib/utils";
+import { ArtifactPickerList } from "@media-viewer/components/ArtifactPickerList";
+import { ArtifactSearchControls } from "@media-viewer/components/ArtifactSearchControls";
+import { useArtifacts } from "@media-viewer/hooks/useArtifacts";
+import {
+  filterArtifacts,
+  type ArtifactTypeFilter,
+} from "@media-viewer/utils/filterArtifacts";
 
 interface ChatComposerProps {
   disabled?: boolean;
@@ -67,6 +85,20 @@ export function ChatComposer({
 
   const artifactQueue = useComposerArtifactStore((s) => s.queue);
   const dequeueAll = useComposerArtifactStore((s) => s.dequeueAll);
+  const enqueueArtifact = useComposerArtifactStore((s) => s.enqueueArtifact);
+
+  const [artifactQuery, setArtifactQuery] = useState("");
+  const [artifactTypeFilter, setArtifactTypeFilter] =
+    useState<ArtifactTypeFilter>("all");
+  const { data: artifactsData } = useArtifacts();
+  const filteredArtifacts = useMemo(
+    () =>
+      filterArtifacts(artifactsData?.results ?? [], {
+        query: artifactQuery,
+        typeFilter: artifactTypeFilter,
+      }),
+    [artifactsData?.results, artifactQuery, artifactTypeFilter],
+  );
 
   const llmConfig = useLlmConfigStore((s) => s.config);
   const readyAttachments = attachments.filter((a) => a.status === "ready");
@@ -367,17 +399,54 @@ export function ChatComposer({
               }
             }}
           />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="shrink-0"
-            aria-label="Attach files"
-            disabled={disabled || isSubmitting}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Paperclip className="h-4 w-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="shrink-0"
+                aria-label="Add to message"
+                disabled={disabled || isSubmitting}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="top" className="w-44">
+              <DropdownMenuItem
+                disabled={disabled || isSubmitting}
+                onSelect={() => fileInputRef.current?.click()}
+              >
+                <Paperclip className="h-4 w-4" />
+                Attach files
+              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger disabled={disabled || isSubmitting}>
+                  <FolderOpen className="h-4 w-4" />
+                  Artifacts
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-64 p-0">
+                  <div
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => event.stopPropagation()}
+                  >
+                    <ArtifactSearchControls
+                      query={artifactQuery}
+                      onQueryChange={setArtifactQuery}
+                      typeFilter={artifactTypeFilter}
+                      onTypeFilterChange={setArtifactTypeFilter}
+                      variant="compact"
+                    />
+                    <ArtifactPickerList
+                      artifacts={filteredArtifacts}
+                      onAdd={enqueueArtifact}
+                      variant="compact"
+                    />
+                  </div>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <textarea
             ref={textareaRef}
             id="chat-input"
