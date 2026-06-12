@@ -30,7 +30,7 @@ Mango Tree is a local-first, permissioned agent platform. It routes requests thr
 |   |-- apps/{name}/        # backend, frontend, agent, shared per app
 |   `-- shared/             # auth, permissions, storage, search, embeddings, events
 |-- tests/
-|-- web/                    # React/Vite SPA (legacy Astro skeleton until rebuild)
+|-- web/                    # React/Vite SPA
 `-- pyproject.toml
 ```
 
@@ -75,7 +75,7 @@ The coordinator routes and validates. The planner reasons and delegates. Special
 
 ## Frontend
 
-Target: React/Vite SPA with swappable shadcn/Tailwind themes (Canva-inspired default). Legacy Astro skeleton in `web/` must not be extended.
+Target: React/Vite SPA with swappable shadcn/Tailwind themes (Canva-inspired default). The `/chat` route uses `AgentWorkspaceLayout` for the agent workspace shell.
 
 ### Routes (TanStack Router)
 
@@ -103,14 +103,15 @@ Future: `/recipes`, `/imdbspy`, `/exercise`, `/timekeeper`. Do not implement a r
 | Router, providers, layouts, stores | `web/src/app/` |
 | UI primitives (shadcn) | `web/src/components/ui/` |
 | Forms, tables, charts, markdown | `web/src/components/{forms,tables,charts,markdown}/` |
-| Features (chat, dashboard, command-palette, memory, settings) | `web/src/features/` |
+| Features (chat, workspace, dashboard, command-palette, memory, settings) | `web/src/features/` |
+| Agent workspace layout (`/chat`) | `web/src/app/layouts/AgentWorkspaceLayout.tsx` composes `ChatWindow`, `WorkspaceHeader`, `WorkspaceMainBody` |
 | Pages | `web/src/pages/` |
 | API clients, types, hooks, styles | `web/src/{services,types,hooks,lib,styles}/` |
 | App UI fragments | `utils/apps/{app}/frontend/` |
 
 ## Build Sequence
 
-1. Replace `web/` Astro skeleton with React/Vite shell.
+1. ~~Replace `web/` Astro skeleton with React/Vite shell.~~ (done — workspace shell at `/chat`)
 2. Define app boundaries under `utils/apps/{app_name}`.
 3. Build shared API and tool interfaces.
 4. Migrate one app at a time (Flask apps: keep models/services/API; remove templates/static/routing).
