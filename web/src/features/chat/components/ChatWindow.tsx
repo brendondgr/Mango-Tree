@@ -1,4 +1,5 @@
 import {
+  ArrowDown,
   Download,
   Info,
   Moon,
@@ -7,7 +8,7 @@ import {
   Sun,
   Trash2,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import { useLlmConfigStore } from "@/app/stores/llmConfigStore";
 import { useWorkspaceStore } from "@/app/stores/workspaceStore";
@@ -24,6 +25,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatEmptyState } from "@/features/chat/components/ChatEmptyState";
 import { ChatMessage } from "@/features/chat/components/ChatMessage";
 import { TypingIndicator } from "@/features/chat/components/TypingIndicator";
+import { useChatAutoScroll } from "@/features/chat/hooks/useChatAutoScroll";
 import { groupMessagesIntoTurns } from "@/features/chat/utils/groupMessagesIntoTurns";
 import { LlmClientError, queryLlm } from "@/services/llmClient";
 import type { LlmChatMessage } from "@/services/llmTypes";
@@ -41,7 +43,6 @@ function toLlmMessages(
 }
 
 export function ChatWindow() {
-  const viewportRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const { isDark, toggleTheme } = useTheme();
 
@@ -62,12 +63,11 @@ export function ChatWindow() {
     collapseSidebar,
   } = useSidebarResize();
 
-  useEffect(() => {
-    const el = viewportRef.current;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
-    }
-  }, [messages, isTyping]);
+  const { viewportRef, hasUnreadBelow, forceScrollToBottom } =
+    useChatAutoScroll({
+      messagesLength: messages.length,
+      isTyping,
+    });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +86,7 @@ export function ChatWindow() {
 
     addMessage({ role: "user", content: text });
     setInput("");
+    forceScrollToBottom();
     setIsTyping(true);
 
     try {
@@ -207,8 +208,8 @@ export function ChatWindow() {
           </DropdownMenu>
         </header>
 
-        <ScrollArea className="flex-1 bg-background">
-          <div ref={viewportRef} className="flex flex-col gap-3 p-3">
+        <ScrollArea viewportRef={viewportRef} className="flex-1 bg-background">
+          <div className="flex flex-col gap-3 p-3">
             {messages.length === 0 && !isTyping && <ChatEmptyState />}
             {groupMessagesIntoTurns(messages).map((turn) => (
               <ChatMessage key={turn.id} turn={turn} />
@@ -216,6 +217,21 @@ export function ChatWindow() {
             {isTyping && <TypingIndicator />}
           </div>
         </ScrollArea>
+
+        {hasUnreadBelow && (
+          <div className="relative shrink-0 px-3 pb-1">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="absolute bottom-0 left-1/2 z-10 -translate-x-1/2 shadow-md"
+              onClick={forceScrollToBottom}
+            >
+              <ArrowDown className="h-4 w-4" />
+              New messages
+            </Button>
+          </div>
+        )}
 
         <div className="shrink-0 border-t border-border bg-card p-3">
           <form onSubmit={handleSubmit}>

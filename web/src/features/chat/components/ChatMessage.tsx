@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from "framer-motion";
 
+import { MarkdownContent } from "@/components/markdown/MarkdownContent";
 import type { ChatTurn } from "@/features/chat/utils/groupMessagesIntoTurns";
 
 interface ChatMessageProps {
@@ -37,9 +38,7 @@ export function ChatMessage({ turn }: ChatMessageProps) {
         </div>
       )}
       {turn.replies.map((reply) => (
-        <p key={reply.id} className="text-sm leading-snug text-foreground">
-          {reply.content}
-        </p>
+        <MarkdownContent key={reply.id} content={reply.content} />
       ))}
     </motion.div>
   );
