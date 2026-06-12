@@ -14,11 +14,14 @@ import type { ChatMessage } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
 import { ContextUsageRing } from "@/features/chat/components/ContextUsageRing";
 import { useContextUsage } from "@/features/chat/hooks/useContextUsage";
+import { useComposerArtifactStore } from "@/features/chat/stores/composerArtifactStore";
 import type {
   AttachmentKind,
   PendingAttachment,
 } from "@/features/chat/types/attachment";
+import { artifactToPendingAttachment } from "@/features/chat/utils/artifactToPendingAttachment";
 import type { LlmUsage } from "@/services/llmTypes";
+import { getArtifact } from "@/services/mediaViewerClient";
 import { FILE_INPUT_ACCEPT, formatBytes } from "@/features/chat/utils/fileType";
 import {
   processAttachment,
@@ -62,6 +65,9 @@ export function ChatComposer({
   const attachmentsRef = useRef(attachments);
   attachmentsRef.current = attachments;
 
+  const artifactQueue = useComposerArtifactStore((s) => s.queue);
+  const dequeueAll = useComposerArtifactStore((s) => s.dequeueAll);
+
   const llmConfig = useLlmConfigStore((s) => s.config);
   const readyAttachments = attachments.filter((a) => a.status === "ready");
   const contextUsage = useContextUsage(
@@ -100,6 +106,71 @@ export function ChatComposer({
       attachmentsRef.current.forEach(revokePending);
     };
   }, [revokePending]);
+
+  useEffect(() => {
+    if (artifactQueue.length === 0) return;
+
+    const artifactIds = dequeueAll();
+
+    void (async () => {
+      for (const artifactId of artifactIds) {
+        if (
+          attachmentsRef.current.some(
+            (item) => item.attachment?.artifactId === artifactId,
+          )
+        ) {
+          continue;
+        }
+
+        let placeholderId: string | null = null;
+
+        try {
+          const artifact = await getArtifact(artifactId);
+          placeholderId = crypto.randomUUID();
+          setAttachments((prev) => [
+            ...prev,
+            {
+              id: placeholderId!,
+              file: new File([], artifact.filename, {
+                type: artifact.mime_type,
+              }),
+              status: "processing",
+            },
+          ]);
+
+          const pending = await artifactToPendingAttachment(artifact);
+          setAttachments((prev) => {
+            const withoutPlaceholder = prev.filter(
+              (item) => item.id !== placeholderId,
+            );
+            if (
+              withoutPlaceholder.some(
+                (item) => item.attachment?.artifactId === artifactId,
+              )
+            ) {
+              revokePending(pending);
+              return withoutPlaceholder;
+            }
+            return [...withoutPlaceholder, pending];
+          });
+        } catch (error) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Failed to load artifact";
+          if (placeholderId) {
+            setAttachments((prev) =>
+              prev.map((item) =>
+                item.id === placeholderId
+                  ? { ...item, status: "error", error: message }
+                  : item,
+              ),
+            );
+          }
+        }
+      }
+    })();
+  }, [artifactQueue, dequeueAll, revokePending]);
 
   const addFiles = useCallback(async (files: FileList | File[]) => {
     const fileArray = Array.from(files);

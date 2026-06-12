@@ -100,3 +100,19 @@ export function artifactContentUrl(id: string, disposition: "inline" | "attachme
 export function artifactThumbnailUrl(id: string) {
   return `/api/media-viewer/artifacts/${id}/thumbnail/`;
 }
+
+export async function fetchArtifactBlob(id: string): Promise<Blob> {
+  let response: Response;
+  try {
+    response = await fetch(artifactContentUrl(id));
+  } catch {
+    throw new Error(
+      "Cannot reach the artifact API. Start the backend with `uv run manage.py runserver` on port 8000.",
+    );
+  }
+  if (!response.ok) {
+    const error = await parseError(response);
+    throw new Error(error.message || error.code);
+  }
+  return response.blob();
+}

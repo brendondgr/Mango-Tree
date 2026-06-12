@@ -21,13 +21,22 @@ export async function persistChatAttachments(
 
   await Promise.all(
     ready.map(async (item) => {
+      const attachment = item.attachment!;
+      if (attachment.artifactId) {
+        results.push({
+          attachmentId: attachment.id,
+          artifactId: attachment.artifactId,
+        });
+        return;
+      }
+
       const record = await uploadArtifact(item.file, {
         source: "chat_upload",
         source_chat_session_id: context.chatSessionId,
         source_message_id: context.messageId,
       });
       results.push({
-        attachmentId: item.attachment!.id,
+        attachmentId: attachment.id,
         artifactId: record.id,
       });
     }),
