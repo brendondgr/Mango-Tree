@@ -1,9 +1,14 @@
 ---
 name: global
 description: >-
-  Always-on workflow for Mango Tree repository work. Applies to every agent
-  session when implementing plans or executing changes. Commits after each
-  validated step; forbids AI attribution in commit messages.
+  Always-on Mango Tree repository workflow. Read at the start of every session
+  that may edit files. Step-and-commit: finish one logical unit, validate it,
+  then git commit before the next step unless the user defers commits. Never add
+  AI or tool attribution to commit messages. Use for implementation, refactors,
+  bug fixes, feature work, plan execution, and any repository change workflow.
+metadata:
+  category: workflow
+  always: true
 ---
 
 # Global Skill

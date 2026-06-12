@@ -25,7 +25,7 @@ Mango Tree is a local-first, permissioned agent platform. It routes requests thr
 |-- docs/
 |   |-- platform.md         # this file
 |   |-- api.md              # HTTP API contract
-|   `-- skills/             # agent instruction packs (symlinked from .claude/ and .codex/)
+|   `-- skills/             # agent instruction packs (symlinked from .cursor/, .claude/, and .codex/)
 |-- utils/
 |   |-- apps/{name}/        # backend, frontend, agent, shared per app
 |   `-- shared/             # auth, permissions, storage, search, embeddings, events
@@ -160,7 +160,12 @@ Core rules:
 
 ## Skills
 
-Detailed conventions live in `docs/skills/` (symlinked from `.claude/skills/` and `.codex/skills/`): repo-structure, django-backend, app-modules, website-architecture, ui-frontend, plan.
+Detailed conventions live in `docs/skills/` (symlinked from `.cursor/skills/`, `.claude/skills/`, and `.codex/skills/`).
+
+- **global** — always-on step-and-commit workflow for every implementation session
+- **repo-structure**, **django-backend**, **app-modules**, **website-architecture**, **ui-frontend**, **plan** — domain-specific guidance
+
+On Windows after clone, run `./scripts/link-skills.ps1` if skill links check out as plain text files.
 
 ## Migration Note
 

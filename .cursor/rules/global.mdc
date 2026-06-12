@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Global workflow
 
-Applies to every session in this repository. Full detail: `docs/skills/global/SKILL.md`.
+Applies to every session in this repository. Read the full skill at `.cursor/skills/global/SKILL.md` (or `docs/skills/global/SKILL.md`).
 
 ## Step and commit
 
