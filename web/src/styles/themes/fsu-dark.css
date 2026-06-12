@@ -1,27 +1,28 @@
 /**
- * FSU Dark — stadium night surfaces with garnet and gold.
+ * FSU Dark — charcoal workspace (Stadium Night) with garnet/gold brand accents.
+ * Surfaces stay neutral; garnet is reserved for primary actions and focus.
  * Swap via data-theme="fsu-dark" on <html>.
  */
 
 [data-theme="fsu-dark"] {
   --background: 210 33% 9%;
-  --foreground: 0 0% 100%;
-  --card: 343 36% 25%;
-  --card-foreground: 0 0% 100%;
-  --popover: 343 32% 22%;
-  --popover-foreground: 0 0% 100%;
+  --foreground: 40 10% 92%;
+  --card: 210 22% 14%;
+  --card-foreground: 40 10% 92%;
+  --popover: 210 20% 17%;
+  --popover-foreground: 40 10% 92%;
   --primary: 343 44% 33%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 343 30% 20%;
-  --secondary-foreground: 43 41% 76%;
-  --muted: 204 20% 32%;
-  --muted-foreground: 43 30% 72%;
+  --secondary: 210 16% 20%;
+  --secondary-foreground: 43 35% 78%;
+  --muted: 204 14% 22%;
+  --muted-foreground: 210 10% 62%;
   --accent: 43 41% 67%;
   --accent-foreground: 210 33% 9%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-  --border: 343 22% 32%;
-  --input: 343 22% 32%;
+  --border: 210 12% 26%;
+  --input: 210 12% 26%;
   --ring: 343 44% 33%;
   --success: 160 84% 45%;
 
@@ -29,9 +30,9 @@
   --brand-gradient-pro: linear-gradient(135deg, #782f40, #ceb888);
   --primary-hover: 343 44% 38%;
   --surface-inset: 210 33% 7%;
-  --surface-cool: 343 28% 18%;
-  --ink-secondary: 43 30% 76%;
-  --ink-faint: 204 12% 55%;
+  --surface-cool: 204 16% 16%;
+  --ink-secondary: 43 25% 74%;
+  --ink-faint: 210 8% 50%;
   --warn: 38 92% 55%;
   --info: 174 44% 52%;
   --category-coral: 8 85% 58%;
@@ -46,7 +47,7 @@
   --radius-pill: 9999px;
   --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.35);
   --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.45);
-  --focus-ring: 0 0 0 3px rgba(120, 47, 64, 0.32);
+  --focus-ring: 0 0 0 3px rgba(120, 47, 64, 0.28);
   --motion-fast: 180ms;
   --motion-base: 280ms;
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
