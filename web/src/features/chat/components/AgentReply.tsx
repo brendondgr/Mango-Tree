@@ -47,6 +47,7 @@ export function AgentReply({
         {content ? (
           <MarkdownContent
             content={content}
+            variant="chat"
             className="min-w-0 max-w-full break-words [overflow-wrap:anywhere] [&_pre]:overflow-x-auto [&_.katex-display]:overflow-x-auto"
           />
         ) : showWaiting ? (

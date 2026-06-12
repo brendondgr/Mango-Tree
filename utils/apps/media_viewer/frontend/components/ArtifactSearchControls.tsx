@@ -1,6 +1,13 @@
-import { Search } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 import type { ArtifactTypeFilter } from "@media-viewer/utils/filterArtifacts";
@@ -20,6 +27,10 @@ const TYPE_OPTIONS: { value: ArtifactTypeFilter; label: string }[] = [
   { value: "videos", label: "Videos" },
 ];
 
+function typeFilterLabel(filter: ArtifactTypeFilter): string {
+  return TYPE_OPTIONS.find((option) => option.value === filter)?.label ?? "All";
+}
+
 export function ArtifactSearchControls({
   query,
   onQueryChange,
@@ -36,43 +47,73 @@ export function ArtifactSearchControls({
         compact ? "p-2" : "border-b border-border px-3 py-2",
       )}
     >
-      <div className="relative min-w-0 flex-1">
+      <div
+        className={cn(
+          "flex min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-sm)] border border-input bg-background px-2 shadow-sm focus-within:ring-2 focus-within:ring-ring",
+          compact ? "h-7" : "h-9",
+        )}
+      >
         <Search
           className={cn(
-            "pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground",
+            "shrink-0 text-muted-foreground",
             compact ? "h-3 w-3" : "h-3.5 w-3.5",
           )}
           aria-hidden
         />
-        <Input
+        <input
           type="search"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Search artifacts…"
           className={cn(
-            "pl-7",
-            compact && "h-7 text-xs",
+            "min-w-0 flex-1 border-0 bg-transparent text-foreground outline-none placeholder:text-muted-foreground",
+            compact ? "text-xs" : "text-sm",
           )}
           aria-label="Search artifacts by filename"
         />
       </div>
-      <select
-        value={typeFilter}
-        onChange={(event) =>
-          onTypeFilterChange(event.target.value as ArtifactTypeFilter)
-        }
-        className={cn(
-          "shrink-0 rounded-[var(--radius-sm)] border border-input bg-transparent text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          compact ? "h-7 px-1.5 text-xs" : "h-9 px-2 text-sm",
-        )}
-        aria-label="Filter artifacts by type"
-      >
-        {TYPE_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            className={cn(
+              "shrink-0 gap-1 border-input bg-background text-foreground",
+              compact ? "h-7 px-2 text-xs" : "h-9 px-2.5 text-sm",
+            )}
+            aria-label="Filter artifacts by type"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <span className="truncate">{typeFilterLabel(typeFilter)}</span>
+            <ChevronDown
+              className={cn(
+                "shrink-0 text-muted-foreground",
+                compact ? "h-3 w-3" : "h-3.5 w-3.5",
+              )}
+              aria-hidden
+            />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          className="w-36"
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <DropdownMenuRadioGroup
+            value={typeFilter}
+            onValueChange={(value) =>
+              onTypeFilterChange(value as ArtifactTypeFilter)
+            }
+          >
+            {TYPE_OPTIONS.map((option) => (
+              <DropdownMenuRadioItem key={option.value} value={option.value}>
+                {option.label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

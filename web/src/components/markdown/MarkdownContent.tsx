@@ -17,7 +17,12 @@ const sanitizeSchema = {
 
 const textWrap = "min-w-0 break-words [overflow-wrap:anywhere]";
 
-const markdownComponents: Components = {
+type MarkdownVariant = "default" | "chat";
+
+function createMarkdownComponents(variant: MarkdownVariant): Components {
+  const isChat = variant === "chat";
+
+  return {
   p: ({ children }) => (
     <p className={cn("mb-2 leading-relaxed last:mb-0", textWrap)}>{children}</p>
   ),
@@ -32,9 +37,18 @@ const markdownComponents: Components = {
     </a>
   ),
   strong: ({ children }) => (
-    <strong className="font-semibold text-foreground">{children}</strong>
+    <strong
+      className={cn(
+        "font-semibold",
+        isChat ? "text-primary" : "text-foreground",
+      )}
+    >
+      {children}
+    </strong>
   ),
-  em: ({ children }) => <em className="italic">{children}</em>,
+  em: ({ children }) => (
+    <em className={cn("italic", isChat && "text-accent")}>{children}</em>
+  ),
   del: ({ children }) => (
     <del className="text-muted-foreground line-through">{children}</del>
   ),
@@ -89,7 +103,8 @@ const markdownComponents: Components = {
   h1: ({ children }) => (
     <h1
       className={cn(
-        "mt-2 mb-1 text-base font-bold tracking-tight first:mt-0 last:mb-0",
+        "mt-2 mb-1 font-bold tracking-tight first:mt-0 last:mb-0",
+        isChat ? "text-xl text-primary" : "text-base",
         textWrap,
       )}
     >
@@ -97,11 +112,25 @@ const markdownComponents: Components = {
     </h1>
   ),
   h2: ({ children }) => (
-    <h2 className={cn("mb-1 text-sm font-bold last:mb-0", textWrap)}>{children}</h2>
+    <h2
+      className={cn(
+        "mb-1 font-bold last:mb-0",
+        isChat ? "mt-2 text-lg text-primary/90" : "text-sm",
+        textWrap,
+      )}
+    >
+      {children}
+    </h2>
   ),
   h3: ({ children }) => (
     <h3
-      className={cn("mb-1 text-sm font-semibold text-foreground/90 last:mb-0", textWrap)}
+      className={cn(
+        "mb-1 font-semibold last:mb-0",
+        isChat
+          ? "mt-1.5 text-base text-accent"
+          : "text-sm text-foreground/90",
+        textWrap,
+      )}
     >
       {children}
     </h3>
@@ -109,7 +138,10 @@ const markdownComponents: Components = {
   h4: ({ children }) => (
     <h4
       className={cn(
-        "mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase last:mb-0",
+        "mb-1 font-semibold tracking-wide last:mb-0",
+        isChat
+          ? "text-sm text-foreground"
+          : "text-xs text-muted-foreground uppercase",
         textWrap,
       )}
     >
@@ -119,7 +151,10 @@ const markdownComponents: Components = {
   h5: ({ children }) => (
     <h5
       className={cn(
-        "mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase last:mb-0",
+        "mb-1 font-semibold tracking-wide last:mb-0",
+        isChat
+          ? "text-sm text-muted-foreground"
+          : "text-xs text-muted-foreground uppercase",
         textWrap,
       )}
     >
@@ -129,7 +164,10 @@ const markdownComponents: Components = {
   h6: ({ children }) => (
     <h6
       className={cn(
-        "mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase last:mb-0",
+        "mb-1 font-semibold tracking-wide last:mb-0",
+        isChat
+          ? "text-xs text-muted-foreground/80 uppercase"
+          : "text-xs text-muted-foreground uppercase",
         textWrap,
       )}
     >
@@ -150,18 +188,35 @@ const markdownComponents: Components = {
   td: ({ children }) => (
     <td className="border border-border px-2 py-1">{children}</td>
   ),
-};
+  };
+}
+
+const defaultMarkdownComponents = createMarkdownComponents("default");
+const chatMarkdownComponents = createMarkdownComponents("chat");
+
+const markdownComponentsByVariant = {
+  default: defaultMarkdownComponents,
+  chat: chatMarkdownComponents,
+} as const;
 
 interface MarkdownContentProps {
   content: string;
   className?: string;
+  variant?: MarkdownVariant;
 }
 
-export function MarkdownContent({ content, className }: MarkdownContentProps) {
+export function MarkdownContent({
+  content,
+  className,
+  variant = "default",
+}: MarkdownContentProps) {
+  const isChat = variant === "chat";
+
   return (
     <div
       className={cn(
         "text-sm text-foreground [&>*:first-child]:mt-0 [&_.katex]:text-inherit [&_del]:text-muted-foreground [&_del]:line-through [&_em]:italic [&_strong]:font-semibold",
+        isChat && "[&_strong]:text-primary [&_em]:text-accent",
         className,
       )}
     >
@@ -172,7 +227,7 @@ export function MarkdownContent({ content, className }: MarkdownContentProps) {
           rehypeRaw,
           [rehypeSanitize, sanitizeSchema],
         ]}
-        components={markdownComponents}
+        components={markdownComponentsByVariant[variant]}
       >
         {content}
       </ReactMarkdown>

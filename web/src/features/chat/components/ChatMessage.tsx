@@ -54,7 +54,7 @@ export function ChatMessage({ turn }: ChatMessageProps) {
               )}
               {turn.user.content ? (
                 <div className="[&_a]:text-primary [&_code]:bg-muted [&_pre]:bg-muted/80">
-                  <MarkdownContent content={turn.user.content} />
+                  <MarkdownContent content={turn.user.content} variant="chat" />
                 </div>
               ) : null}
             </div>
