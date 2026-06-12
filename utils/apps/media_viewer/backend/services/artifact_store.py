@@ -148,6 +148,16 @@ class ArtifactStore:
             manifest.artifacts.append(record)
 
         self._manifest.update(mutator)
+        try:
+            from utils.shared.events.trace import emit_trace_event
+
+            emit_trace_event(
+                action="artifact_saved",
+                artifact_id=record.id,
+                details={"filename": record.filename, "kind": record.kind, "source": record.source},
+            )
+        except OSError:
+            pass
         return record
 
     def get(self, artifact_id: str) -> ArtifactRecord:
@@ -211,3 +221,14 @@ class ArtifactStore:
                 thumbnail_path.unlink()
         except OSError as exc:
             raise ConflictError("Failed to delete artifact files") from exc
+
+        try:
+            from utils.shared.events.trace import emit_trace_event
+
+            emit_trace_event(
+                action="artifact_deleted",
+                artifact_id=artifact_id,
+                details={"filename": record.filename, "kind": record.kind},
+            )
+        except OSError:
+            pass

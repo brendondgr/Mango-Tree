@@ -50,6 +50,8 @@ export function ChatWindow() {
   const appendToMessage = useWorkspaceStore((s) => s.appendToMessage);
   const updateMessage = useWorkspaceStore((s) => s.updateMessage);
   const setIsTyping = useWorkspaceStore((s) => s.setIsTyping);
+  const setArtifactNotice = useWorkspaceStore((s) => s.setArtifactNotice);
+  const artifactNotice = useWorkspaceStore((s) => s.artifactNotice);
   const startNewChat = useWorkspaceStore((s) => s.startNewChat);
   const llmConfig = useLlmConfigStore((s) => s.config);
 
@@ -129,6 +131,16 @@ export function ChatWindow() {
         })
         .catch((persistError) => {
           console.warn("Failed to persist chat attachments as artifacts", persistError);
+          const message =
+            persistError instanceof Error
+              ? persistError.message
+              : "Could not save attachments to artifacts";
+          setArtifactNotice(message);
+          window.setTimeout(() => {
+            if (useWorkspaceStore.getState().artifactNotice === message) {
+              setArtifactNotice(null);
+            }
+          }, 8000);
         });
     }
 
@@ -283,6 +295,14 @@ export function ChatWindow() {
         )}
 
         <div className="shrink-0 border-t border-border bg-card p-3">
+          {artifactNotice && (
+            <div
+              role="status"
+              className="mb-2 rounded-[var(--radius-md)] border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+            >
+              {artifactNotice}
+            </div>
+          )}
           <ChatComposer
             key={chatSessionId}
             disabled={isTyping}

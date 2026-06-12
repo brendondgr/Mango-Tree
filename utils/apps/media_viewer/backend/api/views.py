@@ -38,7 +38,10 @@ class ArtifactListCreateView(APIView):
         except ValueError:
             limit = DEFAULT_PAGE_SIZE
 
-        page = max(int(request.query_params.get("page", 1)), 1)
+        try:
+            page = max(int(request.query_params.get("page", 1)), 1)
+        except ValueError:
+            page = 1
         artifacts = store.list(kind=kind)
         start = (page - 1) * limit
         end = start + limit

@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 
 import type { ChatAttachment } from "@/features/chat/types/attachment";
 import type { WorkspaceTabId } from "@/features/workspace/components/workspaceTabs";
+import type { LlmUsage } from "@/services/llmTypes";
 
 export type { ChatAttachment } from "@/features/chat/types/attachment";
 export type MessageRole = "user" | "agent";
@@ -44,8 +45,10 @@ interface WorkspaceState {
   activeTab: WorkspaceTabId;
   sidebarMode: SidebarMode;
   selectedArtifactId: string | null;
+  artifactNotice: string | null;
   chatSessionId: string;
   messages: ChatMessage[];
+  lastKnownUsage: LlmUsage | null;
   setSidebarWidth: (width: number, maxWidth?: number) => void;
   setMobileDrawerOpen: (open: boolean) => void;
   setLastWidth: (width: number) => void;
@@ -53,6 +56,7 @@ interface WorkspaceState {
   setActiveTab: (tab: WorkspaceTabId) => void;
   setSidebarMode: (mode: SidebarMode) => void;
   setSelectedArtifactId: (id: string | null) => void;
+  setArtifactNotice: (message: string | null) => void;
   expandSidebar: () => void;
   addMessage: (message: Omit<ChatMessage, "id" | "timestamp"> & { id?: string }) => string;
   appendToMessage: (
@@ -65,6 +69,7 @@ interface WorkspaceState {
       Pick<ChatMessage, "content" | "thinking" | "isStreaming" | "attachments">
     >,
   ) => void;
+  setLastKnownUsage: (usage: LlmUsage | null) => void;
   startNewChat: () => void;
   clearMessages: () => void;
   toggleSidebar: (mobile: boolean) => void;
@@ -80,8 +85,10 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       activeTab: "overview",
       sidebarMode: "chat",
       selectedArtifactId: null,
+      artifactNotice: null,
       chatSessionId: newChatSessionId(),
       messages: [],
+      lastKnownUsage: null,
 
       setSidebarWidth: (width, maxWidth) => {
         const clamped = clampSidebarWidth(width, maxWidth);
@@ -103,6 +110,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       setSidebarMode: (mode) => set({ sidebarMode: mode }),
 
       setSelectedArtifactId: (id) => set({ selectedArtifactId: id }),
+
+      setArtifactNotice: (message) => set({ artifactNotice: message }),
 
       expandSidebar: () => {
         const state = get();
@@ -158,10 +167,13 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           ),
         })),
 
+      setLastKnownUsage: (usage) => set({ lastKnownUsage: usage }),
+
       startNewChat: () =>
         set({
           messages: [],
           isTyping: false,
+          lastKnownUsage: null,
           chatSessionId: newChatSessionId(),
         }),
 
