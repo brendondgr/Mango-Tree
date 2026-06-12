@@ -1,13 +1,8 @@
 import {
-  FileText,
-  Film,
   FolderOpen,
-  ImageIcon,
-  Loader2,
   Paperclip,
   Plus,
   Send,
-  X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -23,17 +18,16 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ComposerAttachmentPill } from "@/features/chat/components/ComposerAttachmentPill";
+import { ComposerAttachmentStrip } from "@/features/chat/components/ComposerAttachmentStrip";
 import { ContextUsageRing } from "@/features/chat/components/ContextUsageRing";
 import { useContextUsage } from "@/features/chat/hooks/useContextUsage";
 import { useComposerArtifactStore } from "@/features/chat/stores/composerArtifactStore";
-import type {
-  AttachmentKind,
-  PendingAttachment,
-} from "@/features/chat/types/attachment";
+import type { PendingAttachment } from "@/features/chat/types/attachment";
 import { artifactToPendingAttachment } from "@/features/chat/utils/artifactToPendingAttachment";
 import type { LlmUsage } from "@/services/llmTypes";
 import { getArtifact } from "@/services/mediaViewerClient";
-import { FILE_INPUT_ACCEPT, formatBytes } from "@/features/chat/utils/fileType";
+import { FILE_INPUT_ACCEPT } from "@/features/chat/utils/fileType";
 import {
   processAttachment,
   revokeAttachmentUrls,
@@ -55,17 +49,6 @@ interface ChatComposerProps {
     text: string,
     attachments: PendingAttachment[],
   ) => void | Promise<void>;
-}
-
-function AttachmentIcon({ kind }: { kind?: AttachmentKind }) {
-  switch (kind) {
-    case "image":
-      return <ImageIcon className="h-3.5 w-3.5 shrink-0" />;
-    case "video":
-      return <Film className="h-3.5 w-3.5 shrink-0" />;
-    default:
-      return <FileText className="h-3.5 w-3.5 shrink-0" />;
-  }
 }
 
 export function ChatComposer({
@@ -309,6 +292,8 @@ export function ChatComposer({
     }
   };
 
+  const inputDisabled = disabled || isSubmitting;
+
   return (
     <form onSubmit={(e) => void handleSubmit(e)}>
       <label htmlFor="chat-input" className="sr-only">
@@ -326,72 +311,35 @@ export function ChatComposer({
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
       >
-        {attachments.length > 0 && (
-          <div className="flex flex-wrap gap-2 border-b border-border/60 px-3 py-2">
-            {attachments.map((pending) => {
-              const attachment = pending.attachment;
-              const isError = pending.status === "error";
-              const isProcessing = pending.status === "processing";
+        <ComposerAttachmentStrip
+          attachments={attachments}
+          onRemove={removeAttachment}
+        />
 
-              return (
-                <div
-                  key={pending.id}
-                  className={cn(
-                    "group relative flex max-w-full items-center gap-2 rounded-md border px-2 py-1.5 text-xs",
-                    isError
-                      ? "border-destructive/40 bg-destructive/5 text-destructive"
-                      : "border-border bg-muted/40 text-foreground",
-                  )}
-                >
-                  {isProcessing ? (
-                    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
-                  ) : attachment?.kind === "image" && attachment.previewUrl ? (
-                    <img
-                      src={attachment.previewUrl}
-                      alt=""
-                      className="h-8 w-8 shrink-0 rounded object-cover"
-                    />
-                  ) : attachment?.kind === "video" && attachment.previewUrl ? (
-                    <video
-                      src={attachment.previewUrl}
-                      className="h-8 w-12 shrink-0 rounded object-cover"
-                      muted
-                    />
-                  ) : (
-                    <AttachmentIcon kind={attachment?.kind} />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{pending.file.name}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {isError
-                        ? pending.error
-                        : isProcessing
-                          ? "Processing…"
-                          : formatBytes(pending.file.size)}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                    aria-label={`Remove ${pending.file.name}`}
-                    onClick={() => removeAttachment(pending.id)}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div className="px-3 pt-2">
+          <textarea
+            ref={textareaRef}
+            id="chat-input"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            placeholder="Type a message…"
+            autoComplete="off"
+            disabled={inputDisabled}
+            rows={1}
+            className="max-h-40 min-h-[2.25rem] w-full resize-none border-0 bg-transparent py-1.5 text-sm leading-snug outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          />
+        </div>
 
-        <div className="flex items-end gap-2 px-3 py-2">
+        <div className="flex items-center gap-2 px-3 pb-2 pt-1">
           <input
             ref={fileInputRef}
             type="file"
             multiple
             accept={FILE_INPUT_ACCEPT}
             className="sr-only"
-            disabled={disabled || isSubmitting}
+            disabled={inputDisabled}
             onChange={(e) => {
               if (e.target.files) {
                 void addFiles(e.target.files);
@@ -407,21 +355,21 @@ export function ChatComposer({
                 size="icon"
                 className="shrink-0"
                 aria-label="Add to message"
-                disabled={disabled || isSubmitting}
+                disabled={inputDisabled}
               >
                 <Plus className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" side="top" className="w-44">
               <DropdownMenuItem
-                disabled={disabled || isSubmitting}
+                disabled={inputDisabled}
                 onSelect={() => fileInputRef.current?.click()}
               >
                 <Paperclip className="h-4 w-4" />
                 Attach files
               </DropdownMenuItem>
               <DropdownMenuSub>
-                <DropdownMenuSubTrigger disabled={disabled || isSubmitting}>
+                <DropdownMenuSubTrigger disabled={inputDisabled}>
                   <FolderOpen className="h-4 w-4" />
                   Artifacts
                 </DropdownMenuSubTrigger>
@@ -447,28 +395,15 @@ export function ChatComposer({
               </DropdownMenuSub>
             </DropdownMenuContent>
           </DropdownMenu>
-          <textarea
-            ref={textareaRef}
-            id="chat-input"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
-            placeholder="Type a message…"
-            autoComplete="off"
-            disabled={disabled || isSubmitting}
-            rows={1}
-            className="max-h-40 min-h-[2.25rem] flex-1 resize-none border-0 bg-transparent py-1.5 text-sm leading-snug outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+
+          <ComposerAttachmentPill
+            attachments={attachments}
+            onRemove={removeAttachment}
+            disabled={inputDisabled}
           />
-          <Button
-            type="submit"
-            size="icon"
-            className="shrink-0"
-            aria-label="Send message"
-            disabled={!canSend}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
+
+          <div className="min-w-0 flex-1" aria-hidden="true" />
+
           <ContextUsageRing
             usedTokens={contextUsage.usedTokens}
             maxTokens={contextUsage.maxTokens}
@@ -477,6 +412,16 @@ export function ChatComposer({
             isEstimated={contextUsage.isEstimated}
             label={contextUsage.label}
           />
+
+          <Button
+            type="submit"
+            className="shrink-0"
+            aria-label="Send message"
+            disabled={!canSend}
+          >
+            <Send className="h-4 w-4" />
+            Send
+          </Button>
         </div>
       </div>
     </form>
