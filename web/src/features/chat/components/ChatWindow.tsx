@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { useLlmConfigStore } from "@/app/stores/llmConfigStore";
 import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,12 +25,20 @@ import { ChatEmptyState } from "@/features/chat/components/ChatEmptyState";
 import { ChatMessage } from "@/features/chat/components/ChatMessage";
 import { TypingIndicator } from "@/features/chat/components/TypingIndicator";
 import { groupMessagesIntoTurns } from "@/features/chat/utils/groupMessagesIntoTurns";
+import { LlmClientError, queryLlm } from "@/services/llmClient";
+import type { LlmChatMessage } from "@/services/llmTypes";
 import { useSidebarResize } from "@/hooks/useSidebarResize";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 
-const MOCK_REPLY =
-  "Your workspace environment has been polished. All systems operational.";
+function toLlmMessages(
+  messages: Array<{ role: "user" | "agent"; content: string }>,
+): LlmChatMessage[] {
+  return messages.map((message) => ({
+    role: message.role === "agent" ? "assistant" : "user",
+    content: message.content,
+  }));
+}
 
 export function ChatWindow() {
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -41,6 +50,7 @@ export function ChatWindow() {
   const addMessage = useWorkspaceStore((s) => s.addMessage);
   const setIsTyping = useWorkspaceStore((s) => s.setIsTyping);
   const clearMessages = useWorkspaceStore((s) => s.clearMessages);
+  const llmConfig = useLlmConfigStore((s) => s.config);
 
   const {
     isMobile,
@@ -59,19 +69,37 @@ export function ChatWindow() {
     }
   }, [messages, isTyping]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const text = input.trim();
-    if (!text) return;
+    if (!text || isTyping) return;
+
+    const nextMessages = [
+      ...messages,
+      {
+        id: "pending-user",
+        role: "user" as const,
+        content: text,
+        timestamp: new Date(),
+      },
+    ];
 
     addMessage({ role: "user", content: text });
     setInput("");
     setIsTyping(true);
 
-    window.setTimeout(() => {
+    try {
+      const reply = await queryLlm(toLlmMessages(nextMessages), llmConfig);
+      addMessage({ role: "agent", content: reply });
+    } catch (error) {
+      const message =
+        error instanceof LlmClientError
+          ? error.message
+          : "Something went wrong while contacting the model.";
+      addMessage({ role: "agent", content: `Error: ${message}` });
+    } finally {
       setIsTyping(false);
-      addMessage({ role: "agent", content: MOCK_REPLY });
-    }, 1500);
+    }
   };
 
   const mobileWidth = "min(92vw, 360px)";

@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WorkspaceOptionsMenu } from "@/features/workspace/components/WorkspaceOptionsMenu";
 import {
   WORKSPACE_TABS,
   type WorkspaceTabId,
@@ -57,55 +58,59 @@ export function WorkspaceHeader() {
         </Button>
       )}
 
-      <Tabs
-        value={activeTab}
-        onValueChange={onTabChange}
-        className={cn("flex-1", isMobile && "hidden")}
-      >
-        <TabsList className="h-auto w-full justify-start" role="tablist">
-          {WORKSPACE_TABS.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <TabsTrigger key={tab.id} value={tab.id} role="tab">
-                <Icon className="h-4 w-4" />
-                {tab.label}
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
-      </Tabs>
-
-      {isMobile && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              className="ml-auto min-w-[140px] justify-between"
-              aria-haspopup="listbox"
-            >
-              <span>{activeMeta.label}</span>
-              <ChevronDown className="h-4 w-4 opacity-70" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <Tabs
+          value={activeTab}
+          onValueChange={onTabChange}
+          className={cn("min-w-0 flex-1", isMobile && "hidden")}
+        >
+          <TabsList className="h-auto w-full justify-start" role="tablist">
             {WORKSPACE_TABS.map((tab) => {
               const Icon = tab.icon;
               return (
-                <DropdownMenuItem
-                  key={tab.id}
-                  className={cn(
-                    activeTab === tab.id && "bg-primary/5 text-primary",
-                  )}
-                  onSelect={() => setActiveTab(tab.id)}
-                >
+                <TabsTrigger key={tab.id} value={tab.id} role="tab">
                   <Icon className="h-4 w-4" />
                   {tab.label}
-                </DropdownMenuItem>
+                </TabsTrigger>
               );
             })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+          </TabsList>
+        </Tabs>
+
+        {isMobile && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="min-w-[140px] flex-1 justify-between"
+                aria-haspopup="listbox"
+              >
+                <span>{activeMeta.label}</span>
+                <ChevronDown className="h-4 w-4 opacity-70" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              {WORKSPACE_TABS.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <DropdownMenuItem
+                    key={tab.id}
+                    className={cn(
+                      activeTab === tab.id && "bg-primary/5 text-primary",
+                    )}
+                    onSelect={() => setActiveTab(tab.id)}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
+        <WorkspaceOptionsMenu className="shrink-0" />
+      </div>
     </header>
   );
 }
