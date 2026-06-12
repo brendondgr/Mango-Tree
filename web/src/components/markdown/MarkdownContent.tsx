@@ -21,6 +21,7 @@ type MarkdownVariant = "default" | "chat";
 
 function createMarkdownComponents(variant: MarkdownVariant): Components {
   const isChat = variant === "chat";
+  const chatHeadingColor = "text-primary";
 
   return {
   p: ({ children }) => (
@@ -104,7 +105,7 @@ function createMarkdownComponents(variant: MarkdownVariant): Components {
     <h1
       className={cn(
         "mt-2 mb-1 font-bold tracking-tight first:mt-0 last:mb-0",
-        isChat ? "text-xl text-primary" : "text-base",
+        isChat ? cn("text-xl", chatHeadingColor) : "text-base",
         textWrap,
       )}
     >
@@ -115,7 +116,7 @@ function createMarkdownComponents(variant: MarkdownVariant): Components {
     <h2
       className={cn(
         "mb-1 font-bold last:mb-0",
-        isChat ? "mt-2 text-lg text-primary/90" : "text-sm",
+        isChat ? cn("mt-2 text-lg", chatHeadingColor) : "text-sm",
         textWrap,
       )}
     >
@@ -127,7 +128,7 @@ function createMarkdownComponents(variant: MarkdownVariant): Components {
       className={cn(
         "mb-1 font-semibold last:mb-0",
         isChat
-          ? "mt-1.5 text-base text-accent"
+          ? cn("mt-1.5 text-base", chatHeadingColor)
           : "text-sm text-foreground/90",
         textWrap,
       )}
@@ -140,7 +141,7 @@ function createMarkdownComponents(variant: MarkdownVariant): Components {
       className={cn(
         "mb-1 font-semibold tracking-wide last:mb-0",
         isChat
-          ? "text-sm text-foreground"
+          ? cn("text-sm", chatHeadingColor)
           : "text-xs text-muted-foreground uppercase",
         textWrap,
       )}
@@ -153,7 +154,7 @@ function createMarkdownComponents(variant: MarkdownVariant): Components {
       className={cn(
         "mb-1 font-semibold tracking-wide last:mb-0",
         isChat
-          ? "text-sm text-muted-foreground"
+          ? cn("text-sm", chatHeadingColor)
           : "text-xs text-muted-foreground uppercase",
         textWrap,
       )}
@@ -166,7 +167,7 @@ function createMarkdownComponents(variant: MarkdownVariant): Components {
       className={cn(
         "mb-1 font-semibold tracking-wide last:mb-0",
         isChat
-          ? "text-xs text-muted-foreground/80 uppercase"
+          ? cn("text-xs uppercase", chatHeadingColor)
           : "text-xs text-muted-foreground uppercase",
         textWrap,
       )}
