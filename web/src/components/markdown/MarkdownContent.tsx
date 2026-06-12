@@ -3,10 +3,17 @@ import "katex/dist/katex.min.css";
 import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
 import { cn } from "@/lib/utils";
+
+const sanitizeSchema = {
+  ...defaultSchema,
+  tagNames: [...(defaultSchema.tagNames ?? []), "u"],
+};
 
 const markdownComponents: Components = {
   p: ({ children }) => (
@@ -21,6 +28,16 @@ const markdownComponents: Components = {
     >
       {children}
     </a>
+  ),
+  strong: ({ children }) => (
+    <strong className="font-semibold text-foreground">{children}</strong>
+  ),
+  em: ({ children }) => <em className="italic">{children}</em>,
+  del: ({ children }) => (
+    <del className="text-muted-foreground line-through">{children}</del>
+  ),
+  u: ({ children }) => (
+    <u className="underline underline-offset-2">{children}</u>
   ),
   ul: ({ children }) => (
     <ul className="mb-2 ml-4 list-disc last:mb-0">{children}</ul>
@@ -58,14 +75,34 @@ const markdownComponents: Components = {
     </pre>
   ),
   h1: ({ children }) => (
-    <h1 className="mb-2 text-base font-semibold last:mb-0">{children}</h1>
+    <h1 className="mt-2 mb-1 text-base font-bold tracking-tight first:mt-0 last:mb-0">
+      {children}
+    </h1>
   ),
   h2: ({ children }) => (
-    <h2 className="mb-2 text-sm font-semibold last:mb-0">{children}</h2>
+    <h2 className="mb-1 text-sm font-bold last:mb-0">{children}</h2>
   ),
   h3: ({ children }) => (
-    <h3 className="mb-2 text-sm font-medium last:mb-0">{children}</h3>
+    <h3 className="mb-1 text-sm font-semibold text-foreground/90 last:mb-0">
+      {children}
+    </h3>
   ),
+  h4: ({ children }) => (
+    <h4 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase last:mb-0">
+      {children}
+    </h4>
+  ),
+  h5: ({ children }) => (
+    <h5 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase last:mb-0">
+      {children}
+    </h5>
+  ),
+  h6: ({ children }) => (
+    <h6 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase last:mb-0">
+      {children}
+    </h6>
+  ),
+  hr: () => <hr className="my-2 border-border" />,
   table: ({ children }) => (
     <div className="mb-2 overflow-x-auto last:mb-0">
       <table className="w-full border-collapse text-xs">{children}</table>
@@ -90,13 +127,17 @@ export function MarkdownContent({ content, className }: MarkdownContentProps) {
   return (
     <div
       className={cn(
-        "text-sm text-foreground [&_.katex]:text-inherit",
+        "text-sm text-foreground [&>*:first-child]:mt-0 [&_.katex]:text-inherit [&_del]:text-muted-foreground [&_del]:line-through [&_em]:italic [&_strong]:font-semibold",
         className,
       )}
     >
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex]}
+        rehypePlugins={[
+          rehypeKatex,
+          rehypeRaw,
+          [rehypeSanitize, sanitizeSchema],
+        ]}
         components={markdownComponents}
       >
         {content}
