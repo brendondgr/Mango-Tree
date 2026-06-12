@@ -1,16 +1,28 @@
 import { FolderOpen, Loader2 } from "lucide-react";
+import { useMemo, useState } from "react";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { WorkspaceSidebarShell } from "@/features/workspace/components/WorkspaceSidebarShell";
 
 import { ArtifactGrid } from "@media-viewer/components/ArtifactGrid";
+import { ArtifactSearchControls } from "@media-viewer/components/ArtifactSearchControls";
 import { ArtifactsSidebarSettings } from "@media-viewer/components/ArtifactsSidebarSettings";
 import { useArtifacts } from "@media-viewer/hooks/useArtifacts";
+import {
+  filterArtifacts,
+  type ArtifactTypeFilter,
+} from "@media-viewer/utils/filterArtifacts";
 
 export function ArtifactsSidebar() {
   const { data, isLoading, isError, error } = useArtifacts();
+  const [query, setQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<ArtifactTypeFilter>("all");
 
   const artifacts = data?.results ?? [];
+  const filteredArtifacts = useMemo(
+    () => filterArtifacts(artifacts, { query, typeFilter }),
+    [artifacts, query, typeFilter],
+  );
 
   return (
     <WorkspaceSidebarShell>
@@ -20,6 +32,16 @@ export function ArtifactsSidebar() {
         </h2>
         <ArtifactsSidebarSettings />
       </header>
+
+      {!isLoading && !isError && artifacts.length > 0 && (
+        <ArtifactSearchControls
+          query={query}
+          onQueryChange={setQuery}
+          typeFilter={typeFilter}
+          onTypeFilterChange={setTypeFilter}
+          variant="full"
+        />
+      )}
 
       <ScrollArea className="min-h-0 flex-1">
         {isLoading && (
@@ -55,8 +77,14 @@ export function ArtifactsSidebar() {
           </div>
         )}
 
-        {!isLoading && !isError && artifacts.length > 0 && (
-          <ArtifactGrid artifacts={artifacts} />
+        {!isLoading && !isError && artifacts.length > 0 && filteredArtifacts.length === 0 && (
+          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+            No matching artifacts
+          </div>
+        )}
+
+        {!isLoading && !isError && filteredArtifacts.length > 0 && (
+          <ArtifactGrid artifacts={filteredArtifacts} />
         )}
       </ScrollArea>
     </WorkspaceSidebarShell>
