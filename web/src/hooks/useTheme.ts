@@ -1,8 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   getTheme,
+  getThemeMeta,
+  isDarkTheme,
   setTheme as applyTheme,
+  setThemeFamily,
+  THEMES,
+  toggleThemeInFamily,
   type ThemeName,
 } from "@/lib/theme";
 
@@ -20,16 +25,46 @@ export function useTheme() {
     return () => observer.disconnect();
   }, []);
 
+  const themeMeta = useMemo(() => getThemeMeta(theme), [theme]);
+  const isDark = isDarkTheme(theme);
+  const pairedThemeId = useMemo(() => toggleThemeInFamily(theme), [theme]);
+  const pairedThemeMeta = useMemo(
+    () => (pairedThemeId ? getThemeMeta(pairedThemeId) : undefined),
+    [pairedThemeId],
+  );
+
   const setTheme = useCallback((name: ThemeName) => {
     applyTheme(name);
     setThemeState(name);
   }, []);
 
+  const setColorScheme = useCallback(
+    (colorScheme: "light" | "dark") => {
+      const family = themeMeta?.family ?? "mango";
+      const next = setThemeFamily(family, colorScheme);
+      if (next) {
+        setThemeState(next);
+      }
+    },
+    [themeMeta?.family],
+  );
+
   const toggleTheme = useCallback(() => {
-    setTheme(theme === "dark" ? "default" : "dark");
-  }, [setTheme, theme]);
+    const next = toggleThemeInFamily(theme);
+    if ((THEMES as readonly string[]).includes(next)) {
+      applyTheme(next as ThemeName);
+      setThemeState(next as ThemeName);
+    }
+  }, [theme]);
 
-  const isDark = theme === "dark";
-
-  return { theme, isDark, setTheme, toggleTheme };
+  return {
+    theme,
+    themeMeta,
+    isDark,
+    pairedThemeMeta,
+    setTheme,
+    setThemeFamily,
+    setColorScheme,
+    toggleTheme,
+  };
 }

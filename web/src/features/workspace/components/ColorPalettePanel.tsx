@@ -18,13 +18,8 @@ import {
   SURFACE_COLOR_TOKENS,
 } from "@/lib/colorPalette";
 import { ColorPalettePreview } from "@/features/workspace/components/ColorPalettePreview";
-import { THEMES, type ThemeName } from "@/lib/theme";
+import { getThemeMeta, THEMES } from "@/lib/theme";
 import { cn } from "@/lib/utils";
-
-const THEME_LABELS: Record<ThemeName, string> = {
-  dark: "Dark",
-  default: "Light",
-};
 
 interface TokenColorListProps {
   tokens: readonly ColorToken[];
@@ -145,7 +140,7 @@ export function ColorPalettePanel() {
               size="sm"
               onClick={() => setTheme(name)}
             >
-              {THEME_LABELS[name]}
+              {getThemeMeta(name)?.label ?? name}
             </Button>
           ))}
         </div>

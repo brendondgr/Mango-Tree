@@ -4,6 +4,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mango Tree</title>
+    <script>
+      (function () {
+        var key = "mango-theme";
+        var themes = [
+          "dark",
+          "default",
+          "blue-light",
+          "blue-dark",
+          "fsu-light",
+          "fsu-dark",
+          "pulse-light",
+          "pulse-dark",
+        ];
+        try {
+          var stored = localStorage.getItem(key);
+          if (stored && themes.indexOf(stored) !== -1) {
+            document.documentElement.setAttribute("data-theme", stored);
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

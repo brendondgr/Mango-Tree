@@ -9,6 +9,8 @@ import {
   type ColorToken,
   PRESET_PALETTES,
 } from "@/lib/colorPalette";
+import { getTheme } from "@/lib/theme";
+import { getThemeMeta } from "@/lib/themeMeta";
 
 interface ColorPaletteState {
   activePresetId: string | null;
@@ -76,8 +78,16 @@ export const useColorPaletteStore = create<ColorPaletteState>()(
   ),
 );
 
+function isSelfContainedThemeActive(): boolean {
+  return getThemeMeta(getTheme())?.selfContained === true;
+}
+
 /** Call at app boot to restore persisted palette overrides. */
 export function initColorPalette(): void {
+  if (isSelfContainedThemeActive()) {
+    clearColorOverrides();
+    return;
+  }
   const { activePresetId, overrides } = useColorPaletteStore.getState();
   const resolved = resolveOverrides(activePresetId, overrides);
   if (resolved !== overrides) {
