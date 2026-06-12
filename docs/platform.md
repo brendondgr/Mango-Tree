@@ -44,7 +44,7 @@ utils/apps/{app_name}/
 `-- shared/
 ```
 
-Registered apps: projects, notes, jobs, calendar, recipes, imdbspy, exercise, timekeeper.
+Registered apps: projects, notes, jobs, calendar, recipes, imdbspy, exercise, timekeeper, **media_viewer** (first fully implemented app module — local artifacts and media viewer).
 
 **Code placement:** business logic in `backend/services/` or `shared/`; agent tools call services; UI in `web/src/` or `utils/apps/{app}/frontend/`; no business logic in `web/src/services/` beyond API clients.
 
@@ -82,7 +82,7 @@ Target: React/Vite SPA with swappable shadcn/Tailwind themes (Canva-inspired def
 | Route | Data Source |
 | --- | --- |
 | `/dashboard` | `/api/tasks/`, app summaries |
-| `/chat` | `/api/tasks/`, agent endpoints |
+| `/chat` | `/api/tasks/`, agent endpoints, `/api/media-viewer/artifacts/` |
 | `/projects`, `/projects/:id` | `/api/projects/` |
 | `/notes`, `/notes/:id` | `/api/notes/` |
 | `/jobs` | `/api/jobs/` |
@@ -104,10 +104,36 @@ Future: `/recipes`, `/imdbspy`, `/exercise`, `/timekeeper`. Do not implement a r
 | UI primitives (shadcn) | `web/src/components/ui/` |
 | Forms, tables, charts, markdown | `web/src/components/{forms,tables,charts,markdown}/` |
 | Features (chat, workspace, dashboard, command-palette, memory, settings) | `web/src/features/` |
-| Agent workspace layout (`/chat`) | `web/src/app/layouts/AgentWorkspaceLayout.tsx` composes `ChatWindow`, `WorkspaceHeader`, `WorkspaceMainBody` |
+| Agent workspace layout (`/chat`) | `web/src/app/layouts/AgentWorkspaceLayout.tsx` composes `ChatNavRail`, resizable left sidebar (`ChatWindow` or `ArtifactsSidebar`), `WorkspaceHeader`, `MediaViewerShell` or `WorkspaceMainBody` |
 | Pages | `web/src/pages/` |
 | API clients, types, hooks, styles | `web/src/{services,types,hooks,lib,styles}/` |
-| App UI fragments | `utils/apps/{app}/frontend/` |
+| App UI fragments | `utils/apps/{app}/frontend/` (e.g. `media_viewer` artifacts sidebar and viewers) |
+
+### `/chat` workspace layout
+
+```text
+┌────┬──────────────────────────┬─────────────────────────────────────────────┐
+│Nav │  Left sidebar (resizable) │  Right workspace (main column)              │
+│rail│                           │                                             │
+│ 💬 │  Chat mode: ChatWindow    │  WorkspaceHeader + MediaViewerShell or      │
+│ 📁 │  Artifacts: artifact grid │  WorkspaceMainBody placeholder tabs         │
+└────┴──────────────────────────┴─────────────────────────────────────────────┘
+```
+
+The nav rail (~48px) switches left sidebar content only; the right workspace keeps its own state.
+
+## Local runtime data
+
+User-uploaded artifacts are stored under `data/artifacts/` (gitignored). The backend creates this tree on first write:
+
+```text
+data/artifacts/
+├── manifest.json       # authoritative index
+├── storage/            # raw bytes ({id}{ext})
+└── thumbnails/         # generated previews ({id}.webp)
+```
+
+Configure via `config/artifacts.yaml` and optional `MANGO_ARTIFACTS_ROOT`. See `utils/apps/media_viewer/README.md` and `docs/api.md` for endpoints and permission boundaries (read/write scoped to `{artifacts.root}/**` only).
 
 ## Build Sequence
 
