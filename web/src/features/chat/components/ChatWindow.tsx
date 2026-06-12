@@ -4,10 +4,11 @@ import {
   Info,
   Moon,
   MoreVertical,
+  SquarePen,
   Sun,
   Trash2,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { useLlmConfigStore } from "@/app/stores/llmConfigStore";
 import type { ChatMessage } from "@/app/stores/workspaceStore";
@@ -24,6 +25,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatComposer } from "@/features/chat/components/ChatComposer";
 import { ChatEmptyState } from "@/features/chat/components/ChatEmptyState";
 import { ChatMessage as ChatMessageBubble } from "@/features/chat/components/ChatMessage";
+import { SessionInfoDialog } from "@/features/chat/components/SessionInfoDialog";
 import { useChatAutoScroll } from "@/features/chat/hooks/useChatAutoScroll";
 import type { PendingAttachment } from "@/features/chat/types/attachment";
 import {
@@ -41,12 +43,16 @@ export function ChatWindow() {
 
   const messages = useWorkspaceStore((s) => s.messages);
   const isTyping = useWorkspaceStore((s) => s.isTyping);
+  const chatSessionId = useWorkspaceStore((s) => s.chatSessionId);
   const addMessage = useWorkspaceStore((s) => s.addMessage);
   const appendToMessage = useWorkspaceStore((s) => s.appendToMessage);
   const updateMessage = useWorkspaceStore((s) => s.updateMessage);
   const setIsTyping = useWorkspaceStore((s) => s.setIsTyping);
-  const clearMessages = useWorkspaceStore((s) => s.clearMessages);
+  const startNewChat = useWorkspaceStore((s) => s.startNewChat);
   const llmConfig = useLlmConfigStore((s) => s.config);
+
+  const [sessionInfoOpen, setSessionInfoOpen] = useState(false);
+  const streamAbortRef = useRef<AbortController | null>(null);
 
   const streamScrollKey = useMemo(() => {
     const streaming = messages.find((message) => message.isStreaming);
@@ -111,17 +117,29 @@ export function ChatWindow() {
     });
     forceScrollToBottom();
 
+    const abortController = new AbortController();
+    streamAbortRef.current = abortController;
+
     try {
-      await streamLlm(buildLlmMessages(history), llmConfig, {
-        onThinkingDelta: (delta) => {
-          appendToMessage(agentMessageId, { thinking: delta });
+      await streamLlm(
+        buildLlmMessages(history),
+        llmConfig,
+        {
+          onThinkingDelta: (delta) => {
+            appendToMessage(agentMessageId, { thinking: delta });
+          },
+          onContentDelta: (delta) => {
+            appendToMessage(agentMessageId, { content: delta });
+          },
         },
-        onContentDelta: (delta) => {
-          appendToMessage(agentMessageId, { content: delta });
-        },
-      });
+        abortController.signal,
+      );
       updateMessage(agentMessageId, { isStreaming: false });
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
       const message = formatLlmError(error);
       const current = useWorkspaceStore
         .getState()
@@ -133,8 +151,18 @@ export function ChatWindow() {
         isStreaming: false,
       });
     } finally {
+      if (streamAbortRef.current === abortController) {
+        streamAbortRef.current = null;
+      }
       setIsTyping(false);
     }
+  };
+
+  const handleNewChat = () => {
+    streamAbortRef.current?.abort();
+    streamAbortRef.current = null;
+    startNewChat();
+    forceScrollToBottom();
   };
 
   const mobileWidth = "min(92vw, 360px)";
@@ -202,7 +230,20 @@ export function ChatWindow() {
             </p>
           </div>
 
-          <DropdownMenu>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 px-2.5"
+              aria-label="Start new chat"
+              onClick={handleNewChat}
+            >
+              <SquarePen className="h-4 w-4" />
+              New Chat
+            </Button>
+
+            <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
@@ -214,7 +255,7 @@ export function ChatWindow() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuItem onSelect={() => undefined}>
+              <DropdownMenuItem onSelect={() => setSessionInfoOpen(true)}>
                 <Info className="h-4 w-4" />
                 Session info
               </DropdownMenuItem>
@@ -233,14 +274,20 @@ export function ChatWindow() {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
-                onSelect={() => clearMessages()}
+                onSelect={handleNewChat}
               >
                 <Trash2 className="h-4 w-4" />
                 Clear all
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </header>
+
+        <SessionInfoDialog
+          open={sessionInfoOpen}
+          onOpenChange={setSessionInfoOpen}
+        />
 
         <ScrollArea viewportRef={viewportRef} className="min-w-0 flex-1 bg-background">
           <div className="flex min-w-0 max-w-full flex-col gap-3 p-3">
@@ -267,7 +314,11 @@ export function ChatWindow() {
         )}
 
         <div className="shrink-0 border-t border-border bg-card p-3">
-          <ChatComposer disabled={isTyping} onSubmit={handleSubmit} />
+          <ChatComposer
+            key={chatSessionId}
+            disabled={isTyping}
+            onSubmit={handleSubmit}
+          />
         </div>
       </aside>
 
