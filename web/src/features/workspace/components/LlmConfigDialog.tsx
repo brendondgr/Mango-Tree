@@ -1,3 +1,4 @@
+import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import {
@@ -21,9 +22,14 @@ import type { LlmConfig } from "@/services/llmTypes";
 interface LlmConfigDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onBack?: () => void;
 }
 
-export function LlmConfigDialog({ open, onOpenChange }: LlmConfigDialogProps) {
+export function LlmConfigDialog({
+  open,
+  onOpenChange,
+  onBack,
+}: LlmConfigDialogProps) {
   const savedConfig = useLlmConfigStore((s) => s.config);
   const setConfig = useLlmConfigStore((s) => s.setConfig);
   const resetConfig = useLlmConfigStore((s) => s.resetConfig);
@@ -89,11 +95,34 @@ export function LlmConfigDialog({ open, onOpenChange }: LlmConfigDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>LLM settings</DialogTitle>
-          <DialogDescription>
-            Configure the OpenAI-compatible endpoint used by chat. Defaults
-            target localhost on port 9090.
-          </DialogDescription>
+          {onBack ? (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={onBack}
+                aria-label="Back to settings menu"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <DialogTitle>LLM settings</DialogTitle>
+                <DialogDescription>
+                  Configure the OpenAI-compatible endpoint used by chat.
+                </DialogDescription>
+              </div>
+            </div>
+          ) : (
+            <>
+              <DialogTitle>LLM settings</DialogTitle>
+              <DialogDescription>
+                Configure the OpenAI-compatible endpoint used by chat. Defaults
+                target localhost on port 9090.
+              </DialogDescription>
+            </>
+          )}
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
