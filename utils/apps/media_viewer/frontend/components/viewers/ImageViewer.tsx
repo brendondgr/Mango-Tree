@@ -50,45 +50,52 @@ export function ImageViewer({ artifact, imageArtifacts }: ImageViewerProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [hasMultiple, sorted.length]);
 
+  const goPrevious = () =>
+    setActiveIndex((index) => (index > 0 ? index - 1 : sorted.length - 1));
+
+  const goNext = () =>
+    setActiveIndex((index) => (index < sorted.length - 1 ? index + 1 : 0));
+
   return (
-    <div className="relative flex h-full min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/20 p-4">
-      {hasMultiple && (
-        <>
+    <div className="flex h-full min-h-0 flex-1 flex-col bg-muted/20">
+      <div className="flex min-h-0 flex-1 items-center justify-center gap-2 p-4">
+        {hasMultiple && (
           <Button
             type="button"
             variant="secondary"
             size="icon"
-            className="absolute left-4 top-1/2 z-10 -translate-y-1/2"
+            className="shrink-0"
             aria-label="Previous image"
-            onClick={() =>
-              setActiveIndex((index) => (index > 0 ? index - 1 : sorted.length - 1))
-            }
+            onClick={goPrevious}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
+        )}
+
+        <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden">
+          <img
+            src={artifactContentUrl(active.id)}
+            alt={active.filename}
+            className="max-h-full max-w-full object-contain"
+          />
+        </div>
+
+        {hasMultiple && (
           <Button
             type="button"
             variant="secondary"
             size="icon"
-            className="absolute right-4 top-1/2 z-10 -translate-y-1/2"
+            className="shrink-0"
             aria-label="Next image"
-            onClick={() =>
-              setActiveIndex((index) => (index < sorted.length - 1 ? index + 1 : 0))
-            }
+            onClick={goNext}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
-        </>
-      )}
-
-      <img
-        src={artifactContentUrl(active.id)}
-        alt={active.filename}
-        className="max-h-full max-w-full object-contain"
-      />
+        )}
+      </div>
 
       {hasMultiple && (
-        <p className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded bg-background/80 px-2 py-1 text-xs text-muted-foreground">
+        <p className="shrink-0 pb-3 text-center text-xs text-muted-foreground">
           {activeIndex + 1} / {sorted.length}
         </p>
       )}
