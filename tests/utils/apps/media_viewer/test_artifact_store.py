@@ -150,6 +150,17 @@ def test_classification_matches_chat_rules(
     assert classify_file(filename=filename, mime_type=mime_type) == expected
 
 
+def test_corrupt_manifest_recovers_to_empty(store: ArtifactStore, artifacts_config: ArtifactsConfig) -> None:
+    artifacts_config.root.mkdir(parents=True, exist_ok=True)
+    manifest_path = artifacts_config.root / "manifest.json"
+    manifest_path.write_text("{not valid json", encoding="utf-8")
+
+    assert store.list() == []
+    reloaded = manifest_path.read_text(encoding="utf-8")
+    assert '"artifacts"' in reloaded
+    assert '"version"' in reloaded
+
+
 def test_layout_directories_created(store: ArtifactStore, artifacts_config: ArtifactsConfig) -> None:
     store.save(filename="x.txt", data=b"x", mime_type="text/plain")
     assert (artifacts_config.root / STORAGE_DIR).is_dir()

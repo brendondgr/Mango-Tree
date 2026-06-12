@@ -76,7 +76,12 @@ export function MediaViewerShell({ artifactId }: MediaViewerShellProps) {
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div
+          className="flex min-h-0 min-w-0 flex-1 flex-col"
+          tabIndex={-1}
+          role="region"
+          aria-label="Media canvas"
+        >
           {isLoading && (
             <div className="flex flex-1 items-center justify-center text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin" />
