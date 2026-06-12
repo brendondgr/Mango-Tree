@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ArtifactKind, ArtifactRecord } from "@/types/mediaViewer";
 import { cn } from "@/lib/utils";
+import { truncateDisplayName } from "@media-viewer/utils/filterArtifacts";
 
 function kindLabel(kind: ArtifactKind): string {
   switch (kind) {
@@ -72,11 +73,14 @@ export function ArtifactPickerList({
               <div className="min-w-0 flex-1">
                 <p
                   className={cn(
-                    "truncate font-medium text-foreground",
-                    compact ? "text-xs" : "text-sm",
+                    "font-medium text-foreground",
+                    compact ? "text-xs" : "truncate text-sm",
                   )}
+                  title={artifact.filename}
                 >
-                  {artifact.filename}
+                  {compact
+                    ? truncateDisplayName(artifact.filename)
+                    : artifact.filename}
                 </p>
                 <span
                   className={cn(

@@ -37,7 +37,7 @@ import { ArtifactPickerList } from "@media-viewer/components/ArtifactPickerList"
 import { ArtifactSearchControls } from "@media-viewer/components/ArtifactSearchControls";
 import { useArtifacts } from "@media-viewer/hooks/useArtifacts";
 import {
-  filterArtifacts,
+  artifactsForPicker,
   type ArtifactTypeFilter,
 } from "@media-viewer/utils/filterArtifacts";
 
@@ -76,7 +76,7 @@ export function ChatComposer({
   const { data: artifactsData } = useArtifacts();
   const filteredArtifacts = useMemo(
     () =>
-      filterArtifacts(artifactsData?.results ?? [], {
+      artifactsForPicker(artifactsData?.results ?? [], {
         query: artifactQuery,
         typeFilter: artifactTypeFilter,
       }),
