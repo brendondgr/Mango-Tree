@@ -40,8 +40,7 @@ function createMarkdownComponents(variant: MarkdownVariant): Components {
   strong: ({ children }) => (
     <strong
       className={cn(
-        "font-semibold",
-        isChat ? "text-primary" : "text-foreground",
+        isChat ? "font-bold text-primary" : "font-semibold text-foreground",
       )}
     >
       {children}
@@ -105,7 +104,7 @@ function createMarkdownComponents(variant: MarkdownVariant): Components {
     <h1
       className={cn(
         "mt-2 mb-1 font-bold tracking-tight first:mt-0 last:mb-0",
-        isChat ? cn("text-xl", chatHeadingColor) : "text-base",
+        isChat ? cn("text-2xl", chatHeadingColor) : "text-base",
         textWrap,
       )}
     >
@@ -116,7 +115,7 @@ function createMarkdownComponents(variant: MarkdownVariant): Components {
     <h2
       className={cn(
         "mb-1 font-bold last:mb-0",
-        isChat ? cn("mt-2 text-lg", chatHeadingColor) : "text-sm",
+        isChat ? cn("mt-2 text-xl", chatHeadingColor) : "text-sm",
         textWrap,
       )}
     >
@@ -128,7 +127,7 @@ function createMarkdownComponents(variant: MarkdownVariant): Components {
       className={cn(
         "mb-1 font-semibold last:mb-0",
         isChat
-          ? cn("mt-1.5 text-base", chatHeadingColor)
+          ? cn("mt-1.5 text-lg font-bold", chatHeadingColor)
           : "text-sm text-foreground/90",
         textWrap,
       )}
@@ -141,7 +140,7 @@ function createMarkdownComponents(variant: MarkdownVariant): Components {
       className={cn(
         "mb-1 font-semibold tracking-wide last:mb-0",
         isChat
-          ? cn("text-sm", chatHeadingColor)
+          ? cn("text-base font-bold", chatHeadingColor)
           : "text-xs text-muted-foreground uppercase",
         textWrap,
       )}
@@ -154,7 +153,7 @@ function createMarkdownComponents(variant: MarkdownVariant): Components {
       className={cn(
         "mb-1 font-semibold tracking-wide last:mb-0",
         isChat
-          ? cn("text-sm", chatHeadingColor)
+          ? cn("text-sm font-bold", chatHeadingColor)
           : "text-xs text-muted-foreground uppercase",
         textWrap,
       )}
@@ -167,7 +166,7 @@ function createMarkdownComponents(variant: MarkdownVariant): Components {
       className={cn(
         "mb-1 font-semibold tracking-wide last:mb-0",
         isChat
-          ? cn("text-xs uppercase", chatHeadingColor)
+          ? cn("text-sm font-semibold uppercase", chatHeadingColor)
           : "text-xs text-muted-foreground uppercase",
         textWrap,
       )}
@@ -216,8 +215,10 @@ export function MarkdownContent({
   return (
     <div
       className={cn(
-        "text-sm text-foreground [&>*:first-child]:mt-0 [&_.katex]:text-inherit [&_del]:text-muted-foreground [&_del]:line-through [&_em]:italic [&_strong]:font-semibold",
-        isChat && "[&_strong]:text-primary [&_em]:text-accent",
+        "text-sm text-foreground [&>*:first-child]:mt-0 [&_.katex]:text-inherit [&_del]:text-muted-foreground [&_del]:line-through [&_em]:italic",
+        isChat
+          ? "[&_strong]:font-bold [&_strong]:text-primary [&_em]:text-accent"
+          : "[&_strong]:font-semibold",
         className,
       )}
     >
