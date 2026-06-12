@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useColorPaletteStore } from "@/app/stores/colorPaletteStore";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/hooks/useTheme";
 import {
   COLOR_TOKEN_LABELS,
@@ -19,68 +20,89 @@ import {
 } from "@/lib/colorPalette";
 import { ColorPalettePreview } from "@/features/workspace/components/ColorPalettePreview";
 import {
-  THEME_FAMILIES,
   THEME_FAMILY_LABELS,
   THEME_GROUPS,
+  type ThemeFamily,
   type ThemeName,
 } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+
+const THEME_FAMILY_ROWS: ThemeFamily[][] = [
+  ["mango", "blue"],
+  ["fsu", "pulse"],
+];
 
 interface ThemeFamilyPickerProps {
   activeTheme: ThemeName;
   onSelect: (name: ThemeName) => void;
 }
 
+function ThemeFamilyCell({
+  family,
+  activeTheme,
+  onSelect,
+}: {
+  family: ThemeFamily;
+  activeTheme: ThemeName;
+  onSelect: (name: ThemeName) => void;
+}) {
+  const variants = THEME_GROUPS[family];
+
+  return (
+    <div className="grid gap-2">
+      <p className="text-sm font-medium">{THEME_FAMILY_LABELS[family]}</p>
+      <div className="flex flex-wrap gap-2">
+        {variants.map((variant) => {
+          const isActive = activeTheme === variant.id;
+          return (
+            <button
+              key={variant.id}
+              type="button"
+              onClick={() => onSelect(variant.id as ThemeName)}
+              className={cn(
+                "flex min-w-[8.5rem] items-center gap-2 rounded-[var(--radius-md)] border border-border px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50",
+                isActive && "border-primary bg-primary/5",
+              )}
+              aria-pressed={isActive}
+            >
+              <span className="flex shrink-0 gap-0.5 overflow-hidden rounded-sm">
+                {variant.swatches.map((swatch) => (
+                  <span
+                    key={swatch}
+                    className="h-5 w-3"
+                    style={{ backgroundColor: swatch }}
+                    aria-hidden
+                  />
+                ))}
+              </span>
+              <span className="min-w-0">
+                <span className="block font-medium leading-tight">{variant.label}</span>
+                <span className="block text-xs leading-snug text-muted-foreground">
+                  {variant.colorScheme === "light" ? "Light" : "Dark"}
+                </span>
+              </span>
+              {isActive && (
+                <Check className="ml-auto h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ThemeFamilyPicker({ activeTheme, onSelect }: ThemeFamilyPickerProps) {
   return (
-    <div className="grid gap-4">
-      {THEME_FAMILIES.map((family) => {
-        const variants = THEME_GROUPS[family];
-        return (
-          <div key={family} className="grid gap-2">
-            <p className="text-sm font-medium">{THEME_FAMILY_LABELS[family]}</p>
-            <div className="flex flex-wrap gap-2">
-              {variants.map((variant) => {
-                const isActive = activeTheme === variant.id;
-                return (
-                  <button
-                    key={variant.id}
-                    type="button"
-                    onClick={() => onSelect(variant.id as ThemeName)}
-                    className={cn(
-                      "flex min-w-[9.5rem] items-center gap-2 rounded-[var(--radius-md)] border border-border px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50",
-                      isActive && "border-primary bg-primary/5",
-                    )}
-                    aria-pressed={isActive}
-                  >
-                    <span className="flex shrink-0 gap-0.5 overflow-hidden rounded-sm">
-                      {variant.swatches.map((swatch) => (
-                        <span
-                          key={swatch}
-                          className="h-5 w-3"
-                          style={{ backgroundColor: swatch }}
-                          aria-hidden
-                        />
-                      ))}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block font-medium leading-tight">{variant.label}</span>
-                      {variant.description && (
-                        <span className="block text-xs text-muted-foreground leading-snug">
-                          {variant.colorScheme === "light" ? "Light" : "Dark"}
-                        </span>
-                      )}
-                    </span>
-                    {isActive && (
-                      <Check className="ml-auto h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
+    <div className="grid gap-4 sm:grid-cols-2">
+      {THEME_FAMILY_ROWS.flat().map((family) => (
+        <ThemeFamilyCell
+          key={family}
+          family={family}
+          activeTheme={activeTheme}
+          onSelect={onSelect}
+        />
+      ))}
     </div>
   );
 }
@@ -193,102 +215,95 @@ export function ColorPalettePanel() {
   };
 
   return (
-    <div className="grid gap-6">
-      <div className="grid gap-3">
-        <Label>Base theme</Label>
-        <ThemeFamilyPicker activeTheme={theme} onSelect={setTheme} />
-        <p className="text-xs text-muted-foreground">
-          Each family has its own light and dark surfaces. Mango supports accent
-          presets below; Blue, FSU, and PULSE themes are self-contained.
-        </p>
-      </div>
+    <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-2 lg:gap-8">
+      <ScrollArea className="min-h-0 lg:max-h-none">
+        <div className="grid gap-6 pr-2 lg:pr-4">
+          <div className="grid gap-3">
+            <Label>Base theme</Label>
+            <ThemeFamilyPicker activeTheme={theme} onSelect={setTheme} />
+          </div>
 
-      <div className="grid gap-3">
-        <Label>Preset palettes</Label>
-        <p className="text-xs text-muted-foreground">
-          {isMangoTheme
-            ? "Accent colors only — primary, highlight, and focus ring. Surfaces stay on the Mango base theme."
-            : "Preset palettes apply to Mango themes only. Switch to Mango Light or Dark to use them."}
-        </p>
-        <div
-          className={cn(
-            "grid gap-2 sm:grid-cols-2",
-            !isMangoTheme && "pointer-events-none opacity-50",
-          )}
-        >
-          {PRESET_PALETTES.map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => applyPreset(preset.id)}
+          <div className="grid gap-3">
+            <Label>Preset palettes</Label>
+            <div
               className={cn(
-                "flex items-start gap-3 rounded-[var(--radius-md)] border border-border p-3 text-left transition-colors hover:bg-muted/50",
-                activePresetId === preset.id && "border-primary bg-primary/5",
+                "grid gap-2 sm:grid-cols-2 lg:grid-cols-3",
+                !isMangoTheme && "pointer-events-none opacity-50",
               )}
             >
-              <div className="flex shrink-0 gap-0.5 overflow-hidden rounded-md">
-                {preset.swatches.map((swatch) => (
-                  <span
-                    key={swatch}
-                    className="h-8 w-5"
-                    style={{ backgroundColor: swatch }}
-                    aria-hidden
-                  />
-                ))}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 font-medium">
-                  {preset.name}
-                  {activePresetId === preset.id && (
-                    <Check className="h-3.5 w-3.5 text-primary" aria-hidden />
+              {PRESET_PALETTES.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => applyPreset(preset.id)}
+                  className={cn(
+                    "flex flex-col items-center gap-2 rounded-[var(--radius-md)] border border-border p-3 text-center transition-colors hover:bg-muted/50",
+                    activePresetId === preset.id && "border-primary bg-primary/5",
                   )}
-                </div>
-                <p className="text-xs text-muted-foreground">{preset.description}</p>
-              </div>
-            </button>
-          ))}
+                >
+                  <div className="flex shrink-0 gap-0.5 overflow-hidden rounded-md">
+                    {preset.swatches.map((swatch) => (
+                      <span
+                        key={swatch}
+                        className="h-8 w-5"
+                        style={{ backgroundColor: swatch }}
+                        aria-hidden
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-sm font-medium">
+                    {preset.name}
+                    {activePresetId === preset.id && (
+                      <Check className="h-3.5 w-3.5 text-primary" aria-hidden />
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      </ScrollArea>
 
-      <div className="grid gap-3">
-        <Label>Preview</Label>
-        <ColorPalettePreview />
-        <p className="text-xs text-muted-foreground">
-          Surfaces follow the base theme; accent regions map to preset tokens below.
-        </p>
-      </div>
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="grid gap-6 pr-2 lg:pr-0">
+          <div className="grid gap-3">
+            <Label>Preview</Label>
+            <ColorPalettePreview />
+          </div>
 
-      <div className="grid gap-3">
-        <div className="flex items-center justify-between gap-2">
-          <Label>Custom colors</Label>
-          <Button type="button" variant="ghost" size="sm" onClick={resetPalette}>
-            <RotateCcw className="h-3.5 w-3.5" />
-            Reset colors
-          </Button>
+          <div className="grid gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <Label>Custom colors</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={resetPalette}>
+                <RotateCcw className="h-3.5 w-3.5" />
+                Reset colors
+              </Button>
+            </div>
+            <TokenColorList
+              tokens={PRESET_COLOR_TOKENS}
+              label="Accent colors"
+              getTokenHex={getTokenHex}
+              eyedropTarget={eyedropTarget}
+              onTokenInput={handleTokenInput}
+              onEyedrop={handleEyedrop}
+            />
+            <TokenColorList
+              tokens={SURFACE_COLOR_TOKENS}
+              label="Surface colors"
+              description="From the light/dark base theme. Override only for testing."
+              getTokenHex={getTokenHex}
+              eyedropTarget={eyedropTarget}
+              onTokenInput={handleTokenInput}
+              onEyedrop={handleEyedrop}
+            />
+            {eyedropError && (
+              <p className="text-xs text-muted-foreground" role="status">
+                {eyedropError}
+              </p>
+            )}
+          </div>
         </div>
-        <TokenColorList
-          tokens={PRESET_COLOR_TOKENS}
-          label="Accent colors"
-          getTokenHex={getTokenHex}
-          eyedropTarget={eyedropTarget}
-          onTokenInput={handleTokenInput}
-          onEyedrop={handleEyedrop}
-        />
-        <TokenColorList
-          tokens={SURFACE_COLOR_TOKENS}
-          label="Surface colors"
-          description="From the light/dark base theme. Override only for testing."
-          getTokenHex={getTokenHex}
-          eyedropTarget={eyedropTarget}
-          onTokenInput={handleTokenInput}
-          onEyedrop={handleEyedrop}
-        />
-        {eyedropError && (
-          <p className="text-xs text-muted-foreground" role="status">
-            {eyedropError}
-          </p>
-        )}
-      </div>
+      </ScrollArea>
     </div>
   );
 }
