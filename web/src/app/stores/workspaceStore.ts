@@ -37,11 +37,13 @@ function newChatSessionId(): string {
 
 export type SidebarMode = "chat" | "artifacts";
 
+export const EPHEMERAL_ARTIFACT_TAB_LABEL = "Artifacts";
+
 export type EphemeralTab = {
   id: string;
   kind: "artifact";
   artifactId: string;
-  label: string;
+  tabLabel: typeof EPHEMERAL_ARTIFACT_TAB_LABEL;
 };
 
 export type WorkspaceTabValue = WorkspaceTabId | `ephemeral:${string}`;
@@ -94,7 +96,7 @@ interface WorkspaceState {
   setActiveTab: (tab: WorkspaceTabId) => void;
   setPinnedTab: (tab: WorkspaceTabId) => void;
   setActiveWorkspaceTab: (tab: WorkspaceTabValue) => void;
-  openArtifactTab: (artifactId: string, label: string) => void;
+  openArtifactTab: (artifactId: string) => void;
   closeEphemeralTab: () => void;
   setSidebarMode: (mode: SidebarMode) => void;
   setArtifactGridColumns: (columns: number) => void;
@@ -168,10 +170,15 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         get().setPinnedTab(tab);
       },
 
-      openArtifactTab: (artifactId, label) => {
+      openArtifactTab: (artifactId) => {
         const id = crypto.randomUUID();
         set({
-          ephemeralTab: { id, kind: "artifact", artifactId, label },
+          ephemeralTab: {
+            id,
+            kind: "artifact",
+            artifactId,
+            tabLabel: EPHEMERAL_ARTIFACT_TAB_LABEL,
+          },
           activeWorkspaceTab: ephemeralTabValue(id),
         });
       },

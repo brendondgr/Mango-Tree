@@ -1,6 +1,7 @@
 import { ChevronDown, FileText, Menu, X } from "lucide-react";
 
 import {
+  EPHEMERAL_ARTIFACT_TAB_LABEL,
   ephemeralTabValue,
   isEphemeralWorkspaceTab,
   selectSidebarCollapsed,
@@ -26,10 +27,10 @@ import { cn } from "@/lib/utils";
 function getActiveLabel(
   activeWorkspaceTab: string,
   activeTab: WorkspaceTabId,
-  ephemeralLabel: string | undefined,
+  hasEphemeralTab: boolean,
 ): string {
-  if (isEphemeralWorkspaceTab(activeWorkspaceTab) && ephemeralLabel) {
-    return ephemeralLabel;
+  if (isEphemeralWorkspaceTab(activeWorkspaceTab) && hasEphemeralTab) {
+    return EPHEMERAL_ARTIFACT_TAB_LABEL;
   }
   return WORKSPACE_TABS.find((t) => t.id === activeTab)?.label ?? "Overview";
 }
@@ -52,7 +53,7 @@ export function WorkspaceHeader() {
   const activeLabel = getActiveLabel(
     activeWorkspaceTab,
     activeTab,
-    ephemeralTab?.label,
+    Boolean(ephemeralTab),
   );
 
   const onTabChange = (value: string) => {
@@ -102,10 +103,10 @@ export function WorkspaceHeader() {
               <TabsTrigger
                 value={ephemeralTabValue(ephemeralTab.id)}
                 role="tab"
-                className="max-w-[12rem] italic"
+                className="italic"
               >
                 <FileText className="h-4 w-4 shrink-0" />
-                <span className="truncate">{ephemeralTab.label}</span>
+                {ephemeralTab.tabLabel}
               </TabsTrigger>
             )}
           </TabsList>
@@ -152,7 +153,7 @@ export function WorkspaceHeader() {
                     }
                   >
                     <FileText className="h-4 w-4" />
-                    <span className="truncate italic">{ephemeralTab.label}</span>
+                    <span className="italic">{ephemeralTab.tabLabel}</span>
                   </DropdownMenuItem>
                 </>
               )}

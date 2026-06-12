@@ -76,7 +76,7 @@ export function ArtifactTile({ artifact, onDelete }: ArtifactTileProps) {
       <button
         type="button"
         className="flex flex-1 flex-col text-left"
-        onClick={() => openArtifactTab(artifact.id, artifact.filename)}
+        onClick={() => openArtifactTab(artifact.id)}
       >
         <div className="relative h-16 w-full overflow-hidden bg-muted/40">
           {showThumbnail ? (
