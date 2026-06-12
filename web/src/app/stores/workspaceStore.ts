@@ -30,12 +30,17 @@ export function clampSidebarWidth(width: number, maxWidth?: number): number {
   return Math.max(0, Math.min(max, width));
 }
 
+function newChatSessionId(): string {
+  return crypto.randomUUID();
+}
+
 interface WorkspaceState {
   sidebarWidth: number;
   mobileDrawerOpen: boolean;
   lastWidth: number;
   isTyping: boolean;
   activeTab: WorkspaceTabId;
+  chatSessionId: string;
   messages: ChatMessage[];
   setSidebarWidth: (width: number, maxWidth?: number) => void;
   setMobileDrawerOpen: (open: boolean) => void;
@@ -51,6 +56,7 @@ interface WorkspaceState {
     id: string,
     update: Partial<Pick<ChatMessage, "content" | "thinking" | "isStreaming">>,
   ) => void;
+  startNewChat: () => void;
   clearMessages: () => void;
   toggleSidebar: (mobile: boolean) => void;
 }
@@ -63,6 +69,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       lastWidth: SIDEBAR_DEFAULT,
       isTyping: false,
       activeTab: "overview",
+      chatSessionId: newChatSessionId(),
       messages: [],
 
       setSidebarWidth: (width, maxWidth) => {
@@ -122,7 +129,14 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           ),
         })),
 
-      clearMessages: () => set({ messages: [], isTyping: false }),
+      startNewChat: () =>
+        set({
+          messages: [],
+          isTyping: false,
+          chatSessionId: newChatSessionId(),
+        }),
+
+      clearMessages: () => get().startNewChat(),
 
       toggleSidebar: (mobile) => {
         if (mobile) {
