@@ -20,14 +20,17 @@ Mango Tree's interface should feel approachable, scannable, and operational. It 
 
 Themes are swappable at runtime via `data-theme` on `<html>`. Components consume shadcn semantic tokens only (`bg-background`, `text-primary`, `border-border`).
 
-- Default theme: Canva-inspired (`web/src/styles/themes/default.css`).
+- Theme families: **Mango** (Canva default/dark), **Blue** (generic blue-gray), **FSU** (garnet/gold), **PULSE** (lab navy/cyan). Each family has light and dark compound ids (e.g. `fsu-dark`, `pulse-light`).
+- Registry and metadata: `web/src/lib/theme.ts`, `web/src/lib/themeMeta.ts` (`THEME_META`, `THEME_GROUPS`, family pairing).
 - Entry point: `web/src/styles/globals.css`.
-- Runtime swapper: `web/src/lib/theme.ts` (`initTheme`, `setTheme`).
-- Visual source of truth: `docs/misc/canva/` (see bridge in `ui/design-system.md`).
+- Runtime swapper: `initTheme`, `setTheme`, `toggleThemeInFamily` (chat menu toggles within the active family).
+- Brand references: `docs/misc/canva/` (Mango), `docs/misc/fsu/tokens.md`, `docs/misc/pulse/tokens.md`.
 
-Add future themes by creating a new CSS file under `web/src/styles/themes/` with the same shadcn variable contract, importing it in `globals.css`, and registering the name in `THEMES`.
+**Accent presets** (`web/src/lib/colorPalette.ts`) overlay `primary` / `accent` / `ring` on **Mango** themes only. Branded families set `selfContained: true` in `THEME_META`; selecting them clears palette overrides.
 
-Reserve the purple-to-cyan brand gradient for focal moments (empty states, one primary CTA per view, badges). Default button actions use solid `--primary` purple.
+Add a new tone by creating `{id}.css` under `web/src/styles/themes/` with the full shadcn + extended token contract (`REQUIRED_THEME_CSS_VARS` in `themeMeta.ts`), importing it in `globals.css`, registering the id in `THEMES`, and adding metadata to `THEME_META_LIST`. Run `npm test` in `web/` — `themeContract.test.ts` validates token completeness.
+
+Reserve gradient CTAs for focal moments on Mango; branded themes use their own `--brand-gradient` definitions.
 
 ## Design Rules
 
