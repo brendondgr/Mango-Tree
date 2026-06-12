@@ -5,10 +5,9 @@ import { ArtifactTile } from "./ArtifactTile";
 
 interface ArtifactGridProps {
   artifacts: ArtifactRecord[];
-  onDelete: (artifact: ArtifactRecord) => void;
 }
 
-export function ArtifactGrid({ artifacts, onDelete }: ArtifactGridProps) {
+export function ArtifactGrid({ artifacts }: ArtifactGridProps) {
   const columns = useWorkspaceStore((s) => s.artifactGridColumns);
 
   return (
@@ -19,11 +18,7 @@ export function ArtifactGrid({ artifacts, onDelete }: ArtifactGridProps) {
       }}
     >
       {artifacts.map((artifact) => (
-        <ArtifactTile
-          key={artifact.id}
-          artifact={artifact}
-          onDelete={onDelete}
-        />
+        <ArtifactTile key={artifact.id} artifact={artifact} />
       ))}
     </div>
   );

@@ -1,23 +1,14 @@
 import { FolderOpen, Loader2 } from "lucide-react";
-import { useState } from "react";
 
-import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { WorkspaceSidebarShell } from "@/features/workspace/components/WorkspaceSidebarShell";
-import type { ArtifactRecord } from "@/types/mediaViewer";
 
-import { ArtifactDeleteDialog } from "@media-viewer/components/ArtifactDeleteDialog";
 import { ArtifactGrid } from "@media-viewer/components/ArtifactGrid";
 import { ArtifactsSidebarSettings } from "@media-viewer/components/ArtifactsSidebarSettings";
-import { useArtifacts, useDeleteArtifact } from "@media-viewer/hooks/useArtifacts";
+import { useArtifacts } from "@media-viewer/hooks/useArtifacts";
 
 export function ArtifactsSidebar() {
   const { data, isLoading, isError, error } = useArtifacts();
-  const deleteMutation = useDeleteArtifact();
-  const ephemeralTab = useWorkspaceStore((s) => s.ephemeralTab);
-  const setPinnedTab = useWorkspaceStore((s) => s.setPinnedTab);
-  const activeTab = useWorkspaceStore((s) => s.activeTab);
-  const [pendingDelete, setPendingDelete] = useState<ArtifactRecord | null>(null);
 
   const artifacts = data?.results ?? [];
 
@@ -65,32 +56,9 @@ export function ArtifactsSidebar() {
         )}
 
         {!isLoading && !isError && artifacts.length > 0 && (
-          <ArtifactGrid
-            artifacts={artifacts}
-            onDelete={(artifact) => setPendingDelete(artifact)}
-          />
+          <ArtifactGrid artifacts={artifacts} />
         )}
       </ScrollArea>
-
-      <ArtifactDeleteDialog
-        artifact={pendingDelete}
-        open={pendingDelete !== null}
-        onOpenChange={(open) => {
-          if (!open) setPendingDelete(null);
-        }}
-        isDeleting={deleteMutation.isPending}
-        onConfirm={() => {
-          if (!pendingDelete) return;
-          deleteMutation.mutate(pendingDelete.id, {
-            onSuccess: () => {
-              if (ephemeralTab?.artifactId === pendingDelete.id) {
-                setPinnedTab(activeTab);
-              }
-              setPendingDelete(null);
-            },
-          });
-        }}
-      />
     </WorkspaceSidebarShell>
   );
 }

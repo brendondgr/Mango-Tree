@@ -2,6 +2,7 @@ import {
   FileText,
   Film,
   ImageIcon,
+  Loader2,
   Play,
   Trash2,
 } from "lucide-react";
@@ -13,6 +14,8 @@ import { artifactThumbnailUrl } from "@/services/mediaViewerClient";
 import { formatBytes } from "@/features/chat/utils/fileType";
 import type { ArtifactKind, ArtifactRecord } from "@/types/mediaViewer";
 import { cn } from "@/lib/utils";
+
+import { useDeleteArtifact } from "@media-viewer/hooks/useArtifacts";
 
 function kindLabel(kind: ArtifactKind): string {
   switch (kind) {
@@ -53,18 +56,32 @@ function formatCreatedAt(value: string): string {
 
 interface ArtifactTileProps {
   artifact: ArtifactRecord;
-  onDelete: (artifact: ArtifactRecord) => void;
 }
 
-export function ArtifactTile({ artifact, onDelete }: ArtifactTileProps) {
+export function ArtifactTile({ artifact }: ArtifactTileProps) {
   const ephemeralTab = useWorkspaceStore((s) => s.ephemeralTab);
   const openArtifactTab = useWorkspaceStore((s) => s.openArtifactTab);
+  const setPinnedTab = useWorkspaceStore((s) => s.setPinnedTab);
+  const activeTab = useWorkspaceStore((s) => s.activeTab);
+  const deleteMutation = useDeleteArtifact();
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const selected = ephemeralTab?.artifactId === artifact.id;
   const showThumbnail =
     !thumbnailFailed &&
     (artifact.kind === "image" || artifact.kind === "video");
+
+  const handleDelete = () => {
+    deleteMutation.mutate(artifact.id, {
+      onSuccess: () => {
+        if (ephemeralTab?.artifactId === artifact.id) {
+          setPinnedTab(activeTab);
+        }
+        setConfirmDelete(false);
+      },
+    });
+  };
 
   return (
     <article
@@ -125,16 +142,62 @@ export function ArtifactTile({ artifact, onDelete }: ArtifactTileProps) {
         </div>
       </button>
 
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="absolute right-1 top-1 h-6 w-6 bg-background/80 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-        aria-label={`Delete ${artifact.filename}`}
-        onClick={() => onDelete(artifact)}
-      >
-        <Trash2 className="h-3 w-3 text-destructive" />
-      </Button>
+      {!confirmDelete && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="absolute right-1 top-1 h-6 w-6 bg-background/80 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          aria-label={`Delete ${artifact.filename}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            setConfirmDelete(true);
+          }}
+        >
+          <Trash2 className="h-3 w-3 text-destructive" />
+        </Button>
+      )}
+
+      {confirmDelete && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/95 p-2 text-center backdrop-blur-sm">
+          <p className="text-xs font-medium text-foreground">Delete artifact?</p>
+          <p className="line-clamp-2 text-[10px] text-muted-foreground">
+            {artifact.filename}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              disabled={deleteMutation.isPending}
+              onClick={(event) => {
+                event.stopPropagation();
+                setConfirmDelete(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              disabled={deleteMutation.isPending}
+              onClick={(event) => {
+                event.stopPropagation();
+                handleDelete();
+              }}
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
     </article>
   );
 }
