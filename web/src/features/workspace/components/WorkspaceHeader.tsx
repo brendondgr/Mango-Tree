@@ -1,6 +1,9 @@
 import { ChevronDown, Menu, X } from "lucide-react";
 
-import { useWorkspaceStore } from "@/app/stores/workspaceStore";
+import {
+  selectSidebarCollapsed,
+  useWorkspaceStore,
+} from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,8 +23,14 @@ export function WorkspaceHeader() {
   const isMobile = useMediaQuery(MOBILE_BREAKPOINT);
   const activeTab = useWorkspaceStore((s) => s.activeTab);
   const setActiveTab = useWorkspaceStore((s) => s.setActiveTab);
-  const sidebarCollapsed = useWorkspaceStore((s) => s.sidebarCollapsed);
+  const sidebarWidth = useWorkspaceStore((s) => s.sidebarWidth);
+  const mobileDrawerOpen = useWorkspaceStore((s) => s.mobileDrawerOpen);
   const toggleSidebar = useWorkspaceStore((s) => s.toggleSidebar);
+
+  const sidebarCollapsed = selectSidebarCollapsed(isMobile, {
+    sidebarWidth,
+    mobileDrawerOpen,
+  });
 
   const activeMeta = WORKSPACE_TABS.find((t) => t.id === activeTab)!;
 
@@ -36,7 +45,7 @@ export function WorkspaceHeader() {
           variant="outline"
           size="icon"
           className="h-11 w-11 shrink-0"
-          onClick={toggleSidebar}
+          onClick={() => toggleSidebar(true)}
           aria-expanded={!sidebarCollapsed}
           aria-label={sidebarCollapsed ? "Open menu" : "Close menu"}
         >

@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 
 function MobileSidebarBackdrop() {
   const isMobile = useMediaQuery(MOBILE_BREAKPOINT);
-  const sidebarCollapsed = useWorkspaceStore((s) => s.sidebarCollapsed);
-  const setSidebarCollapsed = useWorkspaceStore((s) => s.setSidebarCollapsed);
+  const mobileDrawerOpen = useWorkspaceStore((s) => s.mobileDrawerOpen);
+  const setMobileDrawerOpen = useWorkspaceStore((s) => s.setMobileDrawerOpen);
 
   if (!isMobile) return null;
 
@@ -17,14 +17,12 @@ function MobileSidebarBackdrop() {
       type="button"
       className={cn(
         "fixed inset-0 z-[90] bg-foreground/60 transition-opacity duration-200",
-        sidebarCollapsed
-          ? "pointer-events-none opacity-0"
-          : "opacity-100",
+        !mobileDrawerOpen ? "pointer-events-none opacity-0" : "opacity-100",
       )}
-      aria-hidden={sidebarCollapsed}
-      tabIndex={sidebarCollapsed ? -1 : 0}
+      aria-hidden={!mobileDrawerOpen}
+      tabIndex={mobileDrawerOpen ? 0 : -1}
       aria-label="Close sidebar"
-      onClick={() => setSidebarCollapsed(true)}
+      onClick={() => setMobileDrawerOpen(false)}
     />
   );
 }

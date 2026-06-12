@@ -1,8 +1,10 @@
 import {
   Download,
   Info,
+  Moon,
   MoreVertical,
   Send,
+  Sun,
   Trash2,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -22,15 +24,16 @@ import { ChatEmptyState } from "@/features/chat/components/ChatEmptyState";
 import { ChatMessage } from "@/features/chat/components/ChatMessage";
 import { TypingIndicator } from "@/features/chat/components/TypingIndicator";
 import { useSidebarResize } from "@/hooks/useSidebarResize";
+import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 
 const MOCK_REPLY =
   "Your workspace environment has been polished. All systems operational.";
 
 export function ChatWindow() {
-  const panelRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
+  const { isDark, toggleTheme } = useTheme();
 
   const messages = useWorkspaceStore((s) => s.messages);
   const isTyping = useWorkspaceStore((s) => s.isTyping);
@@ -40,12 +43,13 @@ export function ChatWindow() {
 
   const {
     isMobile,
+    isResizing,
     sidebarCollapsed,
-    sidebarWidth,
+    displayWidth,
     beginResize,
     onHandleKeyDown,
     collapseSidebar,
-  } = useSidebarResize(panelRef);
+  } = useSidebarResize();
 
   useEffect(() => {
     const el = viewportRef.current;
@@ -70,26 +74,21 @@ export function ChatWindow() {
   };
 
   const mobileWidth = "min(92vw, 360px)";
-  const panelWidth = sidebarCollapsed
-    ? isMobile
-      ? mobileWidth
-      : "0px"
-    : isMobile
-      ? mobileWidth
-      : `${sidebarWidth}px`;
+  const desktopWidth = `${displayWidth}px`;
 
   return (
     <div
-      ref={panelRef}
       className={cn(
-        "relative z-20 h-full shrink-0 overflow-hidden transition-[width] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
+        "relative z-20 h-full shrink-0 overflow-hidden",
+        !isResizing &&
+          "transition-[width] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
         isMobile && "fixed left-0 top-0 shadow-xl",
-        isMobile &&
-          sidebarCollapsed &&
-          "-translate-x-full",
+        isMobile && sidebarCollapsed && "-translate-x-full",
         isMobile && !sidebarCollapsed && "translate-x-0",
+        isMobile &&
+          "transition-[transform] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
       )}
-      style={{ width: panelWidth }}
+      style={{ width: isMobile ? mobileWidth : desktopWidth }}
     >
       {!isMobile && (
         <div
@@ -99,7 +98,8 @@ export function ChatWindow() {
           tabIndex={0}
           className={cn(
             "absolute -right-[5px] top-0 z-30 flex h-full w-2.5 cursor-col-resize touch-none items-center justify-center gap-0.5 transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            sidebarCollapsed &&
+            displayWidth === 0 &&
+              !isResizing &&
               "fixed left-0 bg-primary/[0.04]",
           )}
           onMouseDown={(e) => {
@@ -116,15 +116,13 @@ export function ChatWindow() {
 
       <aside
         className={cn(
-          "flex h-full w-[var(--sidebar-width,360px)] flex-col overflow-hidden border-r border-border bg-card transition-opacity duration-150",
-          !isMobile && sidebarCollapsed && "pointer-events-none opacity-0",
+          "flex h-full flex-col overflow-hidden border-r border-border bg-card transition-opacity duration-150",
+          !isMobile &&
+            displayWidth === 0 &&
+            !isResizing &&
+            "pointer-events-none opacity-0",
         )}
-        style={
-          {
-            "--sidebar-width": isMobile ? mobileWidth : `${sidebarWidth}px`,
-            width: isMobile ? mobileWidth : `${sidebarWidth}px`,
-          } as React.CSSProperties
-        }
+        style={{ width: isMobile ? mobileWidth : desktopWidth }}
       >
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card/80 px-5 backdrop-blur-sm">
           <div className="flex min-w-0 items-center gap-3">
@@ -168,6 +166,14 @@ export function ChatWindow() {
               <DropdownMenuItem onSelect={() => undefined}>
                 <Download className="h-4 w-4" />
                 Export chat
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={toggleTheme}>
+                {isDark ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+                {isDark ? "Light mode" : "Dark mode"}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem

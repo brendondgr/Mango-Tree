@@ -1,117 +1,115 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
-  SIDEBAR_CONSTRAINTS,
+  getSidebarMaxWidth,
+  clampSidebarWidth,
+  SIDEBAR_DEFAULT,
+  selectSidebarCollapsed,
   useWorkspaceStore,
 } from "@/app/stores/workspaceStore";
 import { MOBILE_BREAKPOINT, useMediaQuery } from "@/hooks/useMediaQuery";
 
 const DRAG_THRESHOLD = 4;
 
-export function useSidebarResize(panelRef: React.RefObject<HTMLElement | null>) {
+export function useSidebarResize() {
   const isMobile = useMediaQuery(MOBILE_BREAKPOINT);
-  const isResizing = useRef(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [liveWidth, setLiveWidth] = useState<number | null>(null);
+  const isResizingRef = useRef(false);
   const didDrag = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(0);
+  const commitWidthRef = useRef(0);
 
-  const sidebarCollapsed = useWorkspaceStore((s) => s.sidebarCollapsed);
   const sidebarWidth = useWorkspaceStore((s) => s.sidebarWidth);
+  const mobileDrawerOpen = useWorkspaceStore((s) => s.mobileDrawerOpen);
   const setSidebarWidth = useWorkspaceStore((s) => s.setSidebarWidth);
-  const setSidebarCollapsed = useWorkspaceStore((s) => s.setSidebarCollapsed);
+  const setMobileDrawerOpen = useWorkspaceStore((s) => s.setMobileDrawerOpen);
   const toggleSidebar = useWorkspaceStore((s) => s.toggleSidebar);
   const lastWidth = useWorkspaceStore((s) => s.lastWidth);
 
-  const collapseSidebar = useCallback(() => {
-    setSidebarCollapsed(true);
-  }, [setSidebarCollapsed]);
+  const displayWidth = liveWidth ?? sidebarWidth;
 
-  const expandSidebar = useCallback(() => {
-    setSidebarCollapsed(false);
-    if (!isMobile) {
-      setSidebarWidth(lastWidth || SIDEBAR_CONSTRAINTS.default);
-    }
-  }, [isMobile, lastWidth, setSidebarCollapsed, setSidebarWidth]);
+  const sidebarCollapsed = selectSidebarCollapsed(isMobile, {
+    sidebarWidth,
+    mobileDrawerOpen,
+  });
 
   const beginResize = useCallback(
     (clientX: number) => {
       if (isMobile) return;
-      isResizing.current = true;
+      isResizingRef.current = true;
+      setIsResizing(true);
       didDrag.current = false;
       startX.current = clientX;
-      const panel = panelRef.current;
-      startWidth.current = sidebarCollapsed
-        ? 0
-        : panel?.offsetWidth ?? sidebarWidth;
+      const current = sidebarWidth > 0 ? sidebarWidth : lastWidth;
+      startWidth.current = current;
+      commitWidthRef.current = current;
+      setLiveWidth(current);
       document.body.style.cursor = "col-resize";
       document.body.style.userSelect = "none";
     },
-    [isMobile, panelRef, sidebarCollapsed, sidebarWidth],
+    [isMobile, lastWidth, sidebarWidth],
   );
 
   const onResizeMove = useCallback(
     (clientX: number) => {
-      if (!isResizing.current || isMobile) return;
+      if (!isResizingRef.current || isMobile) return;
       const dx = clientX - startX.current;
       if (Math.abs(dx) > DRAG_THRESHOLD) didDrag.current = true;
-      const next = startWidth.current + dx;
-      if (next < SIDEBAR_CONSTRAINTS.collapseAt) {
-        collapseSidebar();
-      } else {
-        if (sidebarCollapsed) {
-          setSidebarCollapsed(false);
-        }
-        setSidebarWidth(next);
-      }
+      const next = clampSidebarWidth(startWidth.current + dx);
+      commitWidthRef.current = next;
+      setLiveWidth(next);
     },
-    [
-      collapseSidebar,
-      isMobile,
-      setSidebarCollapsed,
-      setSidebarWidth,
-      sidebarCollapsed,
-    ],
+    [isMobile],
   );
 
   const endResize = useCallback(() => {
-    if (!isResizing.current) return;
-    isResizing.current = false;
+    if (!isResizingRef.current) return;
+    isResizingRef.current = false;
+    setIsResizing(false);
+    setLiveWidth(null);
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
-    if (!didDrag.current) {
-      toggleSidebar();
+
+    if (didDrag.current) {
+      setSidebarWidth(commitWidthRef.current, getSidebarMaxWidth());
+    } else {
+      toggleSidebar(false);
     }
-  }, [toggleSidebar]);
+  }, [setSidebarWidth, toggleSidebar]);
 
   const onHandleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      if (isMobile) return;
+      const max = getSidebarMaxWidth();
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        toggleSidebar();
+        toggleSidebar(false);
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
-        if (sidebarCollapsed) expandSidebar();
-        else setSidebarWidth(sidebarWidth - 24);
+        if (sidebarWidth === 0) {
+          setSidebarWidth(lastWidth || SIDEBAR_DEFAULT, max);
+        } else {
+          setSidebarWidth(sidebarWidth - 24, max);
+        }
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        if (sidebarCollapsed) expandSidebar();
-        else setSidebarWidth(sidebarWidth + 24);
+        if (sidebarWidth === 0) {
+          setSidebarWidth(lastWidth || SIDEBAR_DEFAULT, max);
+        } else {
+          setSidebarWidth(sidebarWidth + 24, max);
+        }
       }
     },
-    [
-      expandSidebar,
-      setSidebarWidth,
-      sidebarCollapsed,
-      sidebarWidth,
-      toggleSidebar,
-    ],
+    [isMobile, lastWidth, setSidebarWidth, sidebarWidth, toggleSidebar],
   );
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => onResizeMove(e.clientX);
     const onMouseUp = () => endResize();
     const onTouchMove = (e: TouchEvent) => {
-      if (isResizing.current && e.touches[0]) {
+      if (isResizingRef.current && e.touches[0]) {
         onResizeMove(e.touches[0].clientX);
       }
     };
@@ -134,27 +132,38 @@ export function useSidebarResize(panelRef: React.RefObject<HTMLElement | null>) 
 
   useEffect(() => {
     if (isMobile && !wasMobile.current) {
-      setSidebarCollapsed(true);
-    } else if (!isMobile && wasMobile.current && !sidebarCollapsed) {
-      setSidebarWidth(lastWidth || SIDEBAR_CONSTRAINTS.default);
+      setMobileDrawerOpen(false);
+    } else if (!isMobile && wasMobile.current && sidebarWidth > 0) {
+      setSidebarWidth(lastWidth || SIDEBAR_DEFAULT, getSidebarMaxWidth());
     }
     wasMobile.current = isMobile;
-  }, [
-    isMobile,
-    lastWidth,
-    setSidebarCollapsed,
-    setSidebarWidth,
-    sidebarCollapsed,
-  ]);
+  }, [isMobile, lastWidth, setMobileDrawerOpen, setSidebarWidth, sidebarWidth]);
+
+  useEffect(() => {
+    const onWindowResize = () => {
+      if (isMobile || isResizingRef.current) return;
+      const max = getSidebarMaxWidth();
+      if (sidebarWidth > max) {
+        setSidebarWidth(max, max);
+      }
+    };
+    window.addEventListener("resize", onWindowResize);
+    return () => window.removeEventListener("resize", onWindowResize);
+  }, [isMobile, setSidebarWidth, sidebarWidth]);
 
   return {
     isMobile,
+    isResizing,
     sidebarCollapsed,
-    sidebarWidth,
+    displayWidth,
     beginResize,
     onHandleKeyDown,
-    collapseSidebar,
-    expandSidebar,
-    toggleSidebar,
+    collapseSidebar: () =>
+      isMobile ? setMobileDrawerOpen(false) : setSidebarWidth(0),
+    expandSidebar: () =>
+      isMobile
+        ? setMobileDrawerOpen(true)
+        : setSidebarWidth(lastWidth || SIDEBAR_DEFAULT, getSidebarMaxWidth()),
+    toggleSidebar: () => toggleSidebar(isMobile),
   };
 }

@@ -12,60 +12,56 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-const SIDEBAR_DEFAULT = 360;
-const SIDEBAR_MIN = 260;
-const SIDEBAR_MAX = 520;
+export const SIDEBAR_DEFAULT = 360;
+export const MAIN_PANEL_MIN = 200;
+
+export function getSidebarMaxWidth(): number {
+  if (typeof window === "undefined") return 1200;
+  return Math.max(0, window.innerWidth - MAIN_PANEL_MIN);
+}
+
+export function clampSidebarWidth(width: number, maxWidth?: number): number {
+  const max = maxWidth ?? getSidebarMaxWidth();
+  return Math.max(0, Math.min(max, width));
+}
 
 interface WorkspaceState {
   sidebarWidth: number;
-  sidebarCollapsed: boolean;
+  mobileDrawerOpen: boolean;
   lastWidth: number;
   isTyping: boolean;
   activeTab: WorkspaceTabId;
   messages: ChatMessage[];
-  setSidebarWidth: (width: number) => void;
-  setSidebarCollapsed: (collapsed: boolean) => void;
+  setSidebarWidth: (width: number, maxWidth?: number) => void;
+  setMobileDrawerOpen: (open: boolean) => void;
   setLastWidth: (width: number) => void;
   setIsTyping: (typing: boolean) => void;
   setActiveTab: (tab: WorkspaceTabId) => void;
   addMessage: (message: Omit<ChatMessage, "id" | "timestamp">) => void;
   clearMessages: () => void;
-  toggleSidebar: () => void;
+  toggleSidebar: (mobile: boolean) => void;
 }
-
-export const SIDEBAR_CONSTRAINTS = {
-  default: SIDEBAR_DEFAULT,
-  min: SIDEBAR_MIN,
-  max: SIDEBAR_MAX,
-  collapseAt: 72,
-} as const;
 
 export const useWorkspaceStore = create<WorkspaceState>()(
   persist(
     (set, get) => ({
       sidebarWidth: SIDEBAR_DEFAULT,
-      sidebarCollapsed: false,
+      mobileDrawerOpen: false,
       lastWidth: SIDEBAR_DEFAULT,
       isTyping: false,
       activeTab: "overview",
       messages: [],
 
-      setSidebarWidth: (width) => {
-        const clamped = Math.max(
-          SIDEBAR_MIN,
-          Math.min(SIDEBAR_MAX, width),
-        );
-        set({ sidebarWidth: clamped, lastWidth: clamped, sidebarCollapsed: false });
+      setSidebarWidth: (width, maxWidth) => {
+        const clamped = clampSidebarWidth(width, maxWidth);
+        const updates: Partial<WorkspaceState> = { sidebarWidth: clamped };
+        if (clamped > 0) {
+          updates.lastWidth = clamped;
+        }
+        set(updates);
       },
 
-      setSidebarCollapsed: (collapsed) => {
-        const state = get();
-        if (collapsed && !state.sidebarCollapsed) {
-          set({ lastWidth: state.sidebarWidth, sidebarCollapsed: true });
-        } else {
-          set({ sidebarCollapsed: collapsed });
-        }
-      },
+      setMobileDrawerOpen: (open) => set({ mobileDrawerOpen: open }),
 
       setLastWidth: (width) => set({ lastWidth: width }),
 
@@ -87,28 +83,37 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
       clearMessages: () => set({ messages: [], isTyping: false }),
 
-      toggleSidebar: () => {
+      toggleSidebar: (mobile) => {
+        if (mobile) {
+          set((state) => ({ mobileDrawerOpen: !state.mobileDrawerOpen }));
+          return;
+        }
         const state = get();
-        if (state.sidebarCollapsed) {
-          set({
-            sidebarCollapsed: false,
-            sidebarWidth: state.lastWidth || SIDEBAR_DEFAULT,
-          });
+        if (state.sidebarWidth > 0) {
+          set({ lastWidth: state.sidebarWidth, sidebarWidth: 0 });
         } else {
-          set({
-            lastWidth: state.sidebarWidth,
-            sidebarCollapsed: true,
-          });
+          set({ sidebarWidth: state.lastWidth || SIDEBAR_DEFAULT });
         }
       },
     }),
     {
       name: "mango-workspace",
       partialize: (state) => ({
-        sidebarWidth: state.sidebarWidth,
         lastWidth: state.lastWidth,
         activeTab: state.activeTab,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.sidebarWidth = state.lastWidth || SIDEBAR_DEFAULT;
+        }
+      },
     },
   ),
 );
+
+export function selectSidebarCollapsed(
+  isMobile: boolean,
+  state: Pick<WorkspaceState, "sidebarWidth" | "mobileDrawerOpen">,
+): boolean {
+  return isMobile ? !state.mobileDrawerOpen : state.sidebarWidth === 0;
+}

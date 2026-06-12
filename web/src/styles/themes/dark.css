@@ -1,0 +1,56 @@
+/**
+ * Dark theme — operational workspace surfaces with Mango brand accents.
+ * Swap via data-theme="dark" on <html> (see web/src/lib/theme.ts).
+ */
+
+[data-theme="dark"] {
+  --background: 220 20% 4%;
+  --foreground: 210 15% 85%;
+  --card: 215 15% 10%;
+  --card-foreground: 210 15% 85%;
+  --popover: 215 15% 10%;
+  --popover-foreground: 210 15% 85%;
+  --primary: 271 79% 54%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 215 14% 16%;
+  --secondary-foreground: 210 15% 85%;
+  --muted: 215 14% 16%;
+  --muted-foreground: 215 8% 55%;
+  --accent: 183 100% 40%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 100% 67%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 215 10% 22%;
+  --input: 215 10% 22%;
+  --ring: 271 79% 54%;
+  --success: 168 100% 36%;
+
+  --brand-gradient: linear-gradient(135deg, #7d2ae8, #00c4cc);
+  --brand-gradient-pro: linear-gradient(135deg, #7d2ae8, #ff5757);
+  --primary-hover: 271 82% 46%;
+  --surface-inset: 215 14% 8%;
+  --surface-cool: 234 30% 12%;
+  --ink-secondary: 210 10% 70%;
+  --ink-faint: 215 8% 45%;
+  --warn: 38 100% 56%;
+  --info: 204 100% 53%;
+  --category-coral: 8 100% 67%;
+  --category-tangerine: 30 100% 60%;
+  --category-mint: 156 52% 54%;
+  --category-sky: 207 100% 62%;
+  --category-lavender: 252 84% 75%;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+  --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --focus-ring: 0 0 0 3px rgba(125, 42, 232, 0.28);
+  --motion-fast: 180ms;
+  --motion-base: 280ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --font-sans: "Canva Sans", "YS Text", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
