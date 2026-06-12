@@ -1,7 +1,9 @@
 import "katex/dist/katex.min.css";
+import "@/components/markdown/codeHighlight.css";
 
 import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
@@ -14,6 +16,11 @@ import { cn } from "@/lib/utils";
 const sanitizeSchema = {
   ...defaultSchema,
   tagNames: [...(defaultSchema.tagNames ?? []), "u"],
+  attributes: {
+    ...defaultSchema.attributes,
+    code: [...(defaultSchema.attributes?.code ?? []), "className"],
+    span: [...(defaultSchema.attributes?.span ?? []), "className"],
+  },
 };
 
 const textWrap = "min-w-0 break-words [overflow-wrap:anywhere]";
@@ -96,7 +103,9 @@ function createMarkdownComponents(variant: MarkdownVariant): Components {
       </code>
     );
   },
-  pre: ({ children }) => <MarkdownCodeBlock>{children}</MarkdownCodeBlock>,
+  pre: ({ children }) => (
+    <MarkdownCodeBlock stickyHeader={isChat}>{children}</MarkdownCodeBlock>
+  ),
   h1: ({ children }) => (
     <h1
       className={cn(
@@ -224,6 +233,7 @@ export function MarkdownContent({
         rehypePlugins={[
           rehypeKatex,
           rehypeRaw,
+          rehypeHighlight,
           [rehypeSanitize, sanitizeSchema],
         ]}
         components={markdownComponentsByVariant[variant]}

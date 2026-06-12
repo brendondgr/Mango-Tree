@@ -1,0 +1,85 @@
+/* Token accents for highlighted code blocks — uses theme CSS variables only. */
+
+.markdown-code-block pre code.hljs {
+  display: block;
+  padding: 0;
+  background: transparent;
+  color: hsl(var(--foreground));
+}
+
+.markdown-code-block .hljs-keyword,
+.markdown-code-block .hljs-selector-tag,
+.markdown-code-block .hljs-selector-id,
+.markdown-code-block .hljs-selector-class {
+  color: hsl(var(--primary));
+  font-weight: 600;
+}
+
+.markdown-code-block .hljs-title.function_,
+.markdown-code-block .hljs-title.class_,
+.markdown-code-block .hljs-function .hljs-title,
+.markdown-code-block .hljs-class .hljs-title {
+  color: hsl(var(--category-tangerine));
+  font-weight: 600;
+}
+
+.markdown-code-block .hljs-variable,
+.markdown-code-block .hljs-template-variable,
+.markdown-code-block .hljs-params,
+.markdown-code-block .hljs-attribute,
+.markdown-code-block .hljs-property {
+  color: hsl(var(--category-sky));
+}
+
+.markdown-code-block .hljs-string,
+.markdown-code-block .hljs-regexp,
+.markdown-code-block .hljs-symbol,
+.markdown-code-block .hljs-char.escape_ {
+  color: hsl(var(--category-mint));
+}
+
+.markdown-code-block .hljs-number,
+.markdown-code-block .hljs-literal,
+.markdown-code-block .hljs-boolean {
+  color: hsl(var(--category-coral));
+}
+
+.markdown-code-block .hljs-built_in,
+.markdown-code-block .hljs-type,
+.markdown-code-block .hljs-title,
+.markdown-code-block .hljs-class {
+  color: hsl(var(--category-lavender));
+  font-weight: 600;
+}
+
+.markdown-code-block .hljs-comment,
+.markdown-code-block .hljs-quote,
+.markdown-code-block .hljs-doctag {
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+}
+
+.markdown-code-block .hljs-meta,
+.markdown-code-block .hljs-tag,
+.markdown-code-block .hljs-name,
+.markdown-code-block .hljs-section {
+  color: hsl(var(--accent));
+  font-weight: 600;
+}
+
+.markdown-code-block .hljs-operator,
+.markdown-code-block .hljs-punctuation {
+  color: hsl(var(--ink-secondary, var(--muted-foreground)));
+}
+
+.markdown-code-block .hljs-subst {
+  color: hsl(var(--foreground));
+}
+
+.markdown-code-block .hljs-emphasis {
+  font-style: italic;
+}
+
+.markdown-code-block .hljs-strong {
+  font-weight: 700;
+}
