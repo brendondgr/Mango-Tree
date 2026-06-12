@@ -17,7 +17,7 @@ utils/apps/media_viewer/
 │   ├── services/      # manifest, artifact_store, thumbnails, classification
 │   └── tasks/         # Celery thumbnail generation (optional)
 ├── frontend/
-│   ├── components/    # viewers, grid, delete dialog
+│   ├── components/    # viewers, grid, tile delete overlay
 │   ├── hooks/         # TanStack Query hooks
 │   └── pages/         # ArtifactsSidebar
 ├── agent/
@@ -64,4 +64,4 @@ Filesystem scope: read/write only under `{artifacts.root}/**`. Deny path travers
 
 Imported by `web/` via Vite alias `@media-viewer` → `utils/apps/media_viewer/frontend/`. API client: `web/src/services/mediaViewerClient.ts`.
 
-Selecting an artifact opens an **ephemeral workspace tab** in `WorkspaceHeader` (not a separate route). Switching to Overview/Assets/History closes the tab; re-open from the Artifacts sidebar. Grid density is configurable (1–5 columns per row, default 4). The viewer uses a vertical split: media canvas on top, resizable scrollable properties panel at the bottom.
+Selecting an artifact opens an **ephemeral workspace tab** labeled **Artifacts** in `WorkspaceHeader` (not a separate route). Switching to Overview/Assets/History closes the tab; re-open from the Artifacts sidebar. Grid density is configurable (1–5 columns per row, default 4). The viewer uses a vertical 50/50 split (media canvas on top, properties below) with drag-to-resize; the split fraction persists in workspace state. Delete uses an inline confirm overlay on each tile.

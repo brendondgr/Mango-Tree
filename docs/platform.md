@@ -129,7 +129,7 @@ The right column header tab bar has **pinned tabs** (Overview, Assets, History) 
 | Tab type | Behavior |
 | --- | --- |
 | Pinned | Always visible; show placeholder content in `WorkspaceMainBody` |
-| Ephemeral | Opened when user selects an item (e.g. artifact); label shows filename; italic styling |
+| Ephemeral | Opened when user selects an item (e.g. artifact); label is **Artifacts** (italic); viewer shows the selected file |
 | Auto-close | Switching to any pinned tab closes the ephemeral tab and unmounts the viewer |
 | Re-open | User must select the item again from the app sidebar (e.g. Artifacts nav) |
 
