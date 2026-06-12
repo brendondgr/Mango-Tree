@@ -2,7 +2,6 @@ import {
   FileText,
   Film,
   ImageIcon,
-  Loader2,
   Play,
   Trash2,
 } from "lucide-react";
@@ -15,7 +14,8 @@ import { formatBytes } from "@/features/chat/utils/fileType";
 import type { ArtifactKind, ArtifactRecord } from "@/types/mediaViewer";
 import { cn } from "@/lib/utils";
 
-import { useDeleteArtifact } from "@media-viewer/hooks/useArtifacts";
+import { ArtifactDeleteConfirm } from "@media-viewer/components/ArtifactDeleteConfirm";
+import { useArtifactDeleteFlow } from "@media-viewer/hooks/useArtifacts";
 
 function kindLabel(kind: ArtifactKind): string {
   switch (kind) {
@@ -61,27 +61,19 @@ interface ArtifactTileProps {
 export function ArtifactTile({ artifact }: ArtifactTileProps) {
   const ephemeralTab = useWorkspaceStore((s) => s.ephemeralTab);
   const openArtifactTab = useWorkspaceStore((s) => s.openArtifactTab);
-  const setPinnedTab = useWorkspaceStore((s) => s.setPinnedTab);
-  const activeTab = useWorkspaceStore((s) => s.activeTab);
-  const deleteMutation = useDeleteArtifact();
+  const {
+    confirmDelete,
+    requestDelete,
+    cancelDelete,
+    handleDelete,
+    isPending,
+  } = useArtifactDeleteFlow(artifact.id);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const selected = ephemeralTab?.artifactId === artifact.id;
   const showThumbnail =
     !thumbnailFailed &&
     (artifact.kind === "image" || artifact.kind === "video");
-
-  const handleDelete = () => {
-    deleteMutation.mutate(artifact.id, {
-      onSuccess: () => {
-        if (ephemeralTab?.artifactId === artifact.id) {
-          setPinnedTab(activeTab);
-        }
-        setConfirmDelete(false);
-      },
-    });
-  };
 
   return (
     <article
@@ -92,7 +84,7 @@ export function ArtifactTile({ artifact }: ArtifactTileProps) {
     >
       <button
         type="button"
-        className="flex flex-1 flex-col text-left"
+        className="flex w-full flex-col text-left"
         onClick={() => openArtifactTab(artifact.id)}
       >
         <div className="relative h-16 w-full overflow-hidden bg-muted/40">
@@ -127,8 +119,14 @@ export function ArtifactTile({ artifact }: ArtifactTileProps) {
             </div>
           )}
         </div>
+      </button>
 
-        <div className="space-y-0.5 p-2">
+      <div className="flex items-end gap-1 p-2 pt-1">
+        <button
+          type="button"
+          className="min-w-0 flex-1 space-y-0.5 text-left"
+          onClick={() => openArtifactTab(artifact.id)}
+        >
           <p className="truncate text-xs font-medium text-foreground">
             {artifact.filename}
           </p>
@@ -139,63 +137,30 @@ export function ArtifactTile({ artifact }: ArtifactTileProps) {
             <span>{formatBytes(artifact.size_bytes)}</span>
             <span>{formatCreatedAt(artifact.created_at)}</span>
           </div>
-        </div>
-      </button>
+        </button>
 
-      {!confirmDelete && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="absolute right-1 top-1 h-6 w-6 bg-background/80 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-          aria-label={`Delete ${artifact.filename}`}
-          onClick={(event) => {
-            event.stopPropagation();
-            setConfirmDelete(true);
-          }}
-        >
-          <Trash2 className="h-3 w-3 text-destructive" />
-        </Button>
-      )}
+        {!confirmDelete && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+            aria-label={`Delete ${artifact.filename}`}
+            onClick={requestDelete}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
 
       {confirmDelete && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/95 p-2 text-center backdrop-blur-sm">
-          <p className="text-xs font-medium text-foreground">Delete artifact?</p>
-          <p className="line-clamp-2 text-[10px] text-muted-foreground">
-            {artifact.filename}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 px-2 text-xs"
-              disabled={deleteMutation.isPending}
-              onClick={(event) => {
-                event.stopPropagation();
-                setConfirmDelete(false);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              className="h-7 px-2 text-xs"
-              disabled={deleteMutation.isPending}
-              onClick={(event) => {
-                event.stopPropagation();
-                handleDelete();
-              }}
-            >
-              {deleteMutation.isPending ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                "Delete"
-              )}
-            </Button>
-          </div>
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/95 p-2 backdrop-blur-sm">
+          <ArtifactDeleteConfirm
+            filename={artifact.filename}
+            isPending={isPending}
+            onCancel={cancelDelete}
+            onConfirm={handleDelete}
+          />
         </div>
       )}
     </article>

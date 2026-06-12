@@ -1,7 +1,13 @@
+import { Trash2 } from "lucide-react";
+
 import { formatBytes } from "@/features/chat/utils/fileType";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ArtifactRecord } from "@/types/mediaViewer";
 import { cn } from "@/lib/utils";
+
+import { ArtifactDeleteConfirm } from "@media-viewer/components/ArtifactDeleteConfirm";
+import { useArtifactDeleteFlow } from "@media-viewer/hooks/useArtifacts";
 
 function formatTimestamp(value: string): string {
   const date = new Date(value);
@@ -53,6 +59,13 @@ interface ArtifactPropertiesPanelProps {
 
 export function ArtifactPropertiesPanel({ artifact }: ArtifactPropertiesPanelProps) {
   const { metadata } = artifact;
+  const {
+    confirmDelete,
+    requestDelete,
+    cancelDelete,
+    handleDelete,
+    isPending,
+  } = useArtifactDeleteFlow(artifact.id);
 
   const cards: PropertyCardProps[] = [
     {
@@ -119,6 +132,31 @@ export function ArtifactPropertiesPanel({ artifact }: ArtifactPropertiesPanelPro
           ))}
         </div>
       </ScrollArea>
+
+      <div className="shrink-0 border-t border-border px-4 py-2">
+        {confirmDelete ? (
+          <ArtifactDeleteConfirm
+            layout="inline"
+            filename={artifact.filename}
+            isPending={isPending}
+            onCancel={cancelDelete}
+            onConfirm={handleDelete}
+          />
+        ) : (
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={requestDelete}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete artifact
+            </Button>
+          </div>
+        )}
+      </div>
     </aside>
   );
 }
