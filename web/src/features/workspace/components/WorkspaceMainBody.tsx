@@ -17,7 +17,11 @@ export function WorkspaceMainBody() {
     activeWorkspaceTab === ephemeralTabValue(ephemeralTab.id);
 
   if (ephemeralActive && ephemeralTab.kind === "artifact") {
-    return <MediaViewerShell artifactId={ephemeralTab.artifactId} />;
+    return (
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <MediaViewerShell artifactId={ephemeralTab.artifactId} />
+      </div>
+    );
   }
 
   const pinnedTab = isEphemeralWorkspaceTab(activeWorkspaceTab)

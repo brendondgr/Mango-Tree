@@ -65,7 +65,7 @@ export function WorkspaceHeader() {
   };
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-5 max-[820px]:px-4">
+    <header className="relative z-10 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-5 max-[820px]:px-4">
       {isMobile && (
         <Button
           variant="outline"
