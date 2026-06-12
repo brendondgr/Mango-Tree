@@ -9,8 +9,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
-
-import { useLlmConfigStore } from "@/app/stores/llmConfigStore";
 import { appQueryClient } from "@/app/providers";
 import type { ChatMessage } from "@/app/stores/workspaceStore";
 import { useWorkspaceStore } from "@/app/stores/workspaceStore";
@@ -29,13 +27,12 @@ import { ChatMessage as ChatMessageBubble } from "@/features/chat/components/Cha
 import { SessionInfoDialog } from "@/features/chat/components/SessionInfoDialog";
 import { useChatAutoScroll } from "@/features/chat/hooks/useChatAutoScroll";
 import type { PendingAttachment } from "@/features/chat/types/attachment";
-import {
-  buildLlmMessages,
-  formatLlmError,
-} from "@/features/chat/utils/buildLlmMessageContent";
+import { formatLlmError } from "@/features/chat/utils/buildLlmMessageContent";
 import { groupMessagesIntoTurns } from "@/features/chat/utils/groupMessagesIntoTurns";
 import { persistChatAttachments } from "@/features/chat/utils/persistChatAttachments";
-import { streamLlm } from "@/services/llmClient";
+
+import { runAgentTurn } from "@/features/agent/agentRunner";
+import { useAgentStore } from "@/features/agent/agentState";
 import { useTheme } from "@/hooks/useTheme";
 import { WorkspaceSidebarShell } from "@/features/workspace/components/WorkspaceSidebarShell";
 import { ARTIFACTS_QUERY_KEY } from "@media-viewer/hooks/useArtifacts";
@@ -47,15 +44,15 @@ export function ChatWindow() {
   const isTyping = useWorkspaceStore((s) => s.isTyping);
   const chatSessionId = useWorkspaceStore((s) => s.chatSessionId);
   const addMessage = useWorkspaceStore((s) => s.addMessage);
-  const appendToMessage = useWorkspaceStore((s) => s.appendToMessage);
+
   const updateMessage = useWorkspaceStore((s) => s.updateMessage);
   const setIsTyping = useWorkspaceStore((s) => s.setIsTyping);
   const lastKnownUsage = useWorkspaceStore((s) => s.lastKnownUsage);
-  const setLastKnownUsage = useWorkspaceStore((s) => s.setLastKnownUsage);
+
   const setArtifactNotice = useWorkspaceStore((s) => s.setArtifactNotice);
   const artifactNotice = useWorkspaceStore((s) => s.artifactNotice);
   const startNewChat = useWorkspaceStore((s) => s.startNewChat);
-  const llmConfig = useLlmConfigStore((s) => s.config);
+
 
   const [sessionInfoOpen, setSessionInfoOpen] = useState(false);
   const streamAbortRef = useRef<AbortController | null>(null);
@@ -160,22 +157,47 @@ export function ChatWindow() {
     streamAbortRef.current = abortController;
 
     try {
-      const streamResult = await streamLlm(
-        buildLlmMessages(history),
-        llmConfig,
-        {
-          onThinkingDelta: (delta) => {
-            appendToMessage(agentMessageId, { thinking: delta });
-          },
-          onContentDelta: (delta) => {
-            appendToMessage(agentMessageId, { content: delta });
-          },
-        },
-        abortController.signal,
-      );
-      if (streamResult.usage) {
-        setLastKnownUsage(streamResult.usage);
-      }
+      const unsubscribe = useAgentStore.subscribe((state) => {
+        let content = "";
+        
+        // Format tool logs
+        if (state.toolResults.length > 0) {
+          content += "### Tools Executed:\n";
+          state.toolResults.forEach((res) => {
+            const icon = res.success ? "✅" : "❌";
+            content += `${icon} **${res.tool}**: ${res.summary}\n`;
+          });
+          content += "\n";
+        }
+        
+        if (state.status === "running") {
+          content += `*Executing node: ${state.currentNode}…*\n`;
+        }
+        
+        if (state.finalAnswer) {
+          content += state.finalAnswer;
+        }
+        
+        if (state.error) {
+          content += `\n\n**Error:** ${state.error}`;
+        }
+        
+        updateMessage(agentMessageId, {
+          content,
+          thinking: state.thinking,
+        });
+        forceScrollToBottom();
+      });
+
+      const historyPayload = history.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+        thinking: msg.thinking,
+      }));
+
+      await runAgentTurn(chatSessionId, text, historyPayload);
+      
+      unsubscribe();
       updateMessage(agentMessageId, { isStreaming: false });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {

@@ -9,6 +9,8 @@ dependencies = [
     "django>=5.2",
     "djangorestframework>=3.16",
     "pillow>=11.2",
+    "langgraph>=1.2.5",
+    "requests>=2.34.2",
 ]
 
 [project.optional-dependencies]
