@@ -48,11 +48,11 @@ export const PRESET_PALETTES: PalettePreset[] = [
     id: "mango",
     name: "Mango",
     description: "Ripe mango gold with leafy green highlights",
-    swatches: ["#f5a623", "#ffcc33", "#6bbf3a"],
+    swatches: ["#e08a1a", "#ffcc33", "#6bbf3a"],
     colors: {
-      primary: "36 91% 55%",
+      primary: "32 85% 48%",
       accent: "88 52% 45%",
-      ring: "36 91% 55%",
+      ring: "32 85% 48%",
     },
   },
   {

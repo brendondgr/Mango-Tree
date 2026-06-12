@@ -45,7 +45,7 @@ export function ChatMessage({ turn }: ChatMessageProps) {
             </span>
           </div>
           <div className="flex justify-end">
-            <div className="max-w-[90%] rounded-[var(--radius-lg)] rounded-br-sm bg-primary px-3 py-2 text-sm leading-snug text-primary-foreground shadow-sm">
+            <div className="max-w-[90%] rounded-[var(--radius-lg)] rounded-br-sm border border-primary/25 bg-secondary px-3 py-2 text-sm leading-snug text-foreground shadow-sm">
               {turn.user.attachments && turn.user.attachments.length > 0 && (
                 <MessageAttachments
                   attachments={turn.user.attachments}
@@ -53,11 +53,8 @@ export function ChatMessage({ turn }: ChatMessageProps) {
                 />
               )}
               {turn.user.content ? (
-                <div className="[&_a]:text-primary-foreground [&_code]:bg-primary-foreground/15 [&_pre]:bg-primary-foreground/10">
-                  <MarkdownContent
-                    content={turn.user.content}
-                    className="text-primary-foreground [&_*]:text-inherit"
-                  />
+                <div className="[&_a]:text-primary [&_code]:bg-muted [&_pre]:bg-muted/80">
+                  <MarkdownContent content={turn.user.content} />
                 </div>
               ) : null}
             </div>

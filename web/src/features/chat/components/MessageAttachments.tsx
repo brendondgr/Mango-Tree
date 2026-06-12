@@ -50,7 +50,7 @@ function TextAttachmentCard({
       className={cn(
         "overflow-hidden rounded-md border text-left",
         variant === "user"
-          ? "border-primary-foreground/20 bg-primary-foreground/10"
+          ? "border-border/60 bg-muted/40"
           : "border-border/60 bg-muted/30",
       )}
     >
@@ -197,7 +197,7 @@ export function MessageAttachments({
             className={cn(
               "flex items-center gap-2 rounded-md border px-2.5 py-2 text-xs",
               variant === "user"
-                ? "border-primary-foreground/20 bg-primary-foreground/10"
+                ? "border-border/60 bg-muted/40"
                 : "border-border/60 bg-muted/30",
             )}
           >
