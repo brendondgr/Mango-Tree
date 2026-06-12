@@ -1,0 +1,56 @@
+/**
+ * PULSE Light — PULSE lab blues on a light canvas.
+ * Swap via data-theme="pulse-light" on <html>.
+ */
+
+[data-theme="pulse-light"] {
+  --background: 220 23% 96%;
+  --foreground: 234 32% 22%;
+  --card: 0 0% 100%;
+  --card-foreground: 234 32% 22%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 234 32% 22%;
+  --primary: 209 62% 34%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 199 68% 95%;
+  --secondary-foreground: 234 32% 22%;
+  --muted: 210 40% 92%;
+  --muted-foreground: 215 16% 42%;
+  --accent: 194 65% 55%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 210 38% 88%;
+  --input: 210 38% 88%;
+  --ring: 209 62% 34%;
+  --success: 160 84% 39%;
+
+  --brand-gradient: linear-gradient(135deg, #20588d, #40b1d7);
+  --brand-gradient-pro: linear-gradient(135deg, #20588d, #153a5d);
+  --primary-hover: 209 62% 22%;
+  --surface-inset: 210 35% 90%;
+  --surface-cool: 199 68% 95%;
+  --ink-secondary: 215 20% 32%;
+  --ink-faint: 215 16% 48%;
+  --warn: 38 92% 50%;
+  --info: 194 65% 55%;
+  --category-coral: 8 90% 62%;
+  --category-tangerine: 30 95% 55%;
+  --category-mint: 156 52% 48%;
+  --category-sky: 194 65% 55%;
+  --category-lavender: 234 40% 65%;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+  --shadow-raised: 0 2px 8px rgba(37, 40, 75, 0.1);
+  --shadow-card-hover: 0 8px 24px rgba(37, 40, 75, 0.14);
+  --focus-ring: 0 0 0 3px rgba(32, 88, 141, 0.2);
+  --motion-fast: 180ms;
+  --motion-base: 280ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --font-sans: "Canva Sans", "YS Text", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
