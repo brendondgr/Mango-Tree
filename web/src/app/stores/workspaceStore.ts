@@ -34,12 +34,16 @@ function newChatSessionId(): string {
   return crypto.randomUUID();
 }
 
+export type SidebarMode = "chat" | "artifacts";
+
 interface WorkspaceState {
   sidebarWidth: number;
   mobileDrawerOpen: boolean;
   lastWidth: number;
   isTyping: boolean;
   activeTab: WorkspaceTabId;
+  sidebarMode: SidebarMode;
+  selectedArtifactId: string | null;
   chatSessionId: string;
   messages: ChatMessage[];
   setSidebarWidth: (width: number, maxWidth?: number) => void;
@@ -47,6 +51,9 @@ interface WorkspaceState {
   setLastWidth: (width: number) => void;
   setIsTyping: (typing: boolean) => void;
   setActiveTab: (tab: WorkspaceTabId) => void;
+  setSidebarMode: (mode: SidebarMode) => void;
+  setSelectedArtifactId: (id: string | null) => void;
+  expandSidebar: () => void;
   addMessage: (message: Omit<ChatMessage, "id" | "timestamp"> & { id?: string }) => string;
   appendToMessage: (
     id: string,
@@ -69,6 +76,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       lastWidth: SIDEBAR_DEFAULT,
       isTyping: false,
       activeTab: "overview",
+      sidebarMode: "chat",
+      selectedArtifactId: null,
       chatSessionId: newChatSessionId(),
       messages: [],
 
@@ -88,6 +97,24 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       setIsTyping: (typing) => set({ isTyping: typing }),
 
       setActiveTab: (tab) => set({ activeTab: tab }),
+
+      setSidebarMode: (mode) => set({ sidebarMode: mode }),
+
+      setSelectedArtifactId: (id) => set({ selectedArtifactId: id }),
+
+      expandSidebar: () => {
+        const state = get();
+        const isMobile =
+          typeof window !== "undefined" &&
+          window.matchMedia(`(max-width: ${820}px)`).matches;
+        if (isMobile) {
+          set({ mobileDrawerOpen: true });
+          return;
+        }
+        if (state.sidebarWidth === 0) {
+          set({ sidebarWidth: state.lastWidth || SIDEBAR_DEFAULT });
+        }
+      },
 
       addMessage: (message) => {
         const id = message.id ?? crypto.randomUUID();
@@ -156,6 +183,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       partialize: (state) => ({
         lastWidth: state.lastWidth,
         activeTab: state.activeTab,
+        sidebarMode: state.sidebarMode,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {

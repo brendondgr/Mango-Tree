@@ -8,6 +8,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@media-viewer": path.resolve(__dirname, "../utils/apps/media_viewer/frontend"),
+      react: path.resolve(__dirname, "./node_modules/react"),
+      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
+      "lucide-react": path.resolve(__dirname, "./node_modules/lucide-react"),
     },
   },
   server: {
@@ -15,6 +19,10 @@ export default defineConfig({
     proxy: {
       "/v1": {
         target: "http://localhost:9090",
+        changeOrigin: true,
+      },
+      "/api": {
+        target: "http://localhost:8000",
         changeOrigin: true,
       },
     },

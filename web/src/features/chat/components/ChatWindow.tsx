@@ -34,9 +34,8 @@ import {
 } from "@/features/chat/utils/buildLlmMessageContent";
 import { groupMessagesIntoTurns } from "@/features/chat/utils/groupMessagesIntoTurns";
 import { streamLlm } from "@/services/llmClient";
-import { useSidebarResize } from "@/hooks/useSidebarResize";
 import { useTheme } from "@/hooks/useTheme";
-import { cn } from "@/lib/utils";
+import { WorkspaceSidebarShell } from "@/features/workspace/components/WorkspaceSidebarShell";
 
 export function ChatWindow() {
   const { isDark, toggleTheme } = useTheme();
@@ -61,17 +60,10 @@ export function ChatWindow() {
   }, [messages]);
 
   const {
-    isMobile,
-    isResizing,
-    sidebarCollapsed,
-    displayWidth,
-    beginResize,
-    onHandleKeyDown,
-    collapseSidebar,
-  } = useSidebarResize();
-
-  const { viewportRef, hasUnreadBelow, forceScrollToBottom } =
-    useChatAutoScroll({
+    viewportRef,
+    hasUnreadBelow,
+    forceScrollToBottom,
+  } = useChatAutoScroll({
       messagesLength: messages.length,
       isTyping,
       streamScrollKey,
@@ -165,58 +157,9 @@ export function ChatWindow() {
     forceScrollToBottom();
   };
 
-  const mobileWidth = "min(92vw, 360px)";
-  const desktopWidth = `${displayWidth}px`;
-
   return (
-    <div
-      className={cn(
-        "relative z-20 h-full shrink-0 overflow-hidden",
-        !isResizing &&
-          "transition-[width] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
-        isMobile && "fixed left-0 top-0 shadow-xl",
-        isMobile && sidebarCollapsed && "-translate-x-full",
-        isMobile && !sidebarCollapsed && "translate-x-0",
-        isMobile &&
-          "transition-[transform] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
-      )}
-      style={{ width: isMobile ? mobileWidth : desktopWidth }}
-    >
-      {!isMobile && (
-        <div
-          role="separator"
-          aria-label="Resize sidebar — drag to adjust, click to collapse or expand"
-          aria-orientation="vertical"
-          tabIndex={0}
-          className={cn(
-            "absolute -right-[5px] top-0 z-30 flex h-full w-2.5 cursor-col-resize touch-none items-center justify-center gap-0.5 transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            displayWidth === 0 &&
-              !isResizing &&
-              "fixed left-0 bg-primary/[0.04]",
-          )}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            beginResize(e.clientX);
-          }}
-          onKeyDown={onHandleKeyDown}
-        >
-          <span className="h-9 w-px rounded-full bg-border transition-colors group-hover:bg-primary" />
-          <span className="h-9 w-px rounded-full bg-border transition-colors group-hover:bg-primary" />
-        </div>
-      )}
-
-      <aside
-        className={cn(
-          "flex h-full flex-col overflow-hidden border-r border-border bg-card transition-opacity duration-150",
-          !isMobile &&
-            displayWidth === 0 &&
-            !isResizing &&
-            "pointer-events-none opacity-0",
-        )}
-        style={{ width: isMobile ? mobileWidth : desktopWidth }}
-      >
-        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-card/80 px-3 backdrop-blur-sm">
+    <WorkspaceSidebarShell>
+      <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-card/80 px-3 backdrop-blur-sm">
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold tracking-tight text-foreground">
               Mango agent
@@ -313,16 +256,6 @@ export function ChatWindow() {
             onSubmit={handleSubmit}
           />
         </div>
-      </aside>
-
-      {isMobile && !sidebarCollapsed && (
-        <button
-          type="button"
-          className="sr-only"
-          onClick={collapseSidebar}
-          aria-label="Close sidebar"
-        />
-      )}
-    </div>
+    </WorkspaceSidebarShell>
   );
 }

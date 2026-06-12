@@ -17,8 +17,13 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@media-viewer/*": ["../utils/apps/media_viewer/frontend/*"],
+      "lucide-react": ["./node_modules/lucide-react"],
+      "react": ["./node_modules/@types/react"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
+      "react-dom": ["./node_modules/@types/react-dom"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "../utils/apps/media_viewer/frontend"]
 }
