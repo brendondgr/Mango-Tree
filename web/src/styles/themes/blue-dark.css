@@ -1,0 +1,56 @@
+/**
+ * Blue Dark — deep slate-blue workspace.
+ * Swap via data-theme="blue-dark" on <html>.
+ */
+
+[data-theme="blue-dark"] {
+  --background: 222 47% 11%;
+  --foreground: 210 40% 92%;
+  --card: 217 33% 17%;
+  --card-foreground: 210 40% 92%;
+  --popover: 217 30% 19%;
+  --popover-foreground: 210 40% 92%;
+  --primary: 213 94% 68%;
+  --primary-foreground: 222 47% 11%;
+  --secondary: 217 28% 22%;
+  --secondary-foreground: 210 40% 92%;
+  --muted: 217 25% 24%;
+  --muted-foreground: 215 20% 62%;
+  --accent: 187 85% 53%;
+  --accent-foreground: 222 47% 11%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 217 22% 28%;
+  --input: 217 22% 28%;
+  --ring: 213 94% 68%;
+  --success: 160 84% 45%;
+
+  --brand-gradient: linear-gradient(135deg, #1e3a5f, #22d3ee);
+  --brand-gradient-pro: linear-gradient(135deg, #60a5fa, #22d3ee);
+  --primary-hover: 213 94% 62%;
+  --surface-inset: 222 47% 9%;
+  --surface-cool: 217 33% 15%;
+  --ink-secondary: 210 25% 75%;
+  --ink-faint: 215 16% 52%;
+  --warn: 38 92% 55%;
+  --info: 187 85% 53%;
+  --category-coral: 8 90% 62%;
+  --category-tangerine: 30 95% 55%;
+  --category-mint: 156 52% 48%;
+  --category-sky: 199 95% 60%;
+  --category-lavender: 252 70% 72%;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+  --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.32);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.42);
+  --focus-ring: 0 0 0 3px rgba(96, 165, 250, 0.28);
+  --motion-fast: 180ms;
+  --motion-base: 280ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --font-sans: "Canva Sans", "YS Text", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}

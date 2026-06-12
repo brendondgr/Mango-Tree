@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @import "./themes/default.css";
 @import "./themes/dark.css";
+@import "./themes/blue-light.css";
+@import "./themes/blue-dark.css";
+@import "./themes/fsu-light.css";
+@import "./themes/fsu-dark.css";
+@import "./themes/pulse-light.css";
+@import "./themes/pulse-dark.css";
 
 @theme inline {
   --color-background: hsl(var(--background));
@@ -35,11 +41,17 @@
   box-sizing: border-box;
 }
 
-html[data-theme="default"] {
+html[data-theme="default"],
+html[data-theme="blue-light"],
+html[data-theme="fsu-light"],
+html[data-theme="pulse-light"] {
   color-scheme: light;
 }
 
-html[data-theme="dark"] {
+html[data-theme="dark"],
+html[data-theme="blue-dark"],
+html[data-theme="fsu-dark"],
+html[data-theme="pulse-dark"] {
   color-scheme: dark;
 }
 
