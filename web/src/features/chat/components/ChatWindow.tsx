@@ -41,7 +41,7 @@ import { WorkspaceSidebarShell } from "@/features/workspace/components/Workspace
 import { ARTIFACTS_QUERY_KEY } from "@media-viewer/hooks/useArtifacts";
 
 export function ChatWindow() {
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark, pairedThemeMeta, toggleTheme } = useTheme();
 
   const messages = useWorkspaceStore((s) => s.messages);
   const isTyping = useWorkspaceStore((s) => s.isTyping);
@@ -255,7 +255,11 @@ export function ChatWindow() {
                 ) : (
                   <Moon className="h-4 w-4" />
                 )}
-                {isDark ? "Light mode" : "Dark mode"}
+                {pairedThemeMeta
+                  ? `Switch to ${pairedThemeMeta.label}`
+                  : isDark
+                    ? "Light mode"
+                    : "Dark mode"}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem

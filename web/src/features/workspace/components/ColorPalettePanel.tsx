@@ -18,8 +18,72 @@ import {
   SURFACE_COLOR_TOKENS,
 } from "@/lib/colorPalette";
 import { ColorPalettePreview } from "@/features/workspace/components/ColorPalettePreview";
-import { getThemeMeta, THEMES } from "@/lib/theme";
+import {
+  THEME_FAMILIES,
+  THEME_FAMILY_LABELS,
+  THEME_GROUPS,
+  type ThemeName,
+} from "@/lib/theme";
 import { cn } from "@/lib/utils";
+
+interface ThemeFamilyPickerProps {
+  activeTheme: ThemeName;
+  onSelect: (name: ThemeName) => void;
+}
+
+function ThemeFamilyPicker({ activeTheme, onSelect }: ThemeFamilyPickerProps) {
+  return (
+    <div className="grid gap-4">
+      {THEME_FAMILIES.map((family) => {
+        const variants = THEME_GROUPS[family];
+        return (
+          <div key={family} className="grid gap-2">
+            <p className="text-sm font-medium">{THEME_FAMILY_LABELS[family]}</p>
+            <div className="flex flex-wrap gap-2">
+              {variants.map((variant) => {
+                const isActive = activeTheme === variant.id;
+                return (
+                  <button
+                    key={variant.id}
+                    type="button"
+                    onClick={() => onSelect(variant.id as ThemeName)}
+                    className={cn(
+                      "flex min-w-[9.5rem] items-center gap-2 rounded-[var(--radius-md)] border border-border px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50",
+                      isActive && "border-primary bg-primary/5",
+                    )}
+                    aria-pressed={isActive}
+                  >
+                    <span className="flex shrink-0 gap-0.5 overflow-hidden rounded-sm">
+                      {variant.swatches.map((swatch) => (
+                        <span
+                          key={swatch}
+                          className="h-5 w-3"
+                          style={{ backgroundColor: swatch }}
+                          aria-hidden
+                        />
+                      ))}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-medium leading-tight">{variant.label}</span>
+                      {variant.description && (
+                        <span className="block text-xs text-muted-foreground leading-snug">
+                          {variant.colorScheme === "light" ? "Light" : "Dark"}
+                        </span>
+                      )}
+                    </span>
+                    {isActive && (
+                      <Check className="ml-auto h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 interface TokenColorListProps {
   tokens: readonly ColorToken[];
@@ -89,7 +153,8 @@ function TokenColorList({
 }
 
 export function ColorPalettePanel() {
-  const { theme, setTheme } = useTheme();
+  const { theme, themeMeta, setTheme } = useTheme();
+  const isMangoTheme = themeMeta?.family === "mango";
   const activePresetId = useColorPaletteStore((s) => s.activePresetId);
   const overrides = useColorPaletteStore((s) => s.overrides);
   const applyPreset = useColorPaletteStore((s) => s.applyPreset);
@@ -131,32 +196,26 @@ export function ColorPalettePanel() {
     <div className="grid gap-6">
       <div className="grid gap-3">
         <Label>Base theme</Label>
-        <div className="flex flex-wrap gap-2">
-          {THEMES.map((name) => (
-            <Button
-              key={name}
-              type="button"
-              variant={theme === name ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTheme(name)}
-            >
-              {getThemeMeta(name)?.label ?? name}
-            </Button>
-          ))}
-        </div>
+        <ThemeFamilyPicker activeTheme={theme} onSelect={setTheme} />
         <p className="text-xs text-muted-foreground">
-          Light and dark control page surfaces. Preset palettes only change accent
-          colors on top.
+          Each family has its own light and dark surfaces. Mango supports accent
+          presets below; Blue, FSU, and PULSE themes are self-contained.
         </p>
       </div>
 
       <div className="grid gap-3">
         <Label>Preset palettes</Label>
         <p className="text-xs text-muted-foreground">
-          Accent colors only — primary, highlight, and focus ring. Surfaces stay
-          on the base theme above.
+          {isMangoTheme
+            ? "Accent colors only — primary, highlight, and focus ring. Surfaces stay on the Mango base theme."
+            : "Preset palettes apply to Mango themes only. Switch to Mango Light or Dark to use them."}
         </p>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div
+          className={cn(
+            "grid gap-2 sm:grid-cols-2",
+            !isMangoTheme && "pointer-events-none opacity-50",
+          )}
+        >
           {PRESET_PALETTES.map((preset) => (
             <button
               key={preset.id}
