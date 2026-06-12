@@ -1,8 +1,6 @@
-import { ChevronDown, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { MarkdownContent } from "@/components/markdown/MarkdownContent";
-import { cn } from "@/lib/utils";
 
 interface ThinkingBlockProps {
   content: string;
@@ -10,47 +8,28 @@ interface ThinkingBlockProps {
 }
 
 export function ThinkingBlock({ content, isStreaming = false }: ThinkingBlockProps) {
-  const [expanded, setExpanded] = useState(isStreaming);
-
-  useEffect(() => {
-    if (isStreaming) {
-      setExpanded(true);
-    }
-  }, [isStreaming]);
+  const [expanded, setExpanded] = useState(false);
 
   if (!content && !isStreaming) {
     return null;
   }
 
   return (
-    <div className="mb-2 rounded-[var(--radius-md)] border border-border/70 bg-muted/40">
+    <div className="mb-2 min-w-0 max-w-full overflow-hidden rounded-[var(--radius-md)] border border-border/70 bg-muted/40">
       <button
         type="button"
         onClick={() => setExpanded((value) => !value)}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+        className="w-full px-3 py-2 text-left text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
         aria-expanded={expanded}
       >
-        <Sparkles
-          className={cn("h-3.5 w-3.5 shrink-0", isStreaming && "animate-pulse")}
-          aria-hidden
-        />
-        <span className="flex-1">
-          {isStreaming ? "Thinking…" : "Thought process"}
-        </span>
-        <ChevronDown
-          className={cn(
-            "h-3.5 w-3.5 shrink-0 transition-transform",
-            expanded && "rotate-180",
-          )}
-          aria-hidden
-        />
+        {isStreaming ? "Thinking…" : "Thought process"}
       </button>
       {expanded && (
-        <div className="border-t border-border/60 px-3 py-2 text-muted-foreground">
+        <div className="min-w-0 max-w-full overflow-x-auto border-t border-border/60 px-3 py-2 text-muted-foreground">
           {content ? (
             <MarkdownContent
               content={content}
-              className="text-xs leading-relaxed [&_p]:text-muted-foreground"
+              className="min-w-0 max-w-full text-xs leading-relaxed break-words [overflow-wrap:anywhere] [&_*]:max-w-full [&_pre]:overflow-x-auto [&_.katex-display]:overflow-x-auto [&_p]:text-muted-foreground"
             />
           ) : (
             <p className="text-xs italic text-muted-foreground/80">

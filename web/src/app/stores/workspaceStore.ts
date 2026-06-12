@@ -1,14 +1,17 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import type { ChatAttachment } from "@/features/chat/types/attachment";
 import type { WorkspaceTabId } from "@/features/workspace/components/workspaceTabs";
 
+export type { ChatAttachment } from "@/features/chat/types/attachment";
 export type MessageRole = "user" | "agent";
 
 export interface ChatMessage {
   id: string;
   role: MessageRole;
   content: string;
+  attachments?: ChatAttachment[];
   thinking?: string;
   timestamp: Date;
   isStreaming?: boolean;

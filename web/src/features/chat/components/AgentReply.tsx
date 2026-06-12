@@ -26,7 +26,7 @@ export function AgentReply({
   const showWaiting = isStreaming && !content && !thinking?.trim();
 
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex min-w-0 max-w-full flex-col gap-0.5">
       <div className="flex justify-start">
         <span className="text-[10px] text-muted-foreground/60">
           {formatChatTime(timestamp)}
@@ -34,7 +34,7 @@ export function AgentReply({
       </div>
       <div
         className={cn(
-          "max-w-[95%] rounded-[var(--radius-lg)] rounded-bl-sm border border-border/60 bg-card px-3 py-2 shadow-sm",
+          "min-w-0 max-w-full rounded-[var(--radius-lg)] border border-border/60 bg-card px-3 py-2 shadow-sm",
           isStreaming && "border-primary/20",
         )}
       >
@@ -45,7 +45,10 @@ export function AgentReply({
           />
         )}
         {content ? (
-          <MarkdownContent content={content} />
+          <MarkdownContent
+            content={content}
+            className="min-w-0 max-w-full break-words [overflow-wrap:anywhere] [&_pre]:overflow-x-auto [&_.katex-display]:overflow-x-auto"
+          />
         ) : showWaiting ? (
           <p className="text-sm text-muted-foreground">Waiting for response…</p>
         ) : null}

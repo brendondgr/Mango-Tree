@@ -4,9 +4,13 @@ export interface LlmConfig {
   apiKey: string;
 }
 
+export type LlmContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
 export interface LlmChatMessage {
   role: "user" | "assistant" | "system";
-  content: string;
+  content: string | LlmContentPart[];
 }
 
 export interface LlmChatCompletionResponse {

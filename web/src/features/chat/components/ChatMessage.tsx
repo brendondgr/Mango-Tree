@@ -1,6 +1,8 @@
 import { motion, useReducedMotion } from "framer-motion";
 
+import { MarkdownContent } from "@/components/markdown/MarkdownContent";
 import { AgentReply } from "@/features/chat/components/AgentReply";
+import { MessageAttachments } from "@/features/chat/components/MessageAttachments";
 import type { ChatTurn } from "@/features/chat/utils/groupMessagesIntoTurns";
 
 interface ChatMessageProps {
@@ -29,7 +31,7 @@ export function ChatMessage({ turn }: ChatMessageProps) {
 
   return (
     <motion.div
-      className="flex flex-col gap-1.5"
+      className="flex min-w-0 max-w-full flex-col gap-1.5"
       aria-label={ariaLabel}
       initial={reduceMotion ? false : { opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
@@ -44,7 +46,20 @@ export function ChatMessage({ turn }: ChatMessageProps) {
           </div>
           <div className="flex justify-end">
             <div className="max-w-[90%] rounded-[var(--radius-lg)] rounded-br-sm bg-primary px-3 py-2 text-sm leading-snug text-primary-foreground shadow-sm">
-              {turn.user.content}
+              {turn.user.attachments && turn.user.attachments.length > 0 && (
+                <MessageAttachments
+                  attachments={turn.user.attachments}
+                  variant="user"
+                />
+              )}
+              {turn.user.content ? (
+                <div className="[&_a]:text-primary-foreground [&_code]:bg-primary-foreground/15 [&_pre]:bg-primary-foreground/10">
+                  <MarkdownContent
+                    content={turn.user.content}
+                    className="text-primary-foreground [&_*]:text-inherit"
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
         </>

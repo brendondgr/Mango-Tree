@@ -4,13 +4,13 @@ import {
   Info,
   Moon,
   MoreVertical,
-  Send,
   Sun,
   Trash2,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { useLlmConfigStore } from "@/app/stores/llmConfigStore";
+import type { ChatMessage } from "@/app/stores/workspaceStore";
 import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,29 +20,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ChatComposer } from "@/features/chat/components/ChatComposer";
 import { ChatEmptyState } from "@/features/chat/components/ChatEmptyState";
-import { ChatMessage } from "@/features/chat/components/ChatMessage";
+import { ChatMessage as ChatMessageBubble } from "@/features/chat/components/ChatMessage";
 import { useChatAutoScroll } from "@/features/chat/hooks/useChatAutoScroll";
+import type { PendingAttachment } from "@/features/chat/types/attachment";
+import {
+  buildLlmMessages,
+  formatLlmError,
+} from "@/features/chat/utils/buildLlmMessageContent";
 import { groupMessagesIntoTurns } from "@/features/chat/utils/groupMessagesIntoTurns";
-import { LlmClientError, streamLlm } from "@/services/llmClient";
-import type { LlmChatMessage } from "@/services/llmTypes";
+import { streamLlm } from "@/services/llmClient";
 import { useSidebarResize } from "@/hooks/useSidebarResize";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 
-function toLlmMessages(
-  messages: Array<{ role: "user" | "agent"; content: string }>,
-): LlmChatMessage[] {
-  return messages.map((message) => ({
-    role: message.role === "agent" ? "assistant" : "user",
-    content: message.content,
-  }));
-}
-
 export function ChatWindow() {
-  const [input, setInput] = useState("");
   const { isDark, toggleTheme } = useTheme();
 
   const messages = useWorkspaceStore((s) => s.messages);
@@ -77,23 +71,35 @@ export function ChatWindow() {
       streamScrollKey,
     });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = input.trim();
-    if (!text || isTyping) return;
+  const handleSubmit = async (
+    text: string,
+    pendingAttachments: PendingAttachment[],
+  ) => {
+    if (isTyping) return;
 
-    const history = [
-      ...messages,
-      {
-        id: "pending-user",
-        role: "user" as const,
-        content: text,
-        timestamp: new Date(),
-      },
-    ];
+    const attachments = pendingAttachments
+      .map((pending) => pending.attachment)
+      .filter((attachment): attachment is NonNullable<typeof attachment> =>
+        Boolean(attachment),
+      );
 
-    addMessage({ role: "user", content: text });
-    setInput("");
+    if (!text && attachments.length === 0) return;
+
+    const pendingUserMessage: ChatMessage = {
+      id: "pending-user",
+      role: "user",
+      content: text,
+      attachments: attachments.length > 0 ? attachments : undefined,
+      timestamp: new Date(),
+    };
+
+    const history = [...messages, pendingUserMessage];
+
+    addMessage({
+      role: "user",
+      content: text,
+      attachments: attachments.length > 0 ? attachments : undefined,
+    });
     forceScrollToBottom();
     setIsTyping(true);
 
@@ -106,7 +112,7 @@ export function ChatWindow() {
     forceScrollToBottom();
 
     try {
-      await streamLlm(toLlmMessages(history), llmConfig, {
+      await streamLlm(buildLlmMessages(history), llmConfig, {
         onThinkingDelta: (delta) => {
           appendToMessage(agentMessageId, { thinking: delta });
         },
@@ -116,10 +122,7 @@ export function ChatWindow() {
       });
       updateMessage(agentMessageId, { isStreaming: false });
     } catch (error) {
-      const message =
-        error instanceof LlmClientError
-          ? error.message
-          : "Something went wrong while contacting the model.";
+      const message = formatLlmError(error);
       const current = useWorkspaceStore
         .getState()
         .messages.find((entry) => entry.id === agentMessageId);
@@ -239,11 +242,11 @@ export function ChatWindow() {
           </DropdownMenu>
         </header>
 
-        <ScrollArea viewportRef={viewportRef} className="flex-1 bg-background">
-          <div className="flex flex-col gap-3 p-3">
+        <ScrollArea viewportRef={viewportRef} className="min-w-0 flex-1 bg-background">
+          <div className="flex min-w-0 max-w-full flex-col gap-3 p-3">
             {messages.length === 0 && !isTyping && <ChatEmptyState />}
             {groupMessagesIntoTurns(messages).map((turn) => (
-              <ChatMessage key={turn.id} turn={turn} />
+              <ChatMessageBubble key={turn.id} turn={turn} />
             ))}
           </div>
         </ScrollArea>
@@ -264,31 +267,7 @@ export function ChatWindow() {
         )}
 
         <div className="shrink-0 border-t border-border bg-card p-3">
-          <form onSubmit={handleSubmit}>
-            <label htmlFor="chat-input" className="sr-only">
-              Message
-            </label>
-            <div className="flex items-center gap-2 rounded-[var(--radius-lg)] border border-border bg-background px-4 py-1.5 transition-shadow focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/15">
-              <Input
-                id="chat-input"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Type a message…"
-                autoComplete="off"
-                disabled={isTyping}
-                className="flex-1 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
-              />
-              <Button
-                type="submit"
-                size="icon"
-                className="h-11 w-11 shrink-0 rounded-full"
-                aria-label="Send message"
-                disabled={isTyping}
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </form>
+          <ChatComposer disabled={isTyping} onSubmit={handleSubmit} />
         </div>
       </aside>
 

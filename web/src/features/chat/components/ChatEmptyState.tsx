@@ -13,7 +13,7 @@ export function ChatEmptyState() {
         Ready for your commands
       </p>
       <p className="mt-1 text-xs tracking-wide opacity-80">
-        Ask anything to get started
+        Attach images, videos, code, or PDFs
       </p>
     </div>
   );
