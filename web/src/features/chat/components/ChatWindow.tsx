@@ -23,6 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatEmptyState } from "@/features/chat/components/ChatEmptyState";
 import { ChatMessage } from "@/features/chat/components/ChatMessage";
 import { TypingIndicator } from "@/features/chat/components/TypingIndicator";
+import { groupMessagesIntoTurns } from "@/features/chat/utils/groupMessagesIntoTurns";
 import { useSidebarResize } from "@/hooks/useSidebarResize";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
@@ -124,27 +125,18 @@ export function ChatWindow() {
         )}
         style={{ width: isMobile ? mobileWidth : desktopWidth }}
       >
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card/80 px-5 backdrop-blur-sm">
-          <div className="flex min-w-0 items-center gap-3">
-            <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-primary-foreground"
-              style={{ background: "var(--brand-gradient)" }}
-              aria-hidden
-            >
-              A
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold tracking-tight text-foreground">
-                Agent Core
-              </p>
-              <p className="text-[11px] tracking-wide text-muted-foreground">
-                <span
-                  className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-success align-middle"
-                  aria-hidden
-                />
-                Online
-              </p>
-            </div>
+        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-card/80 px-3 backdrop-blur-sm">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold tracking-tight text-foreground">
+              Agent Core
+            </p>
+            <p className="text-[11px] tracking-wide text-muted-foreground">
+              <span
+                className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-success align-middle"
+                aria-hidden
+              />
+              Online
+            </p>
           </div>
 
           <DropdownMenu>
@@ -188,32 +180,16 @@ export function ChatWindow() {
         </header>
 
         <ScrollArea className="flex-1 bg-background">
-          <div ref={viewportRef} className="flex flex-col gap-5 p-5">
+          <div ref={viewportRef} className="flex flex-col gap-3 p-3">
             {messages.length === 0 && !isTyping && <ChatEmptyState />}
-            {messages.map((msg) => (
-              <ChatMessage key={msg.id} message={msg} />
+            {groupMessagesIntoTurns(messages).map((turn) => (
+              <ChatMessage key={turn.id} turn={turn} />
             ))}
-            {isTyping && (
-              <div className="flex gap-3">
-                <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-primary-foreground"
-                  style={{ background: "var(--brand-gradient)" }}
-                  aria-hidden
-                >
-                  A
-                </div>
-                <div className="flex flex-col">
-                  <div className="mb-1 text-[11px] font-medium text-muted-foreground">
-                    Agent Core
-                  </div>
-                  <TypingIndicator />
-                </div>
-              </div>
-            )}
+            {isTyping && <TypingIndicator />}
           </div>
         </ScrollArea>
 
-        <div className="shrink-0 border-t border-border bg-card p-5 max-[820px]:px-4 max-[820px]:py-3">
+        <div className="shrink-0 border-t border-border bg-card p-3">
           <form onSubmit={handleSubmit}>
             <label htmlFor="chat-input" className="sr-only">
               Message

@@ -1,7 +1,7 @@
 export function TypingIndicator() {
   return (
     <div
-      className="flex w-fit gap-1 rounded-[var(--radius-lg)] border border-border bg-secondary px-4 py-2"
+      className="flex gap-1 py-1"
       role="status"
       aria-label="Agent is typing"
     >

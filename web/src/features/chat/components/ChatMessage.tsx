@@ -1,59 +1,46 @@
 import { motion, useReducedMotion } from "framer-motion";
 
-import type { ChatMessage as ChatMessageType } from "@/app/stores/workspaceStore";
-import { cn } from "@/lib/utils";
+import type { ChatTurn } from "@/features/chat/utils/groupMessagesIntoTurns";
 
 interface ChatMessageProps {
-  message: ChatMessageType;
+  turn: ChatTurn;
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({ turn }: ChatMessageProps) {
   const reduceMotion = useReducedMotion();
-  const isUser = message.role === "user";
 
-  const time = message.timestamp.toLocaleTimeString([], {
+  const time = turn.timestamp.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
   });
 
+  const ariaLabel = turn.user
+    ? `You at ${time}${turn.replies.length ? `, agent replied` : ""}`
+    : `Agent message at ${time}`;
+
   return (
     <motion.div
-      className={cn(
-        "flex w-full gap-3",
-        isUser ? "flex-row-reverse" : "flex-row",
-      )}
-      initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+      className="flex flex-col gap-1"
+      aria-label={ariaLabel}
+      initial={reduceMotion ? false : { opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
     >
-      <div
-        className={cn(
-          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-primary-foreground",
-          isUser && "bg-primary",
-        )}
-        style={isUser ? undefined : { background: "var(--brand-gradient)" }}
-        aria-hidden
-      >
-        {isUser ? "U" : "A"}
+      <div className="flex justify-end">
+        <span className="text-[10px] text-muted-foreground/60">{time}</span>
       </div>
-      <div className="flex max-w-[80%] flex-col">
-        <div className="mb-1 text-[11px] font-medium tracking-wide text-muted-foreground">
-          {isUser ? "You" : "Agent Core"}
+      {turn.user && (
+        <div className="flex justify-end">
+          <div className="max-w-[90%] rounded-[var(--radius-lg)] rounded-br-sm bg-primary px-3 py-2 text-sm leading-snug text-primary-foreground shadow-sm">
+            {turn.user.content}
+          </div>
         </div>
-        <div
-          className={cn(
-            "px-4 py-3 text-sm leading-relaxed",
-            isUser
-              ? "rounded-[var(--radius-lg)] rounded-br-sm bg-primary text-primary-foreground shadow-sm"
-              : "rounded-[var(--radius-lg)] rounded-bl-sm border border-border bg-secondary text-secondary-foreground",
-          )}
-        >
-          {message.content}
-        </div>
-        <div className="mt-1.5 text-right text-[11px] text-muted-foreground opacity-60">
-          {time}
-        </div>
-      </div>
+      )}
+      {turn.replies.map((reply) => (
+        <p key={reply.id} className="text-sm leading-snug text-foreground">
+          {reply.content}
+        </p>
+      ))}
     </motion.div>
   );
 }
