@@ -219,14 +219,7 @@ export function ChatWindow() {
         <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-card/80 px-3 backdrop-blur-sm">
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold tracking-tight text-foreground">
-              Agent Core
-            </p>
-            <p className="text-[11px] tracking-wide text-muted-foreground">
-              <span
-                className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-success align-middle"
-                aria-hidden
-              />
-              Online
+              Mango agent
             </p>
           </div>
 
