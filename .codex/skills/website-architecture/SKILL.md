@@ -56,6 +56,10 @@ web/src/services/  ->  api/routes/  ->  utils/apps/{app}/backend/services/
 
 No business logic in the frontend beyond API client calls. App-specific UI may live in `utils/apps/{app}/frontend/` and be imported into the shell.
 
+### `/chat` workspace tabs
+
+App surfaces (starting with `media_viewer` artifacts) open as **ephemeral tabs** in `WorkspaceHeader` alongside pinned tabs (Overview, Assets, History). Selecting a pinned tab closes any ephemeral tab. Ephemeral tabs are not persisted. See `docs/platform.md` for lifecycle details.
+
 ## Commands
 
 ```bash
