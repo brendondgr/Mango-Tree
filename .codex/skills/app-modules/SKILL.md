@@ -83,6 +83,7 @@ When migrating a Flask app into `utils/apps/{name}/`:
 - imdbspy
 - exercise
 - timekeeper
+- media_viewer
 
 Each app directory includes a README describing its subfolder responsibilities.
 
