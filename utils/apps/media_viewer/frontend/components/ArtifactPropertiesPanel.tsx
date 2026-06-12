@@ -7,6 +7,23 @@ function formatTimestamp(value: string): string {
   return date.toLocaleString();
 }
 
+function PropertyField({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | null | undefined;
+}) {
+  return (
+    <div className="space-y-1">
+      <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="break-all font-mono text-xs text-foreground">{value ?? "—"}</dd>
+    </div>
+  );
+}
+
 interface ArtifactPropertiesPanelProps {
   artifact: ArtifactRecord;
 }
@@ -14,16 +31,12 @@ interface ArtifactPropertiesPanelProps {
 export function ArtifactPropertiesPanel({ artifact }: ArtifactPropertiesPanelProps) {
   const { metadata } = artifact;
 
-  const rows: Array<{ label: string; value: string | null | undefined }> = [
-    { label: "ID", value: artifact.id },
+  const fileRows: Array<{ label: string; value: string | null | undefined }> = [
     { label: "Filename", value: artifact.filename },
     { label: "MIME type", value: artifact.mime_type },
     { label: "Kind", value: artifact.kind },
     { label: "Size", value: formatBytes(artifact.size_bytes) },
     { label: "Created", value: formatTimestamp(artifact.created_at) },
-    { label: "Source", value: artifact.source },
-    { label: "Chat session", value: artifact.source_chat_session_id },
-    { label: "Message", value: artifact.source_message_id },
     {
       label: "Dimensions",
       value:
@@ -46,23 +59,42 @@ export function ArtifactPropertiesPanel({ artifact }: ArtifactPropertiesPanelPro
     { label: "SHA-256", value: metadata.checksum_sha256 },
   ];
 
+  const sourceRows: Array<{ label: string; value: string | null | undefined }> = [
+    { label: "ID", value: artifact.id },
+    { label: "Source", value: artifact.source },
+    { label: "Chat session", value: artifact.source_chat_session_id },
+    { label: "Message", value: artifact.source_message_id },
+  ];
+
   return (
     <aside className="flex h-full min-h-0 w-full flex-col bg-card">
       <div className="shrink-0 border-b border-border px-4 py-2">
         <h3 className="text-sm font-semibold text-foreground">Properties</h3>
       </div>
-      <dl className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4 text-sm">
-        {rows.map(({ label, value }) => (
-          <div key={label} className="space-y-1">
-            <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {label}
-            </dt>
-            <dd className="break-all font-mono text-xs text-foreground">
-              {value ?? "—"}
-            </dd>
-          </div>
-        ))}
-      </dl>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <div className="grid gap-6 md:grid-cols-2">
+          <section aria-label="File details">
+            <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-foreground">
+              File
+            </h4>
+            <dl className="space-y-3 text-sm">
+              {fileRows.map((row) => (
+                <PropertyField key={row.label} {...row} />
+              ))}
+            </dl>
+          </section>
+          <section aria-label="Source details">
+            <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-foreground">
+              Source
+            </h4>
+            <dl className="space-y-3 text-sm">
+              {sourceRows.map((row) => (
+                <PropertyField key={row.label} {...row} />
+              ))}
+            </dl>
+          </section>
+        </div>
+      </div>
     </aside>
   );
 }
