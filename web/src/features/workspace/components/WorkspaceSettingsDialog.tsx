@@ -1,7 +1,6 @@
-import { ArrowLeft, Palette, Settings2 } from "lucide-react";
-import { useState } from "react";
+import { Palette, Settings2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,126 +8,75 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ColorPalettePanel } from "@/features/workspace/components/ColorPalettePanel";
-import { LlmConfigDialog } from "@/features/workspace/components/LlmConfigDialog";
-import { cn } from "@/lib/utils";
+import { LlmConfigPanel } from "@/features/workspace/components/LlmConfigPanel";
 
-type SettingsPage = "menu" | "llm" | "colors";
+type SettingsTab = "llm" | "colors";
 
 interface WorkspaceSettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const MENU_ITEMS = [
-  {
-    id: "llm" as const,
-    label: "LLM settings",
-    description: "Endpoint, model, and API key",
-    icon: Settings2,
-  },
-  {
-    id: "colors" as const,
-    label: "Color palettes",
-    description: "Themes, presets, and custom colors",
-    icon: Palette,
-  },
-];
-
 export function WorkspaceSettingsDialog({
   open,
   onOpenChange,
 }: WorkspaceSettingsDialogProps) {
-  const [page, setPage] = useState<SettingsPage>("menu");
+  const [activeTab, setActiveTab] = useState<SettingsTab>("llm");
 
-  const handleOpenChange = (next: boolean) => {
-    if (!next) setPage("menu");
-    onOpenChange(next);
-  };
-
-  if (page === "llm") {
-    return (
-      <LlmConfigDialog
-        open={open}
-        onOpenChange={(next) => {
-          if (!next) {
-            setPage("menu");
-            onOpenChange(false);
-            return;
-          }
-          onOpenChange(next);
-        }}
-        onBack={() => setPage("menu")}
-      />
-    );
-  }
+  useEffect(() => {
+    if (open) setActiveTab("llm");
+  }, [open]);
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent
-        className={cn(
-          "max-h-[min(90vh,720px)] overflow-y-auto",
-          page === "colors" ? "max-w-2xl" : "max-w-md",
-        )}
-      >
-        {page === "menu" ? (
-          <>
-            <DialogHeader>
-              <DialogTitle>Settings</DialogTitle>
-              <DialogDescription>
-                Workspace options for chat and appearance.
-              </DialogDescription>
-            </DialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex h-[min(90vh,680px)] w-[calc(100vw-2rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="shrink-0 space-y-1 px-5 pb-0 pt-5 pr-12 sm:px-6 sm:pt-6">
+          <DialogTitle>Settings</DialogTitle>
+          <DialogDescription>
+            LLM connection and appearance options for this workspace.
+          </DialogDescription>
+        </DialogHeader>
 
-            <nav className="grid gap-2 py-2" aria-label="Settings sections">
-              {MENU_ITEMS.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setPage(item.id)}
-                    className="flex w-full items-center gap-3 rounded-[var(--radius-md)] border border-border px-4 py-3 text-left transition-colors hover:bg-muted/50"
-                  >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    <span>
-                      <span className="block font-medium">{item.label}</span>
-                      <span className="block text-xs text-muted-foreground">
-                        {item.description}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </nav>
-          </>
-        ) : (
-          <>
-            <DialogHeader>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={() => setPage("menu")}
-                  aria-label="Back to settings menu"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <div>
-                  <DialogTitle>Color palettes</DialogTitle>
-                  <DialogDescription>
-                    Browse presets or fine-tune individual colors.
-                  </DialogDescription>
-                </div>
-              </div>
-            </DialogHeader>
-            <ColorPalettePanel />
-          </>
-        )}
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as SettingsTab)}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <TabsList
+            className="h-auto w-full shrink-0 justify-stretch gap-0 border-b border-border px-5 sm:px-6"
+            role="tablist"
+            aria-label="Settings sections"
+          >
+            <TabsTrigger value="llm" className="min-w-0 flex-1 rounded-none" role="tab">
+              <Settings2 className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate">LLM</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="colors"
+              className="min-w-0 flex-1 rounded-none"
+              role="tab"
+            >
+              <Palette className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate">Color palette</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <ScrollArea className="min-h-0 flex-1">
+            <TabsContent value="llm" className="px-5 py-4 sm:px-6 sm:py-5" role="tabpanel">
+              <LlmConfigPanel active={open && activeTab === "llm"} />
+            </TabsContent>
+            <TabsContent
+              value="colors"
+              className="px-5 py-4 sm:px-6 sm:py-5"
+              role="tabpanel"
+            >
+              <ColorPalettePanel />
+            </TabsContent>
+          </ScrollArea>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
