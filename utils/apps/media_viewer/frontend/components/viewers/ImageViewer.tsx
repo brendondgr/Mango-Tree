@@ -1,16 +1,23 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useContainedMediaSize } from "@/hooks/useContainedMediaSize";
 import { artifactContentUrl } from "@/services/mediaViewerClient";
 import type { ArtifactRecord } from "@/types/mediaViewer";
 
 interface ImageViewerProps {
   artifact: ArtifactRecord;
   imageArtifacts: ArtifactRecord[];
+  onActiveArtifactChange?: (artifactId: string) => void;
 }
 
-export function ImageViewer({ artifact, imageArtifacts }: ImageViewerProps) {
+export function ImageViewer({
+  artifact,
+  imageArtifacts,
+  onActiveArtifactChange,
+}: ImageViewerProps) {
+  const canvasRef = useRef<HTMLDivElement>(null);
   const sorted = useMemo(
     () =>
       [...imageArtifacts].sort(
@@ -25,14 +32,31 @@ export function ImageViewer({ artifact, imageArtifacts }: ImageViewerProps) {
     sorted.findIndex((item) => item.id === artifact.id),
   );
   const [activeIndex, setActiveIndex] = useState(initialIndex);
+  const [loadedNatural, setLoadedNatural] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
+
   const active = sorted[activeIndex] ?? artifact;
   const hasMultiple = sorted.length > 1;
+
+  const naturalWidth = loadedNatural?.width ?? active.metadata.width ?? null;
+  const naturalHeight = loadedNatural?.height ?? active.metadata.height ?? null;
+  const fittedSize = useContainedMediaSize(canvasRef, naturalWidth, naturalHeight);
 
   useEffect(() => {
     setActiveIndex(
       Math.max(0, sorted.findIndex((item) => item.id === artifact.id)),
     );
   }, [artifact.id, sorted]);
+
+  useEffect(() => {
+    setLoadedNatural(null);
+  }, [active.id]);
+
+  useEffect(() => {
+    onActiveArtifactChange?.(active.id);
+  }, [active.id, onActiveArtifactChange]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -57,40 +81,62 @@ export function ImageViewer({ artifact, imageArtifacts }: ImageViewerProps) {
     setActiveIndex((index) => (index < sorted.length - 1 ? index + 1 : 0));
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col bg-muted/20">
-      <div className="flex min-h-0 flex-1 items-center justify-center gap-2 p-4">
+    <div className="flex h-full min-h-0 w-full flex-col bg-muted/20">
+      <div className="flex min-h-0 min-w-0 flex-1 items-stretch gap-2 p-4">
         {hasMultiple && (
-          <Button
-            type="button"
-            variant="secondary"
-            size="icon"
-            className="shrink-0"
-            aria-label="Previous image"
-            onClick={goPrevious}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
+          <div className="flex shrink-0 items-center">
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              aria-label="Previous image"
+              onClick={goPrevious}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </div>
         )}
 
-        <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden">
+        <div
+          ref={canvasRef}
+          className="flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden"
+        >
           <img
             src={artifactContentUrl(active.id)}
             alt={active.filename}
-            className="max-h-full max-w-full object-contain"
+            className="block max-h-full max-w-full object-contain"
+            style={
+              fittedSize
+                ? {
+                    width: fittedSize.width,
+                    height: fittedSize.height,
+                  }
+                : undefined
+            }
+            onLoad={(event) => {
+              const img = event.currentTarget;
+              if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                setLoadedNatural({
+                  width: img.naturalWidth,
+                  height: img.naturalHeight,
+                });
+              }
+            }}
           />
         </div>
 
         {hasMultiple && (
-          <Button
-            type="button"
-            variant="secondary"
-            size="icon"
-            className="shrink-0"
-            aria-label="Next image"
-            onClick={goNext}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          <div className="flex shrink-0 items-center">
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              aria-label="Next image"
+              onClick={goNext}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </div>
 

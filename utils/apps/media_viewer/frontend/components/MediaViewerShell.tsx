@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -21,13 +21,21 @@ interface MediaViewerShellProps {
 function ViewerBody({
   artifact,
   imageArtifacts,
+  onActiveArtifactChange,
 }: {
   artifact: NonNullable<ReturnType<typeof useArtifact>["data"]>;
   imageArtifacts: NonNullable<ReturnType<typeof useArtifacts>["data"]>["results"];
+  onActiveArtifactChange?: (artifactId: string) => void;
 }) {
   switch (artifact.kind) {
     case "image":
-      return <ImageViewer artifact={artifact} imageArtifacts={imageArtifacts} />;
+      return (
+        <ImageViewer
+          artifact={artifact}
+          imageArtifacts={imageArtifacts}
+          onActiveArtifactChange={onActiveArtifactChange}
+        />
+      );
     case "video":
       return <VideoViewer artifact={artifact} />;
     case "pdf":
@@ -45,26 +53,51 @@ function ViewerBody({
 
 export function MediaViewerShell({ artifactId }: MediaViewerShellProps) {
   const splitContainerRef = useRef<HTMLDivElement>(null);
-  const { isResizing, displayFraction, beginResize } =
-    useViewerSplitResize(splitContainerRef);
+  const [displayedArtifactId, setDisplayedArtifactId] = useState(artifactId);
+  const {
+    isResizing,
+    displayFraction,
+    handleRowPx,
+    onHandlePointerDown,
+    onHandleKeyDown,
+  } = useViewerSplitResize(splitContainerRef);
   const { data: artifact, isLoading, isError, error } = useArtifact(artifactId);
+  const { data: displayedArtifact } = useArtifact(displayedArtifactId);
   const { data: listData } = useArtifacts();
 
   const imageArtifacts =
     listData?.results.filter((item) => item.kind === "image") ?? [];
 
-  const mediaPercent = displayFraction * 100;
-  const propertiesPercent = 100 - mediaPercent;
+  const propertiesArtifact = displayedArtifact ?? artifact;
+  const propertiesFraction = 1 - displayFraction;
+
+  useEffect(() => {
+    setDisplayedArtifactId(artifactId);
+  }, [artifactId]);
+
+  const handleActiveArtifactChange = useCallback((id: string) => {
+    setDisplayedArtifactId(id);
+  }, []);
 
   return (
     <section
       className="flex h-full min-h-0 flex-1 flex-col bg-background"
       aria-label="Artifact viewer"
     >
-      <div ref={splitContainerRef} className="flex min-h-0 flex-1 flex-col">
+      <div
+        ref={splitContainerRef}
+        className={cn(
+          "grid min-h-0 flex-1",
+          !isResizing && "transition-[grid-template-rows] duration-150 ease-out",
+        )}
+        style={{
+          gridTemplateRows: artifact
+            ? `${displayFraction}fr ${handleRowPx}px ${propertiesFraction}fr`
+            : "1fr",
+        }}
+      >
         <div
-          className="flex min-h-0 flex-col overflow-hidden"
-          style={{ flex: `${mediaPercent} 1 0%` }}
+          className="flex min-h-0 min-w-0 flex-col overflow-hidden"
           tabIndex={-1}
           role="region"
           aria-label="Media canvas"
@@ -80,33 +113,48 @@ export function MediaViewerShell({ artifactId }: MediaViewerShellProps) {
             </div>
           )}
           {artifact && (
-            <ViewerBody artifact={artifact} imageArtifacts={imageArtifacts} />
+            <ViewerBody
+              artifact={artifact}
+              imageArtifacts={imageArtifacts}
+              onActiveArtifactChange={handleActiveArtifactChange}
+            />
           )}
         </div>
 
-        {artifact && (
+        {artifact && propertiesArtifact && (
           <>
             <div
               role="separator"
-              aria-label="Resize viewer split"
+              aria-label="Resize properties panel — drag up or down"
               aria-orientation="horizontal"
+              aria-valuemin={20}
+              aria-valuemax={80}
+              aria-valuenow={Math.round(propertiesFraction * 100)}
+              tabIndex={0}
               className={cn(
-                "flex h-2 shrink-0 cursor-row-resize touch-none items-center justify-center border-y border-border bg-muted/30 transition-colors hover:bg-primary/5",
+                "relative z-10 flex cursor-row-resize touch-none items-center justify-center border-y border-border bg-muted/40 transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isResizing && "bg-primary/10",
               )}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                beginResize(e.clientY);
+              onMouseDown={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onHandlePointerDown(event.clientY);
               }}
+              onTouchStart={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (event.touches[0]) {
+                  onHandlePointerDown(event.touches[0].clientY);
+                }
+              }}
+              onKeyDown={onHandleKeyDown}
             >
-              <span className="h-0.5 w-8 rounded-full bg-border" />
+              <span className="h-px w-10 rounded-full bg-border" />
+              <span className="absolute inset-x-0 -top-1 -bottom-1" aria-hidden />
             </div>
 
-            <div
-              className="min-h-0 overflow-hidden border-t border-border bg-card"
-              style={{ flex: `${propertiesPercent} 1 0%` }}
-            >
-              <ArtifactPropertiesPanel artifact={artifact} />
+            <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-t border-border bg-card">
+              <ArtifactPropertiesPanel artifact={propertiesArtifact} />
             </div>
           </>
         )}

@@ -1,5 +1,3 @@
-import * as pdfjsLib from "pdfjs-dist";
-
 import type { ChatAttachment } from "@/features/chat/types/attachment";
 import {
   classifyFile,
@@ -7,11 +5,7 @@ import {
   truncateText,
   validateFileSize,
 } from "@/features/chat/utils/fileType";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url,
-).toString();
+import { pdfjsLib } from "@/lib/pdfjsSetup";
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

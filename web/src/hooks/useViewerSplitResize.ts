@@ -6,6 +6,7 @@ import {
 } from "@/app/stores/workspaceStore";
 
 const DRAG_THRESHOLD = 4;
+const HANDLE_ROW_PX = 10;
 
 export function useViewerSplitResize(containerRef: RefObject<HTMLElement | null>) {
   const [isResizing, setIsResizing] = useState(false);
@@ -46,9 +47,10 @@ export function useViewerSplitResize(containerRef: RefObject<HTMLElement | null>
       if (Math.abs(dy) > DRAG_THRESHOLD) didDrag.current = true;
 
       const containerHeight = container.getBoundingClientRect().height;
-      if (containerHeight <= 0) return;
+      if (containerHeight <= HANDLE_ROW_PX) return;
 
-      const deltaFraction = dy / containerHeight;
+      const usableHeight = containerHeight - HANDLE_ROW_PX;
+      const deltaFraction = dy / usableHeight;
       const next = clampViewerMediaFraction(startFraction.current + deltaFraction);
       commitFractionRef.current = next;
       setLiveFraction(next);
@@ -68,19 +70,40 @@ export function useViewerSplitResize(containerRef: RefObject<HTMLElement | null>
     }
   }, [setViewerMediaFraction]);
 
+  const onHandlePointerDown = useCallback(
+    (clientY: number) => {
+      beginResize(clientY);
+    },
+    [beginResize],
+  );
+
+  const onHandleKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setViewerMediaFraction(viewerMediaFraction + 0.05);
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setViewerMediaFraction(viewerMediaFraction - 0.05);
+      }
+    },
+    [setViewerMediaFraction, viewerMediaFraction],
+  );
+
   useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => onResizeMove(e.clientY);
+    const onMouseMove = (event: MouseEvent) => onResizeMove(event.clientY);
     const onMouseUp = () => endResize();
-    const onTouchMove = (e: TouchEvent) => {
-      if (isResizingRef.current && e.touches[0]) {
-        onResizeMove(e.touches[0].clientY);
+    const onTouchMove = (event: TouchEvent) => {
+      if (isResizingRef.current && event.touches[0]) {
+        event.preventDefault();
+        onResizeMove(event.touches[0].clientY);
       }
     };
     const onTouchEnd = () => endResize();
 
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
-    document.addEventListener("touchmove", onTouchMove, { passive: true });
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
     document.addEventListener("touchend", onTouchEnd);
 
     return () => {
@@ -94,6 +117,8 @@ export function useViewerSplitResize(containerRef: RefObject<HTMLElement | null>
   return {
     isResizing,
     displayFraction,
-    beginResize,
+    handleRowPx: HANDLE_ROW_PX,
+    onHandlePointerDown,
+    onHandleKeyDown,
   };
 }

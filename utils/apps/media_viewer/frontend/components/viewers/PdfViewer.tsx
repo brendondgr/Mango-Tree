@@ -1,15 +1,10 @@
-import * as pdfjsLib from "pdfjs-dist";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { pdfjsLib } from "@/lib/pdfjsSetup";
 import { artifactContentUrl } from "@/services/mediaViewerClient";
 import type { ArtifactRecord } from "@/types/mediaViewer";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url,
-).toString();
 
 interface PdfViewerProps {
   artifact: ArtifactRecord;
@@ -17,34 +12,67 @@ interface PdfViewerProps {
 
 export function PdfViewer({ artifact }: PdfViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [pageCount, setPageCount] = useState(1);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPageNumber(1);
+    setPageCount(1);
+    setError(null);
+  }, [artifact.id]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function renderPage() {
+      setLoading(true);
       setError(null);
+
       try {
         const response = await fetch(artifactContentUrl(artifact.id));
+        if (!response.ok) {
+          throw new Error(`Failed to load PDF (${response.status})`);
+        }
+
         const buffer = await response.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
         if (cancelled) return;
 
-        setPageCount(pdf.numPages);
-        const safePage = Math.min(pageNumber, pdf.numPages);
+        const totalPages = pdf.numPages;
+        setPageCount(totalPages);
+        const safePage = Math.min(pageNumber, totalPages);
         const page = await pdf.getPage(safePage);
-        const viewport = page.getViewport({ scale: 1.25 });
+        if (cancelled) return;
+
+        const container = containerRef.current;
         const canvas = canvasRef.current;
-        if (!canvas) return;
+        if (!canvas || !container) return;
+
+        const baseViewport = page.getViewport({ scale: 1 });
+        const containerWidth = Math.max(container.clientWidth - 32, 200);
+        const containerHeight = Math.max(container.clientHeight - 32, 200);
+        const scale = Math.min(
+          containerWidth / baseViewport.width,
+          containerHeight / baseViewport.height,
+          2,
+        );
+        const viewport = page.getViewport({ scale });
 
         const context = canvas.getContext("2d");
         if (!context) return;
 
         canvas.height = viewport.height;
         canvas.width = viewport.width;
-        await page.render({ canvas, canvasContext: context, viewport }).promise;
+
+        const renderTask = page.render({
+          canvas,
+          canvasContext: context,
+          viewport,
+        });
+        await renderTask.promise;
       } catch (renderError) {
         if (!cancelled) {
           setError(
@@ -52,6 +80,10 @@ export function PdfViewer({ artifact }: PdfViewerProps) {
               ? renderError.message
               : "Failed to render PDF",
           );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
         }
       }
     }
@@ -63,14 +95,14 @@ export function PdfViewer({ artifact }: PdfViewerProps) {
   }, [artifact.id, pageNumber]);
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-muted/20">
-      <div className="flex items-center justify-center gap-2 border-b border-border px-4 py-2">
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-muted/20">
+      <div className="flex shrink-0 items-center justify-center gap-2 border-b border-border px-4 py-2">
         <Button
           type="button"
           variant="outline"
           size="icon"
           aria-label="Previous page"
-          disabled={pageNumber <= 1}
+          disabled={pageNumber <= 1 || loading}
           onClick={() => setPageNumber((page) => Math.max(1, page - 1))}
         >
           <ChevronLeft className="h-4 w-4" />
@@ -83,18 +115,26 @@ export function PdfViewer({ artifact }: PdfViewerProps) {
           variant="outline"
           size="icon"
           aria-label="Next page"
-          disabled={pageNumber >= pageCount}
+          disabled={pageNumber >= pageCount || loading}
           onClick={() => setPageNumber((page) => Math.min(pageCount, page + 1))}
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
 
-      <div className="flex flex-1 items-start justify-center overflow-auto p-4">
+      <div
+        ref={containerRef}
+        className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto p-4"
+      >
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        )}
         {error ? (
           <p className="text-sm text-destructive">{error}</p>
         ) : (
-          <canvas ref={canvasRef} className="shadow-sm" />
+          <canvas ref={canvasRef} className="max-h-full max-w-full shadow-sm" />
         )}
       </div>
     </div>
