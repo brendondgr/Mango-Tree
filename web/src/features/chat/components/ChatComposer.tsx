@@ -280,7 +280,7 @@ export function ChatComposer({ disabled = false, onSubmit }: ChatComposerProps) 
             type="button"
             variant="ghost"
             size="icon"
-            className="h-9 w-9 shrink-0 rounded-full"
+            className="shrink-0"
             aria-label="Attach files"
             disabled={disabled || isSubmitting}
             onClick={() => fileInputRef.current?.click()}
@@ -303,7 +303,7 @@ export function ChatComposer({ disabled = false, onSubmit }: ChatComposerProps) 
           <Button
             type="submit"
             size="icon"
-            className="h-11 w-11 shrink-0 rounded-full"
+            className="shrink-0"
             aria-label="Send message"
             disabled={!canSend}
           >
