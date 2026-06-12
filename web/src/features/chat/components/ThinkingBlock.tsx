@@ -25,11 +25,11 @@ export function ThinkingBlock({ content, isStreaming = false }: ThinkingBlockPro
         {isStreaming ? "Thinking…" : "Thought process"}
       </button>
       {expanded && (
-        <div className="min-w-0 max-w-full overflow-x-auto border-t border-border/60 px-3 py-2 text-muted-foreground">
+        <div className="min-w-0 max-w-full overflow-hidden border-t border-border/60 px-3 py-2 text-muted-foreground">
           {content ? (
             <MarkdownContent
               content={content}
-              className="min-w-0 max-w-full text-xs leading-relaxed break-words [overflow-wrap:anywhere] [&_*]:max-w-full [&_pre]:overflow-x-auto [&_.katex-display]:overflow-x-auto [&_p]:text-muted-foreground"
+              className="min-w-0 max-w-full text-xs leading-relaxed [&_pre]:overflow-x-auto [&_.katex-display]:overflow-x-auto [&_p]:text-muted-foreground"
             />
           ) : (
             <p className="text-xs italic text-muted-foreground/80">
