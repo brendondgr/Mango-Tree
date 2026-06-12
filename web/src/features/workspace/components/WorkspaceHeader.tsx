@@ -24,6 +24,13 @@ import {
 import { MOBILE_BREAKPOINT, useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 
+const workspaceTabTriggerClass = cn(
+  "gap-1.5 rounded-none rounded-t-[var(--radius-sm)] border border-transparent px-3 py-1.5",
+  "-mb-px border-b-0",
+  "data-[state=active]:border-border data-[state=active]:border-b-background data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-none",
+  "hover:text-foreground",
+);
+
 function getActiveLabel(
   activeWorkspaceTab: string,
   activeTab: WorkspaceTabId,
@@ -65,12 +72,12 @@ export function WorkspaceHeader() {
   };
 
   return (
-    <header className="relative z-10 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-5 max-[820px]:px-4">
+    <header className="relative z-10 flex h-12 shrink-0 items-stretch justify-between gap-2 border-b border-border bg-card/80 px-3 backdrop-blur-sm">
       {isMobile && (
         <Button
           variant="outline"
           size="icon"
-          className="h-11 w-11 shrink-0"
+          className="h-9 w-9 shrink-0 self-center"
           onClick={() => toggleSidebar(true)}
           aria-expanded={!sidebarCollapsed}
           aria-label={sidebarCollapsed ? "Open menu" : "Close menu"}
@@ -83,17 +90,25 @@ export function WorkspaceHeader() {
         </Button>
       )}
 
-      <div className="flex min-w-0 flex-1 items-center gap-2">
+      <div className="flex min-w-0 flex-1 items-stretch gap-2">
         <Tabs
           value={activeWorkspaceTab}
           onValueChange={onTabChange}
-          className={cn("min-w-0 flex-1", isMobile && "hidden")}
+          className={cn("flex min-w-0 flex-1 self-stretch", isMobile && "hidden")}
         >
-          <TabsList className="h-auto w-full justify-start" role="tablist">
+          <TabsList
+            className="h-full w-full items-end justify-start gap-0"
+            role="tablist"
+          >
             {WORKSPACE_TABS.map((tab) => {
               const Icon = tab.icon;
               return (
-                <TabsTrigger key={tab.id} value={tab.id} role="tab">
+                <TabsTrigger
+                  key={tab.id}
+                  value={tab.id}
+                  role="tab"
+                  className={workspaceTabTriggerClass}
+                >
                   <Icon className="h-4 w-4" />
                   {tab.label}
                 </TabsTrigger>
@@ -103,7 +118,7 @@ export function WorkspaceHeader() {
               <TabsTrigger
                 value={ephemeralTabValue(ephemeralTab.id)}
                 role="tab"
-                className="italic"
+                className={cn(workspaceTabTriggerClass, "italic")}
               >
                 <FileText className="h-4 w-4 shrink-0" />
                 {ephemeralTab.tabLabel}
@@ -117,7 +132,7 @@ export function WorkspaceHeader() {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="min-w-[140px] flex-1 justify-between"
+                className="min-w-[140px] flex-1 justify-between self-center"
                 aria-haspopup="listbox"
               >
                 <span className="truncate">{activeLabel}</span>
@@ -161,7 +176,7 @@ export function WorkspaceHeader() {
           </DropdownMenu>
         )}
 
-        <WorkspaceOptionsMenu className="shrink-0" />
+        <WorkspaceOptionsMenu className="h-9 w-9 shrink-0 self-center" />
       </div>
     </header>
   );

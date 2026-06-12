@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -6,7 +6,6 @@ import { useViewerSplitResize } from "@/hooks/useViewerSplitResize";
 
 import { ArtifactPropertiesPanel } from "@media-viewer/components/ArtifactPropertiesPanel";
 import { useArtifact } from "@media-viewer/hooks/useArtifactViewer";
-import { useArtifacts } from "@media-viewer/hooks/useArtifacts";
 import { ImageViewer } from "@media-viewer/components/viewers/ImageViewer";
 import { LatexViewer } from "@media-viewer/components/viewers/LatexViewer";
 import { MarkdownViewer } from "@media-viewer/components/viewers/MarkdownViewer";
@@ -20,22 +19,12 @@ interface MediaViewerShellProps {
 
 function ViewerBody({
   artifact,
-  imageArtifacts,
-  onActiveArtifactChange,
 }: {
   artifact: NonNullable<ReturnType<typeof useArtifact>["data"]>;
-  imageArtifacts: NonNullable<ReturnType<typeof useArtifacts>["data"]>["results"];
-  onActiveArtifactChange?: (artifactId: string) => void;
 }) {
   switch (artifact.kind) {
     case "image":
-      return (
-        <ImageViewer
-          artifact={artifact}
-          imageArtifacts={imageArtifacts}
-          onActiveArtifactChange={onActiveArtifactChange}
-        />
-      );
+      return <ImageViewer artifact={artifact} />;
     case "video":
       return <VideoViewer artifact={artifact} />;
     case "pdf":
@@ -53,7 +42,6 @@ function ViewerBody({
 
 export function MediaViewerShell({ artifactId }: MediaViewerShellProps) {
   const splitContainerRef = useRef<HTMLDivElement>(null);
-  const [displayedArtifactId, setDisplayedArtifactId] = useState(artifactId);
   const {
     isResizing,
     displayFraction,
@@ -62,22 +50,8 @@ export function MediaViewerShell({ artifactId }: MediaViewerShellProps) {
     onHandleKeyDown,
   } = useViewerSplitResize(splitContainerRef);
   const { data: artifact, isLoading, isError, error } = useArtifact(artifactId);
-  const { data: displayedArtifact } = useArtifact(displayedArtifactId);
-  const { data: listData } = useArtifacts();
 
-  const imageArtifacts =
-    listData?.results.filter((item) => item.kind === "image") ?? [];
-
-  const propertiesArtifact = displayedArtifact ?? artifact;
   const propertiesFraction = 1 - displayFraction;
-
-  useEffect(() => {
-    setDisplayedArtifactId(artifactId);
-  }, [artifactId]);
-
-  const handleActiveArtifactChange = useCallback((id: string) => {
-    setDisplayedArtifactId(id);
-  }, []);
 
   return (
     <section
@@ -112,16 +86,10 @@ export function MediaViewerShell({ artifactId }: MediaViewerShellProps) {
               {error instanceof Error ? error.message : "Failed to load artifact"}
             </div>
           )}
-          {artifact && (
-            <ViewerBody
-              artifact={artifact}
-              imageArtifacts={imageArtifacts}
-              onActiveArtifactChange={handleActiveArtifactChange}
-            />
-          )}
+          {artifact && <ViewerBody artifact={artifact} />}
         </div>
 
-        {artifact && propertiesArtifact && (
+        {artifact && (
           <>
             <div
               role="separator"
@@ -154,7 +122,7 @@ export function MediaViewerShell({ artifactId }: MediaViewerShellProps) {
             </div>
 
             <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-t border-border bg-card">
-              <ArtifactPropertiesPanel artifact={propertiesArtifact} />
+              <ArtifactPropertiesPanel artifact={artifact} />
             </div>
           </>
         )}
