@@ -36,7 +36,7 @@ export function TextViewer({ artifact }: TextViewerProps) {
   }
 
   return (
-    <div className="h-full overflow-auto p-4">
+    <div className="h-full min-h-0 flex-1 overflow-auto p-4">
       <div className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
         {language}
       </div>

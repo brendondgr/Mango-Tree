@@ -63,3 +63,5 @@ Filesystem scope: read/write only under `{artifacts.root}/**`. Deny path travers
 ## Frontend integration
 
 Imported by `web/` via Vite alias `@media-viewer` → `utils/apps/media_viewer/frontend/`. API client: `web/src/services/mediaViewerClient.ts`.
+
+Selecting an artifact opens an **ephemeral workspace tab** in `WorkspaceHeader` (not a separate route). Switching to Overview/Assets/History closes the tab; re-open from the Artifacts sidebar. Grid density is configurable (1–5 columns per row, default 4). The viewer uses a vertical split: media canvas on top, resizable scrollable properties panel at the bottom.

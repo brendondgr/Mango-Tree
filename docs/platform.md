@@ -115,12 +115,25 @@ Future: `/recipes`, `/imdbspy`, `/exercise`, `/timekeeper`. Do not implement a r
 ┌────┬──────────────────────────┬─────────────────────────────────────────────┐
 │Nav │  Left sidebar (resizable) │  Right workspace (main column)              │
 │rail│                           │                                             │
-│ 💬 │  Chat mode: ChatWindow    │  WorkspaceHeader + MediaViewerShell or      │
-│ 📁 │  Artifacts: artifact grid │  WorkspaceMainBody placeholder tabs         │
+│ 💬 │  Chat mode: ChatWindow    │  WorkspaceHeader (pinned + ephemeral tabs)  │
+│ 📁 │  Artifacts: artifact grid │  WorkspaceMainBody or app viewer content      │
 └────┴──────────────────────────┴─────────────────────────────────────────────┘
 ```
 
 The nav rail (~48px) switches left sidebar content only; the right workspace keeps its own state.
+
+### Workspace tabs (pinned + ephemeral)
+
+The right column header tab bar has **pinned tabs** (Overview, Assets, History) and **ephemeral tabs** for app content opened from the left sidebar (artifacts first; other apps follow the same pattern).
+
+| Tab type | Behavior |
+| --- | --- |
+| Pinned | Always visible; show placeholder content in `WorkspaceMainBody` |
+| Ephemeral | Opened when user selects an item (e.g. artifact); label shows filename; italic styling |
+| Auto-close | Switching to any pinned tab closes the ephemeral tab and unmounts the viewer |
+| Re-open | User must select the item again from the app sidebar (e.g. Artifacts nav) |
+
+Ephemeral tab state is **not persisted** across reloads. One ephemeral tab at a time; opening another item replaces it.
 
 ## Local runtime data
 

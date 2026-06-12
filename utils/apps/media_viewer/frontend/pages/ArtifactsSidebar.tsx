@@ -1,27 +1,33 @@
 import { FolderOpen, Loader2 } from "lucide-react";
 import { useState } from "react";
 
+import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { WorkspaceSidebarShell } from "@/features/workspace/components/WorkspaceSidebarShell";
 import type { ArtifactRecord } from "@/types/mediaViewer";
 
 import { ArtifactDeleteDialog } from "@media-viewer/components/ArtifactDeleteDialog";
 import { ArtifactGrid } from "@media-viewer/components/ArtifactGrid";
+import { ArtifactsSidebarSettings } from "@media-viewer/components/ArtifactsSidebarSettings";
 import { useArtifacts, useDeleteArtifact } from "@media-viewer/hooks/useArtifacts";
 
 export function ArtifactsSidebar() {
   const { data, isLoading, isError, error } = useArtifacts();
   const deleteMutation = useDeleteArtifact();
+  const ephemeralTab = useWorkspaceStore((s) => s.ephemeralTab);
+  const setPinnedTab = useWorkspaceStore((s) => s.setPinnedTab);
+  const activeTab = useWorkspaceStore((s) => s.activeTab);
   const [pendingDelete, setPendingDelete] = useState<ArtifactRecord | null>(null);
 
   const artifacts = data?.results ?? [];
 
   return (
     <WorkspaceSidebarShell>
-      <header className="flex h-12 shrink-0 items-center border-b border-border bg-card/80 px-4 backdrop-blur-sm">
+      <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border bg-card/80 px-4 backdrop-blur-sm">
         <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Artifacts
         </h2>
+        <ArtifactsSidebarSettings />
       </header>
 
       <ScrollArea className="min-h-0 flex-1">
@@ -76,7 +82,12 @@ export function ArtifactsSidebar() {
         onConfirm={() => {
           if (!pendingDelete) return;
           deleteMutation.mutate(pendingDelete.id, {
-            onSuccess: () => setPendingDelete(null),
+            onSuccess: () => {
+              if (ephemeralTab?.artifactId === pendingDelete.id) {
+                setPinnedTab(activeTab);
+              }
+              setPendingDelete(null);
+            },
           });
         }}
       />

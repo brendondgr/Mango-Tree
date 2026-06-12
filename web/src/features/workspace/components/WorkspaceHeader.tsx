@@ -1,6 +1,8 @@
-import { ChevronDown, Menu, X } from "lucide-react";
+import { ChevronDown, FileText, Menu, X } from "lucide-react";
 
 import {
+  ephemeralTabValue,
+  isEphemeralWorkspaceTab,
   selectSidebarCollapsed,
   useWorkspaceStore,
 } from "@/app/stores/workspaceStore";
@@ -9,6 +11,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,10 +23,23 @@ import {
 import { MOBILE_BREAKPOINT, useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 
+function getActiveLabel(
+  activeWorkspaceTab: string,
+  activeTab: WorkspaceTabId,
+  ephemeralLabel: string | undefined,
+): string {
+  if (isEphemeralWorkspaceTab(activeWorkspaceTab) && ephemeralLabel) {
+    return ephemeralLabel;
+  }
+  return WORKSPACE_TABS.find((t) => t.id === activeTab)?.label ?? "Overview";
+}
+
 export function WorkspaceHeader() {
   const isMobile = useMediaQuery(MOBILE_BREAKPOINT);
   const activeTab = useWorkspaceStore((s) => s.activeTab);
-  const setActiveTab = useWorkspaceStore((s) => s.setActiveTab);
+  const activeWorkspaceTab = useWorkspaceStore((s) => s.activeWorkspaceTab);
+  const ephemeralTab = useWorkspaceStore((s) => s.ephemeralTab);
+  const setActiveWorkspaceTab = useWorkspaceStore((s) => s.setActiveWorkspaceTab);
   const sidebarWidth = useWorkspaceStore((s) => s.sidebarWidth);
   const mobileDrawerOpen = useWorkspaceStore((s) => s.mobileDrawerOpen);
   const toggleSidebar = useWorkspaceStore((s) => s.toggleSidebar);
@@ -33,10 +49,18 @@ export function WorkspaceHeader() {
     mobileDrawerOpen,
   });
 
-  const activeMeta = WORKSPACE_TABS.find((t) => t.id === activeTab)!;
+  const activeLabel = getActiveLabel(
+    activeWorkspaceTab,
+    activeTab,
+    ephemeralTab?.label,
+  );
 
   const onTabChange = (value: string) => {
-    setActiveTab(value as WorkspaceTabId);
+    if (isEphemeralWorkspaceTab(value)) {
+      setActiveWorkspaceTab(value);
+      return;
+    }
+    setActiveWorkspaceTab(value as WorkspaceTabId);
   };
 
   return (
@@ -60,7 +84,7 @@ export function WorkspaceHeader() {
 
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <Tabs
-          value={activeTab}
+          value={activeWorkspaceTab}
           onValueChange={onTabChange}
           className={cn("min-w-0 flex-1", isMobile && "hidden")}
         >
@@ -74,6 +98,16 @@ export function WorkspaceHeader() {
                 </TabsTrigger>
               );
             })}
+            {ephemeralTab && (
+              <TabsTrigger
+                value={ephemeralTabValue(ephemeralTab.id)}
+                role="tab"
+                className="max-w-[12rem] italic"
+              >
+                <FileText className="h-4 w-4 shrink-0" />
+                <span className="truncate">{ephemeralTab.label}</span>
+              </TabsTrigger>
+            )}
           </TabsList>
         </Tabs>
 
@@ -85,8 +119,8 @@ export function WorkspaceHeader() {
                 className="min-w-[140px] flex-1 justify-between"
                 aria-haspopup="listbox"
               >
-                <span>{activeMeta.label}</span>
-                <ChevronDown className="h-4 w-4 opacity-70" />
+                <span className="truncate">{activeLabel}</span>
+                <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
@@ -96,15 +130,32 @@ export function WorkspaceHeader() {
                   <DropdownMenuItem
                     key={tab.id}
                     className={cn(
-                      activeTab === tab.id && "bg-primary/5 text-primary",
+                      activeWorkspaceTab === tab.id && "bg-primary/5 text-primary",
                     )}
-                    onSelect={() => setActiveTab(tab.id)}
+                    onSelect={() => setActiveWorkspaceTab(tab.id)}
                   >
                     <Icon className="h-4 w-4" />
                     {tab.label}
                   </DropdownMenuItem>
                 );
               })}
+              {ephemeralTab && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className={cn(
+                      activeWorkspaceTab === ephemeralTabValue(ephemeralTab.id) &&
+                        "bg-primary/5 text-primary",
+                    )}
+                    onSelect={() =>
+                      setActiveWorkspaceTab(ephemeralTabValue(ephemeralTab.id))
+                    }
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span className="truncate italic">{ephemeralTab.label}</span>
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}

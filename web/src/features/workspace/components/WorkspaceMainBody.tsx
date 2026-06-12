@@ -1,20 +1,34 @@
-import { useWorkspaceStore } from "@/app/stores/workspaceStore";
+import {
+  ephemeralTabValue,
+  isEphemeralWorkspaceTab,
+  useWorkspaceStore,
+} from "@/app/stores/workspaceStore";
 import { getWorkspaceTab } from "@/features/workspace/components/workspaceTabs";
 import { MediaViewerShell } from "@media-viewer/components/MediaViewerShell";
 
 export function WorkspaceMainBody() {
   const activeTab = useWorkspaceStore((s) => s.activeTab);
-  const selectedArtifactId = useWorkspaceStore((s) => s.selectedArtifactId);
-  const tab = getWorkspaceTab(activeTab);
-  const Icon = tab.icon;
+  const activeWorkspaceTab = useWorkspaceStore((s) => s.activeWorkspaceTab);
+  const ephemeralTab = useWorkspaceStore((s) => s.ephemeralTab);
 
-  if (selectedArtifactId) {
-    return <MediaViewerShell artifactId={selectedArtifactId} />;
+  const ephemeralActive =
+    ephemeralTab &&
+    isEphemeralWorkspaceTab(activeWorkspaceTab) &&
+    activeWorkspaceTab === ephemeralTabValue(ephemeralTab.id);
+
+  if (ephemeralActive && ephemeralTab.kind === "artifact") {
+    return <MediaViewerShell artifactId={ephemeralTab.artifactId} />;
   }
+
+  const pinnedTab = isEphemeralWorkspaceTab(activeWorkspaceTab)
+    ? activeTab
+    : activeWorkspaceTab;
+  const tab = getWorkspaceTab(pinnedTab);
+  const Icon = tab.icon;
 
   return (
     <section
-      className="flex flex-1 items-center justify-center bg-background p-10 text-muted-foreground max-[820px]:items-start max-[820px]:p-6 max-[820px]:px-4"
+      className="flex min-h-0 flex-1 items-center justify-center bg-background p-10 text-muted-foreground max-[820px]:items-start max-[820px]:p-6 max-[820px]:px-4"
       aria-live="polite"
     >
       <div className="w-full max-w-md rounded-[var(--radius-lg)] border border-dashed border-border bg-card px-8 py-12 text-center max-[820px]:rounded-[var(--radius-md)] max-[820px]:px-5 max-[820px]:py-8">

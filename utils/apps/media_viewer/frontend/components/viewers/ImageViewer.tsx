@@ -51,7 +51,7 @@ export function ImageViewer({ artifact, imageArtifacts }: ImageViewerProps) {
   }, [hasMultiple, sorted.length]);
 
   return (
-    <div className="relative flex h-full min-h-0 flex-1 items-center justify-center bg-muted/20 p-4">
+    <div className="relative flex h-full min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/20 p-4">
       {hasMultiple && (
         <>
           <Button

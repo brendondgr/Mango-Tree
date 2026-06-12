@@ -38,7 +38,7 @@ export function MarkdownViewer({ artifact }: MarkdownViewerProps) {
   }
 
   return (
-    <div className="h-full overflow-auto p-6">
+    <div className="h-full min-h-0 flex-1 overflow-auto p-6">
       <MarkdownContent content={content} />
     </div>
   );

@@ -37,14 +37,52 @@ function newChatSessionId(): string {
 
 export type SidebarMode = "chat" | "artifacts";
 
+export type EphemeralTab = {
+  id: string;
+  kind: "artifact";
+  artifactId: string;
+  label: string;
+};
+
+export type WorkspaceTabValue = WorkspaceTabId | `ephemeral:${string}`;
+
+export const VIEWER_PROPERTIES_DEFAULT = 220;
+export const VIEWER_PROPERTIES_MIN = 120;
+export const ARTIFACT_GRID_COLUMNS_DEFAULT = 4;
+
+export function ephemeralTabValue(id: string): `ephemeral:${string}` {
+  return `ephemeral:${id}`;
+}
+
+export function isEphemeralWorkspaceTab(
+  value: string,
+): value is `ephemeral:${string}` {
+  return value.startsWith("ephemeral:");
+}
+
+export function getViewerPropertiesMaxHeight(): number {
+  if (typeof window === "undefined") return 400;
+  return Math.floor(window.innerHeight * 0.5);
+}
+
+export function clampViewerPropertiesHeight(height: number): number {
+  return Math.max(
+    VIEWER_PROPERTIES_MIN,
+    Math.min(getViewerPropertiesMaxHeight(), height),
+  );
+}
+
 interface WorkspaceState {
   sidebarWidth: number;
   mobileDrawerOpen: boolean;
   lastWidth: number;
   isTyping: boolean;
   activeTab: WorkspaceTabId;
+  activeWorkspaceTab: WorkspaceTabValue;
+  ephemeralTab: EphemeralTab | null;
   sidebarMode: SidebarMode;
-  selectedArtifactId: string | null;
+  artifactGridColumns: number;
+  viewerPropertiesHeight: number;
   artifactNotice: string | null;
   chatSessionId: string;
   messages: ChatMessage[];
@@ -54,8 +92,13 @@ interface WorkspaceState {
   setLastWidth: (width: number) => void;
   setIsTyping: (typing: boolean) => void;
   setActiveTab: (tab: WorkspaceTabId) => void;
+  setPinnedTab: (tab: WorkspaceTabId) => void;
+  setActiveWorkspaceTab: (tab: WorkspaceTabValue) => void;
+  openArtifactTab: (artifactId: string, label: string) => void;
+  closeEphemeralTab: () => void;
   setSidebarMode: (mode: SidebarMode) => void;
-  setSelectedArtifactId: (id: string | null) => void;
+  setArtifactGridColumns: (columns: number) => void;
+  setViewerPropertiesHeight: (height: number) => void;
   setArtifactNotice: (message: string | null) => void;
   expandSidebar: () => void;
   addMessage: (message: Omit<ChatMessage, "id" | "timestamp"> & { id?: string }) => string;
@@ -83,8 +126,11 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       lastWidth: SIDEBAR_DEFAULT,
       isTyping: false,
       activeTab: "overview",
+      activeWorkspaceTab: "overview",
+      ephemeralTab: null,
       sidebarMode: "chat",
-      selectedArtifactId: null,
+      artifactGridColumns: ARTIFACT_GRID_COLUMNS_DEFAULT,
+      viewerPropertiesHeight: VIEWER_PROPERTIES_DEFAULT,
       artifactNotice: null,
       chatSessionId: newChatSessionId(),
       messages: [],
@@ -105,11 +151,48 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
       setIsTyping: (typing) => set({ isTyping: typing }),
 
-      setActiveTab: (tab) => set({ activeTab: tab }),
+      setPinnedTab: (tab) =>
+        set({
+          ephemeralTab: null,
+          activeTab: tab,
+          activeWorkspaceTab: tab,
+        }),
+
+      setActiveTab: (tab) => get().setPinnedTab(tab),
+
+      setActiveWorkspaceTab: (tab) => {
+        if (isEphemeralWorkspaceTab(tab)) {
+          set({ activeWorkspaceTab: tab });
+          return;
+        }
+        get().setPinnedTab(tab);
+      },
+
+      openArtifactTab: (artifactId, label) => {
+        const id = crypto.randomUUID();
+        set({
+          ephemeralTab: { id, kind: "artifact", artifactId, label },
+          activeWorkspaceTab: ephemeralTabValue(id),
+        });
+      },
+
+      closeEphemeralTab: () => {
+        const { activeTab } = get();
+        set({
+          ephemeralTab: null,
+          activeWorkspaceTab: activeTab,
+        });
+      },
 
       setSidebarMode: (mode) => set({ sidebarMode: mode }),
 
-      setSelectedArtifactId: (id) => set({ selectedArtifactId: id }),
+      setArtifactGridColumns: (columns) =>
+        set({
+          artifactGridColumns: Math.max(1, Math.min(5, Math.round(columns))),
+        }),
+
+      setViewerPropertiesHeight: (height) =>
+        set({ viewerPropertiesHeight: clampViewerPropertiesHeight(height) }),
 
       setArtifactNotice: (message) => set({ artifactNotice: message }),
 
@@ -198,10 +281,14 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         lastWidth: state.lastWidth,
         activeTab: state.activeTab,
         sidebarMode: state.sidebarMode,
+        artifactGridColumns: state.artifactGridColumns,
+        viewerPropertiesHeight: state.viewerPropertiesHeight,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.sidebarWidth = state.lastWidth || SIDEBAR_DEFAULT;
+          state.ephemeralTab = null;
+          state.activeWorkspaceTab = state.activeTab;
         }
       },
     },

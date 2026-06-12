@@ -68,8 +68,8 @@ Understanding what exists today prevents rework:
 
 ### Viewer (right workspace)
 
-- Replaces `WorkspaceMainBody` placeholder when an artifact is selected.
-- **Split layout**: primary media canvas (left/flex-1) + **properties panel** (right, ~280–320px, collapsible on narrow screens).
+- Opens as an **ephemeral tab** in `WorkspaceHeader` when an artifact is selected; switching to a pinned tab (Overview/Assets/History) closes it.
+- **Split layout**: primary media canvas (top/flex-1) + **properties panel** (bottom, resizable height, scrollable).
 - **Image**: full viewer with prev/next through **all image artifacts** in chronological order; keyboard arrows; metadata in properties panel.
 - **Video**: HTML5 `<video>` with standard controls (play/pause, seek, volume, fullscreen, playback rate in v1 if low-cost).
 - **PDF**: `pdfjs-dist` page renderer with page navigation.
@@ -320,13 +320,16 @@ Short system fragment: when to persist uploads, how to reference `artifact_id` i
 ```typescript
 // workspaceStore additions
 sidebarMode: 'chat' | 'artifacts';
-selectedArtifactId: string | null;
+ephemeralTab: EphemeralTab | null;
+activeWorkspaceTab: WorkspaceTabId | `ephemeral:${string}`;
+artifactGridColumns: number; // 1–5, default 4
 setSidebarMode(mode): void;
-setSelectedArtifactId(id | null): void;
+openArtifactTab(artifactId, label): void;
+setPinnedTab(tab): void; // closes ephemeral tab
 ```
 
-- Selecting an artifact sets `selectedArtifactId` and ensures right panel shows `MediaViewerShell`.
-- Switching sidebar mode to Chat does **not** clear `selectedArtifactId` (user can return to viewer via re-select or a “open in viewer” affordance on right panel — v1: keep viewer visible until explicitly closed with an X on viewer chrome).
+- Selecting an artifact calls `openArtifactTab` and focuses the ephemeral tab; `WorkspaceMainBody` renders `MediaViewerShell` while that tab is active.
+- Switching to any pinned tab closes the ephemeral tab. Switching left sidebar mode does not restore a closed viewer.
 
 ### Reuse from chat feature
 
@@ -339,12 +342,12 @@ setSelectedArtifactId(id | null): void;
 
 ### Right workspace integration
 
-Replace `WorkspaceMainBody` placeholder when `selectedArtifactId` is set:
+Render `MediaViewerShell` when the active workspace tab is ephemeral:
 
 ```tsx
 // WorkspaceMainBody.tsx (conceptual)
-if (selectedArtifactId) return <MediaViewerShell artifactId={selectedArtifactId} />;
-// else existing tab placeholder
+if (ephemeralActive) return <MediaViewerShell artifactId={ephemeralTab.artifactId} />;
+// else pinned tab placeholder
 ```
 
 Wire `WorkspaceHeader` “Assets” tab to `setSidebarMode('artifacts')` in a later polish phase — **not required for v1** since nav rail is the primary switcher.
@@ -481,7 +484,7 @@ Manual: resize sidebar, mobile breakpoint, theme toggle still work.
 2. `ArtifactPropertiesPanel`.
 3. Image carousel scopes navigation to artifacts where `kind === 'image'`.
 4. PDF page controls; markdown/LaTeX via `MarkdownContent`; text/code monospace view.
-5. Close button clears `selectedArtifactId`.
+5. Switching pinned tabs closes the ephemeral artifact tab.
 
 **Acceptance:**
 

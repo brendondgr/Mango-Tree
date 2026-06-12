@@ -63,7 +63,7 @@ export function PdfViewer({ artifact }: PdfViewerProps) {
   }, [artifact.id, pageNumber]);
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col bg-muted/20">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-muted/20">
       <div className="flex items-center justify-center gap-2 border-b border-border px-4 py-2">
         <Button
           type="button"

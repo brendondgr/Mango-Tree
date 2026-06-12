@@ -1,9 +1,7 @@
-import { Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
-import { useWorkspaceStore } from "@/app/stores/workspaceStore";
-import { Button } from "@/components/ui/button";
-import { MOBILE_BREAKPOINT, useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
+import { useViewerPanelResize } from "@/hooks/useViewerPanelResize";
 
 import { ArtifactPropertiesPanel } from "@media-viewer/components/ArtifactPropertiesPanel";
 import { useArtifact } from "@media-viewer/hooks/useArtifactViewer";
@@ -45,8 +43,7 @@ function ViewerBody({
 }
 
 export function MediaViewerShell({ artifactId }: MediaViewerShellProps) {
-  const isMobile = useMediaQuery(MOBILE_BREAKPOINT);
-  const setSelectedArtifactId = useWorkspaceStore((s) => s.setSelectedArtifactId);
+  const { isResizing, displayHeight, beginResize } = useViewerPanelResize();
   const { data: artifact, isLoading, isError, error } = useArtifact(artifactId);
   const { data: listData } = useArtifacts();
 
@@ -58,26 +55,9 @@ export function MediaViewerShell({ artifactId }: MediaViewerShellProps) {
       className="flex h-full min-h-0 flex-1 flex-col bg-background"
       aria-label="Artifact viewer"
     >
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-foreground">
-            {artifact?.filename ?? "Loading artifact…"}
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label="Close viewer"
-          onClick={() => setSelectedArtifactId(null)}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </header>
-
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col">
         <div
-          className="flex min-h-0 min-w-0 flex-1 flex-col"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden"
           tabIndex={-1}
           role="region"
           aria-label="Media canvas"
@@ -98,14 +78,30 @@ export function MediaViewerShell({ artifactId }: MediaViewerShellProps) {
         </div>
 
         {artifact && (
-          <div
-            className={cn(
-              "min-h-[220px] shrink-0 lg:h-auto lg:w-[300px]",
-              isMobile && "border-t border-border",
-            )}
-          >
-            <ArtifactPropertiesPanel artifact={artifact} />
-          </div>
+          <>
+            <div
+              role="separator"
+              aria-label="Resize properties panel"
+              aria-orientation="horizontal"
+              className={cn(
+                "flex h-2 shrink-0 cursor-row-resize touch-none items-center justify-center border-y border-border bg-muted/30 transition-colors hover:bg-primary/5",
+                isResizing && "bg-primary/10",
+              )}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                beginResize(e.clientY);
+              }}
+            >
+              <span className="h-0.5 w-8 rounded-full bg-border" />
+            </div>
+
+            <div
+              className="shrink-0 overflow-hidden border-t border-border bg-card"
+              style={{ height: displayHeight }}
+            >
+              <ArtifactPropertiesPanel artifact={artifact} />
+            </div>
+          </>
         )}
       </div>
     </section>

@@ -45,7 +45,7 @@ export function AgentWorkspaceLayout() {
         <ChatNavRail />
         {sidebarMode === "chat" ? <ChatWindow /> : <ArtifactsSidebar />}
       </div>
-      <main className="flex min-w-0 flex-1 flex-col max-[820px]:pt-11">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col max-[820px]:pt-11">
         <WorkspaceHeader />
         <WorkspaceMainBody />
       </main>

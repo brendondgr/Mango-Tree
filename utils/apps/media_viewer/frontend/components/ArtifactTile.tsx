@@ -23,9 +23,9 @@ function kindLabel(kind: ArtifactKind): string {
     case "pdf":
       return "PDF";
     case "markdown":
-      return "Markdown";
+      return "MD";
     case "latex":
-      return "LaTeX";
+      return "TEX";
     case "text":
       return "Text";
     default:
@@ -48,7 +48,6 @@ function formatCreatedAt(value: string): string {
   return date.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
-    year: "numeric",
   });
 }
 
@@ -58,11 +57,11 @@ interface ArtifactTileProps {
 }
 
 export function ArtifactTile({ artifact, onDelete }: ArtifactTileProps) {
-  const selectedArtifactId = useWorkspaceStore((s) => s.selectedArtifactId);
-  const setSelectedArtifactId = useWorkspaceStore((s) => s.setSelectedArtifactId);
+  const ephemeralTab = useWorkspaceStore((s) => s.ephemeralTab);
+  const openArtifactTab = useWorkspaceStore((s) => s.openArtifactTab);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
 
-  const selected = selectedArtifactId === artifact.id;
+  const selected = ephemeralTab?.artifactId === artifact.id;
   const showThumbnail =
     !thumbnailFailed &&
     (artifact.kind === "image" || artifact.kind === "video");
@@ -70,16 +69,16 @@ export function ArtifactTile({ artifact, onDelete }: ArtifactTileProps) {
   return (
     <article
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-[var(--radius-md)] border border-border bg-card transition-colors",
+        "group relative flex flex-col overflow-hidden rounded-[var(--radius-sm)] border border-border bg-card transition-colors",
         selected && "border-primary ring-1 ring-primary/30",
       )}
     >
       <button
         type="button"
         className="flex flex-1 flex-col text-left"
-        onClick={() => setSelectedArtifactId(artifact.id)}
+        onClick={() => openArtifactTab(artifact.id, artifact.filename)}
       >
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted/40">
+        <div className="relative h-16 w-full overflow-hidden bg-muted/40">
           {showThumbnail ? (
             <>
               <img
@@ -90,34 +89,34 @@ export function ArtifactTile({ artifact, onDelete }: ArtifactTileProps) {
               />
               {artifact.kind === "video" && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-background/80 text-foreground shadow-sm">
-                    <Play className="ml-0.5 h-4 w-4" />
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-background/80 text-foreground shadow-sm">
+                    <Play className="ml-0.5 h-3 w-3" />
                   </span>
                 </div>
               )}
             </>
           ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-2 px-3 text-muted-foreground">
+            <div className="flex h-full flex-col items-center justify-center gap-1 px-1 text-muted-foreground">
               {artifact.kind === "pdf" || artifact.kind === "text" ? (
-                <FileText className="h-8 w-8" />
+                <FileText className="h-5 w-5" />
               ) : artifact.kind === "video" ? (
-                <Film className="h-8 w-8" />
+                <Film className="h-5 w-5" />
               ) : (
-                <ImageIcon className="h-8 w-8" />
+                <ImageIcon className="h-5 w-5" />
               )}
-              <span className="rounded bg-background/80 px-2 py-0.5 text-xs font-semibold tracking-wide text-foreground">
+              <span className="rounded bg-background/80 px-1 py-0.5 text-[10px] font-semibold tracking-wide text-foreground">
                 {extensionBadge(artifact.filename, artifact.kind)}
               </span>
             </div>
           )}
         </div>
 
-        <div className="space-y-1 p-3">
-          <p className="truncate text-sm font-medium text-foreground">
+        <div className="space-y-0.5 p-2">
+          <p className="truncate text-xs font-medium text-foreground">
             {artifact.filename}
           </p>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span className="rounded bg-muted px-1.5 py-0.5 font-medium">
+          <div className="flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
+            <span className="rounded bg-muted px-1 py-0.5 font-medium">
               {kindLabel(artifact.kind)}
             </span>
             <span>{formatBytes(artifact.size_bytes)}</span>
@@ -130,11 +129,11 @@ export function ArtifactTile({ artifact, onDelete }: ArtifactTileProps) {
         type="button"
         variant="ghost"
         size="icon"
-        className="absolute right-2 top-2 h-8 w-8 bg-background/80 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+        className="absolute right-1 top-1 h-6 w-6 bg-background/80 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
         aria-label={`Delete ${artifact.filename}`}
         onClick={() => onDelete(artifact)}
       >
-        <Trash2 className="h-4 w-4 text-destructive" />
+        <Trash2 className="h-3 w-3 text-destructive" />
       </Button>
     </article>
   );
