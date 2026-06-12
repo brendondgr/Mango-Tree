@@ -8,6 +8,7 @@ import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
+import { MarkdownCodeBlock } from "@/components/markdown/MarkdownCodeBlock";
 import { cn } from "@/lib/utils";
 
 const sanitizeSchema = {
@@ -95,11 +96,7 @@ function createMarkdownComponents(variant: MarkdownVariant): Components {
       </code>
     );
   },
-  pre: ({ children }) => (
-    <pre className="mb-2 overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs last:mb-0">
-      {children}
-    </pre>
-  ),
+  pre: ({ children }) => <MarkdownCodeBlock>{children}</MarkdownCodeBlock>,
   h1: ({ children }) => (
     <h1
       className={cn(
