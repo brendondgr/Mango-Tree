@@ -1,5 +1,8 @@
+import { resolveChatCompletionsUrl } from "@/services/llmEndpoints";
 import {
   extractCompletionFields,
+  extractUsageFromCompletion,
+  extractUsageFromPayload,
   parseLlmStreamChunk,
 } from "@/services/parseLlmStreamChunk";
 import { ThinkTagStreamSplitter } from "@/services/parseThinkTagStream";
@@ -9,6 +12,7 @@ import type {
   LlmConfig,
   LlmStreamCallbacks,
   LlmStreamResult,
+  LlmUsage,
 } from "@/services/llmTypes";
 
 export class LlmClientError extends Error {
@@ -16,18 +20,6 @@ export class LlmClientError extends Error {
     super(message);
     this.name = "LlmClientError";
   }
-}
-
-function resolveEndpoint(baseUrl: string): string {
-  const trimmed = baseUrl.trim().replace(/\/$/, "");
-  if (
-    !trimmed ||
-    trimmed === "/v1" ||
-    /^https?:\/\/(localhost|127\.0\.0\.1):9090\/v1$/i.test(trimmed)
-  ) {
-    return "/v1/chat/completions";
-  }
-  return `${trimmed}/chat/completions`;
 }
 
 function buildHeaders(config: LlmConfig): Record<string, string> {
@@ -110,7 +102,7 @@ export async function streamLlm(
   callbacks: LlmStreamCallbacks = {},
   signal?: AbortSignal,
 ): Promise<LlmStreamResult> {
-  const url = resolveEndpoint(config.baseUrl);
+  const url = resolveChatCompletionsUrl(config.baseUrl);
 
   let response: Response;
   try {
@@ -152,7 +144,8 @@ export async function streamLlm(
     const { content, thinking } = extractCompletionFields(data);
     if (thinking) callbacks.onThinkingDelta?.(thinking);
     if (content) callbacks.onContentDelta?.(content);
-    return { content, thinking };
+    const usage = extractUsageFromCompletion(data) ?? undefined;
+    return { content, thinking, usage };
   }
 
   if (!response.body) {
@@ -161,8 +154,12 @@ export async function streamLlm(
 
   const state = { content: "", thinking: "" };
   const thinkSplitter = new ThinkTagStreamSplitter();
+  let usage: LlmUsage | undefined;
 
   await readSseStream(response.body, (payload) => {
+    const streamUsage = extractUsageFromPayload(payload);
+    if (streamUsage) usage = streamUsage;
+
     const delta = parseLlmStreamChunk(payload);
     if (!delta) return;
     applyStreamDelta(delta, callbacks, thinkSplitter, state);
@@ -181,5 +178,5 @@ export async function streamLlm(
     callbacks.onContentDelta?.(contentDelta);
   }
 
-  return { content: state.content, thinking: state.thinking };
+  return { content: state.content, thinking: state.thinking, usage };
 }

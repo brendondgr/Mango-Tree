@@ -26,6 +26,10 @@ export default defineConfig({
         target: "http://localhost:9090",
         changeOrigin: true,
       },
+      "/tokenize": {
+        target: "http://localhost:9090",
+        changeOrigin: true,
+      },
       "/api": {
         target: "http://localhost:8000",
         changeOrigin: true,
@@ -34,6 +38,14 @@ export default defineConfig({
   },
   preview: {
     proxy: {
+      "/v1": {
+        target: "http://localhost:9090",
+        changeOrigin: true,
+      },
+      "/tokenize": {
+        target: "http://localhost:9090",
+        changeOrigin: true,
+      },
       "/api": {
         target: "http://localhost:8000",
         changeOrigin: true,

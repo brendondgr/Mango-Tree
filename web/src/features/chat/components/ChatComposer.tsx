@@ -9,11 +9,16 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useLlmConfigStore } from "@/app/stores/llmConfigStore";
+import type { ChatMessage } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
+import { ContextUsageRing } from "@/features/chat/components/ContextUsageRing";
+import { useContextUsage } from "@/features/chat/hooks/useContextUsage";
 import type {
   AttachmentKind,
   PendingAttachment,
 } from "@/features/chat/types/attachment";
+import type { LlmUsage } from "@/services/llmTypes";
 import { FILE_INPUT_ACCEPT, formatBytes } from "@/features/chat/utils/fileType";
 import {
   processAttachment,
@@ -23,6 +28,8 @@ import { cn } from "@/lib/utils";
 
 interface ChatComposerProps {
   disabled?: boolean;
+  messages: ChatMessage[];
+  lastKnownUsage?: LlmUsage | null;
   onSubmit: (
     text: string,
     attachments: PendingAttachment[],
@@ -40,7 +47,12 @@ function AttachmentIcon({ kind }: { kind?: AttachmentKind }) {
   }
 }
 
-export function ChatComposer({ disabled = false, onSubmit }: ChatComposerProps) {
+export function ChatComposer({
+  disabled = false,
+  messages,
+  lastKnownUsage = null,
+  onSubmit,
+}: ChatComposerProps) {
   const [text, setText] = useState("");
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -50,7 +62,15 @@ export function ChatComposer({ disabled = false, onSubmit }: ChatComposerProps) 
   const attachmentsRef = useRef(attachments);
   attachmentsRef.current = attachments;
 
+  const llmConfig = useLlmConfigStore((s) => s.config);
   const readyAttachments = attachments.filter((a) => a.status === "ready");
+  const contextUsage = useContextUsage(
+    messages,
+    text,
+    readyAttachments,
+    llmConfig,
+    lastKnownUsage,
+  );
   const hasProcessing = attachments.some((a) => a.status === "processing");
   const canSend =
     !disabled &&
@@ -309,6 +329,14 @@ export function ChatComposer({ disabled = false, onSubmit }: ChatComposerProps) 
           >
             <Send className="h-4 w-4" />
           </Button>
+          <ContextUsageRing
+            usedTokens={contextUsage.usedTokens}
+            maxTokens={contextUsage.maxTokens}
+            percent={contextUsage.percent}
+            isLoading={contextUsage.isLoading}
+            isEstimated={contextUsage.isEstimated}
+            label={contextUsage.label}
+          />
         </div>
       </div>
     </form>

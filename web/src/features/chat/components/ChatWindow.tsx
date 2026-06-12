@@ -50,6 +50,8 @@ export function ChatWindow() {
   const appendToMessage = useWorkspaceStore((s) => s.appendToMessage);
   const updateMessage = useWorkspaceStore((s) => s.updateMessage);
   const setIsTyping = useWorkspaceStore((s) => s.setIsTyping);
+  const lastKnownUsage = useWorkspaceStore((s) => s.lastKnownUsage);
+  const setLastKnownUsage = useWorkspaceStore((s) => s.setLastKnownUsage);
   const setArtifactNotice = useWorkspaceStore((s) => s.setArtifactNotice);
   const artifactNotice = useWorkspaceStore((s) => s.artifactNotice);
   const startNewChat = useWorkspaceStore((s) => s.startNewChat);
@@ -158,7 +160,7 @@ export function ChatWindow() {
     streamAbortRef.current = abortController;
 
     try {
-      await streamLlm(
+      const streamResult = await streamLlm(
         buildLlmMessages(history),
         llmConfig,
         {
@@ -171,6 +173,9 @@ export function ChatWindow() {
         },
         abortController.signal,
       );
+      if (streamResult.usage) {
+        setLastKnownUsage(streamResult.usage);
+      }
       updateMessage(agentMessageId, { isStreaming: false });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
@@ -306,6 +311,8 @@ export function ChatWindow() {
           <ChatComposer
             key={chatSessionId}
             disabled={isTyping}
+            messages={messages}
+            lastKnownUsage={lastKnownUsage}
             onSubmit={handleSubmit}
           />
         </div>

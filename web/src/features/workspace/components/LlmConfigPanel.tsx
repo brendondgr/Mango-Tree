@@ -35,11 +35,23 @@ export function LlmConfigPanel({ active = true }: LlmConfigPanelProps) {
     setStatus(null);
   };
 
+  const updateMaxContext = (value: string) => {
+    const trimmed = value.trim();
+    const parsed = trimmed === "" ? null : Number.parseInt(trimmed, 10);
+    setDraft((current) => ({
+      ...current,
+      maxContextTokens:
+        parsed != null && Number.isFinite(parsed) && parsed > 0 ? parsed : null,
+    }));
+    setStatus(null);
+  };
+
   const handleSave = () => {
     setConfig({
       baseUrl: draft.baseUrl.trim() || DEFAULT_LLM_CONFIG.baseUrl,
       model: draft.model.trim() || DEFAULT_LLM_CONFIG.model,
       apiKey: draft.apiKey.trim(),
+      maxContextTokens: draft.maxContextTokens ?? null,
     });
     setStatus("Settings saved.");
   };
@@ -115,6 +127,22 @@ export function LlmConfigPanel({ active = true }: LlmConfigPanelProps) {
           placeholder="Leave empty for local servers"
           autoComplete="off"
         />
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="llm-max-context">Max context (optional override)</Label>
+        <Input
+          id="llm-max-context"
+          type="number"
+          min={1}
+          value={draft.maxContextTokens ?? ""}
+          onChange={(e) => updateMaxContext(e.target.value)}
+          placeholder="Auto from /v1/models"
+          autoComplete="off"
+        />
+        <p className="text-xs text-muted-foreground">
+          Used for the context ring when the server does not report max_model_len.
+        </p>
       </div>
 
       {status && (

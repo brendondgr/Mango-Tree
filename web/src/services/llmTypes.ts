@@ -2,6 +2,14 @@ export interface LlmConfig {
   baseUrl: string;
   model: string;
   apiKey: string;
+  /** Manual override when the server does not expose max context length. */
+  maxContextTokens?: number | null;
+}
+
+export interface LlmUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
 }
 
 export type LlmContentPart =
@@ -22,11 +30,17 @@ export interface LlmChatCompletionResponse {
       thinking?: string;
     };
   }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
 }
 
 export interface LlmStreamDelta {
   content?: string;
   thinking?: string;
+  usage?: LlmUsage;
 }
 
 export interface LlmStreamCallbacks {
@@ -37,4 +51,5 @@ export interface LlmStreamCallbacks {
 export interface LlmStreamResult {
   content: string;
   thinking: string;
+  usage?: LlmUsage;
 }

@@ -13,6 +13,7 @@ export const DEFAULT_LLM_CONFIG: LlmConfig = {
   baseUrl: DEFAULT_LLM_BASE_URL,
   model: DEFAULT_LLM_MODEL,
   apiKey: "",
+  maxContextTokens: null,
 };
 
 interface LlmConfigState {
