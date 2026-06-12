@@ -1,27 +1,25 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 
 import {
-  clampViewerPropertiesHeight,
+  clampViewerMediaFraction,
   useWorkspaceStore,
 } from "@/app/stores/workspaceStore";
 
 const DRAG_THRESHOLD = 4;
 
-export function useViewerPanelResize() {
+export function useViewerSplitResize(containerRef: RefObject<HTMLElement | null>) {
   const [isResizing, setIsResizing] = useState(false);
-  const [liveHeight, setLiveHeight] = useState<number | null>(null);
+  const [liveFraction, setLiveFraction] = useState<number | null>(null);
   const isResizingRef = useRef(false);
   const didDrag = useRef(false);
   const startY = useRef(0);
-  const startHeight = useRef(0);
-  const commitHeightRef = useRef(0);
+  const startFraction = useRef(0);
+  const commitFractionRef = useRef(0);
 
-  const viewerPropertiesHeight = useWorkspaceStore((s) => s.viewerPropertiesHeight);
-  const setViewerPropertiesHeight = useWorkspaceStore(
-    (s) => s.setViewerPropertiesHeight,
-  );
+  const viewerMediaFraction = useWorkspaceStore((s) => s.viewerMediaFraction);
+  const setViewerMediaFraction = useWorkspaceStore((s) => s.setViewerMediaFraction);
 
-  const displayHeight = liveHeight ?? viewerPropertiesHeight;
+  const displayFraction = liveFraction ?? viewerMediaFraction;
 
   const beginResize = useCallback(
     (clientY: number) => {
@@ -29,35 +27,46 @@ export function useViewerPanelResize() {
       setIsResizing(true);
       didDrag.current = false;
       startY.current = clientY;
-      startHeight.current = viewerPropertiesHeight;
-      commitHeightRef.current = viewerPropertiesHeight;
-      setLiveHeight(viewerPropertiesHeight);
+      startFraction.current = viewerMediaFraction;
+      commitFractionRef.current = viewerMediaFraction;
+      setLiveFraction(viewerMediaFraction);
       document.body.style.cursor = "row-resize";
       document.body.style.userSelect = "none";
     },
-    [viewerPropertiesHeight],
+    [viewerMediaFraction],
   );
 
-  const onResizeMove = useCallback((clientY: number) => {
-    if (!isResizingRef.current) return;
-    const dy = startY.current - clientY;
-    if (Math.abs(dy) > DRAG_THRESHOLD) didDrag.current = true;
-    const next = clampViewerPropertiesHeight(startHeight.current + dy);
-    commitHeightRef.current = next;
-    setLiveHeight(next);
-  }, []);
+  const onResizeMove = useCallback(
+    (clientY: number) => {
+      if (!isResizingRef.current) return;
+      const container = containerRef.current;
+      if (!container) return;
+
+      const dy = clientY - startY.current;
+      if (Math.abs(dy) > DRAG_THRESHOLD) didDrag.current = true;
+
+      const containerHeight = container.getBoundingClientRect().height;
+      if (containerHeight <= 0) return;
+
+      const deltaFraction = dy / containerHeight;
+      const next = clampViewerMediaFraction(startFraction.current + deltaFraction);
+      commitFractionRef.current = next;
+      setLiveFraction(next);
+    },
+    [containerRef],
+  );
 
   const endResize = useCallback(() => {
     if (!isResizingRef.current) return;
     isResizingRef.current = false;
     setIsResizing(false);
-    setLiveHeight(null);
+    setLiveFraction(null);
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
     if (didDrag.current) {
-      setViewerPropertiesHeight(commitHeightRef.current);
+      setViewerMediaFraction(commitFractionRef.current);
     }
-  }, [setViewerPropertiesHeight]);
+  }, [setViewerMediaFraction]);
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => onResizeMove(e.clientY);
@@ -82,21 +91,9 @@ export function useViewerPanelResize() {
     };
   }, [endResize, onResizeMove]);
 
-  useEffect(() => {
-    const onWindowResize = () => {
-      if (isResizingRef.current) return;
-      const clamped = clampViewerPropertiesHeight(viewerPropertiesHeight);
-      if (clamped !== viewerPropertiesHeight) {
-        setViewerPropertiesHeight(clamped);
-      }
-    };
-    window.addEventListener("resize", onWindowResize);
-    return () => window.removeEventListener("resize", onWindowResize);
-  }, [setViewerPropertiesHeight, viewerPropertiesHeight]);
-
   return {
     isResizing,
-    displayHeight,
+    displayFraction,
     beginResize,
   };
 }

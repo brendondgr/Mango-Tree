@@ -1,7 +1,8 @@
+import { useRef } from "react";
 import { Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { useViewerPanelResize } from "@/hooks/useViewerPanelResize";
+import { useViewerSplitResize } from "@/hooks/useViewerSplitResize";
 
 import { ArtifactPropertiesPanel } from "@media-viewer/components/ArtifactPropertiesPanel";
 import { useArtifact } from "@media-viewer/hooks/useArtifactViewer";
@@ -43,21 +44,27 @@ function ViewerBody({
 }
 
 export function MediaViewerShell({ artifactId }: MediaViewerShellProps) {
-  const { isResizing, displayHeight, beginResize } = useViewerPanelResize();
+  const splitContainerRef = useRef<HTMLDivElement>(null);
+  const { isResizing, displayFraction, beginResize } =
+    useViewerSplitResize(splitContainerRef);
   const { data: artifact, isLoading, isError, error } = useArtifact(artifactId);
   const { data: listData } = useArtifacts();
 
   const imageArtifacts =
     listData?.results.filter((item) => item.kind === "image") ?? [];
 
+  const mediaPercent = displayFraction * 100;
+  const propertiesPercent = 100 - mediaPercent;
+
   return (
     <section
       className="flex h-full min-h-0 flex-1 flex-col bg-background"
       aria-label="Artifact viewer"
     >
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div ref={splitContainerRef} className="flex min-h-0 flex-1 flex-col">
         <div
-          className="flex min-h-0 flex-1 flex-col overflow-hidden"
+          className="flex min-h-0 flex-col overflow-hidden"
+          style={{ flex: `${mediaPercent} 1 0%` }}
           tabIndex={-1}
           role="region"
           aria-label="Media canvas"
@@ -81,7 +88,7 @@ export function MediaViewerShell({ artifactId }: MediaViewerShellProps) {
           <>
             <div
               role="separator"
-              aria-label="Resize properties panel"
+              aria-label="Resize viewer split"
               aria-orientation="horizontal"
               className={cn(
                 "flex h-2 shrink-0 cursor-row-resize touch-none items-center justify-center border-y border-border bg-muted/30 transition-colors hover:bg-primary/5",
@@ -96,8 +103,8 @@ export function MediaViewerShell({ artifactId }: MediaViewerShellProps) {
             </div>
 
             <div
-              className="shrink-0 overflow-hidden border-t border-border bg-card"
-              style={{ height: displayHeight }}
+              className="min-h-0 overflow-hidden border-t border-border bg-card"
+              style={{ flex: `${propertiesPercent} 1 0%` }}
             >
               <ArtifactPropertiesPanel artifact={artifact} />
             </div>

@@ -48,8 +48,9 @@ export type EphemeralTab = {
 
 export type WorkspaceTabValue = WorkspaceTabId | `ephemeral:${string}`;
 
-export const VIEWER_PROPERTIES_DEFAULT = 220;
-export const VIEWER_PROPERTIES_MIN = 120;
+export const VIEWER_MEDIA_FRACTION_DEFAULT = 0.5;
+export const VIEWER_MEDIA_FRACTION_MIN = 0.2;
+export const VIEWER_MEDIA_FRACTION_MAX = 0.8;
 export const ARTIFACT_GRID_COLUMNS_DEFAULT = 4;
 
 export function ephemeralTabValue(id: string): `ephemeral:${string}` {
@@ -62,15 +63,10 @@ export function isEphemeralWorkspaceTab(
   return value.startsWith("ephemeral:");
 }
 
-export function getViewerPropertiesMaxHeight(): number {
-  if (typeof window === "undefined") return 400;
-  return Math.floor(window.innerHeight * 0.5);
-}
-
-export function clampViewerPropertiesHeight(height: number): number {
+export function clampViewerMediaFraction(fraction: number): number {
   return Math.max(
-    VIEWER_PROPERTIES_MIN,
-    Math.min(getViewerPropertiesMaxHeight(), height),
+    VIEWER_MEDIA_FRACTION_MIN,
+    Math.min(VIEWER_MEDIA_FRACTION_MAX, fraction),
   );
 }
 
@@ -84,7 +80,7 @@ interface WorkspaceState {
   ephemeralTab: EphemeralTab | null;
   sidebarMode: SidebarMode;
   artifactGridColumns: number;
-  viewerPropertiesHeight: number;
+  viewerMediaFraction: number;
   artifactNotice: string | null;
   chatSessionId: string;
   messages: ChatMessage[];
@@ -100,7 +96,7 @@ interface WorkspaceState {
   closeEphemeralTab: () => void;
   setSidebarMode: (mode: SidebarMode) => void;
   setArtifactGridColumns: (columns: number) => void;
-  setViewerPropertiesHeight: (height: number) => void;
+  setViewerMediaFraction: (fraction: number) => void;
   setArtifactNotice: (message: string | null) => void;
   expandSidebar: () => void;
   addMessage: (message: Omit<ChatMessage, "id" | "timestamp"> & { id?: string }) => string;
@@ -132,7 +128,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       ephemeralTab: null,
       sidebarMode: "chat",
       artifactGridColumns: ARTIFACT_GRID_COLUMNS_DEFAULT,
-      viewerPropertiesHeight: VIEWER_PROPERTIES_DEFAULT,
+      viewerMediaFraction: VIEWER_MEDIA_FRACTION_DEFAULT,
       artifactNotice: null,
       chatSessionId: newChatSessionId(),
       messages: [],
@@ -198,8 +194,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           artifactGridColumns: Math.max(1, Math.min(5, Math.round(columns))),
         }),
 
-      setViewerPropertiesHeight: (height) =>
-        set({ viewerPropertiesHeight: clampViewerPropertiesHeight(height) }),
+      setViewerMediaFraction: (fraction) =>
+        set({ viewerMediaFraction: clampViewerMediaFraction(fraction) }),
 
       setArtifactNotice: (message) => set({ artifactNotice: message }),
 
@@ -289,7 +285,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         activeTab: state.activeTab,
         sidebarMode: state.sidebarMode,
         artifactGridColumns: state.artifactGridColumns,
-        viewerPropertiesHeight: state.viewerPropertiesHeight,
+        viewerMediaFraction: state.viewerMediaFraction,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
