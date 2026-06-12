@@ -1,5 +1,5 @@
 /**
- * Default theme — Canva-inspired.
+ * Default theme — Canva-inspired with layered off-white surfaces.
  * Source: docs/misc/canva/tokens.css + docs/skills/ui-frontend/ui/design-system.md
  * Swap via data-theme="default" on <html> (see web/src/lib/theme.ts).
  */
@@ -7,24 +7,24 @@
 [data-theme="default"],
 :root {
   /* shadcn semantic tokens (HSL components, no hsl() wrapper) */
-  --background: 0 0% 100%;
-  --foreground: 210 24% 7%;
-  --card: 0 0% 100%;
-  --card-foreground: 210 24% 7%;
+  --background: 40 14% 96%;
+  --foreground: 210 20% 10%;
+  --card: 40 10% 99%;
+  --card-foreground: 210 20% 10%;
   --popover: 0 0% 100%;
-  --popover-foreground: 210 24% 7%;
+  --popover-foreground: 210 20% 10%;
   --primary: 271 79% 54%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 220 14% 96%;
-  --secondary-foreground: 210 24% 7%;
-  --muted: 220 14% 96%;
-  --muted-foreground: 210 5% 39%;
+  --secondary: 40 8% 92%;
+  --secondary-foreground: 210 20% 10%;
+  --muted: 220 10% 90%;
+  --muted-foreground: 210 6% 42%;
   --accent: 183 100% 40%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 100% 67%;
   --destructive-foreground: 0 0% 100%;
-  --border: 210 8% 89%;
-  --input: 210 8% 89%;
+  --border: 40 7% 84%;
+  --input: 40 7% 84%;
   --ring: 271 79% 54%;
   --success: 168 100% 36%;
 
@@ -32,10 +32,10 @@
   --brand-gradient: linear-gradient(135deg, #7d2ae8, #00c4cc);
   --brand-gradient-pro: linear-gradient(135deg, #7d2ae8, #ff5757);
   --primary-hover: 271 82% 46%;
-  --surface-inset: 220 9% 91%;
-  --surface-cool: 234 62% 96%;
-  --ink-secondary: 210 4% 25%;
-  --ink-faint: 210 6% 63%;
+  --surface-inset: 40 10% 88%;
+  --surface-cool: 234 40% 94%;
+  --ink-secondary: 210 5% 28%;
+  --ink-faint: 210 8% 58%;
   --warn: 38 100% 56%;
   --info: 204 100% 53%;
   --category-coral: 8 100% 67%;

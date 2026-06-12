@@ -1,37 +1,37 @@
 /**
- * Dark theme — operational workspace surfaces with Mango brand accents.
+ * Dark theme — lifted blue-charcoal workspace surfaces with Mango brand accents.
  * Swap via data-theme="dark" on <html> (see web/src/lib/theme.ts).
  */
 
 [data-theme="dark"] {
-  --background: 220 20% 4%;
-  --foreground: 210 15% 85%;
-  --card: 215 15% 10%;
-  --card-foreground: 210 15% 85%;
-  --popover: 215 15% 10%;
-  --popover-foreground: 210 15% 85%;
+  --background: 220 14% 13%;
+  --foreground: 40 8% 88%;
+  --card: 220 12% 17%;
+  --card-foreground: 40 8% 88%;
+  --popover: 220 11% 19%;
+  --popover-foreground: 40 8% 88%;
   --primary: 271 79% 54%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 215 14% 16%;
-  --secondary-foreground: 210 15% 85%;
-  --muted: 215 14% 16%;
-  --muted-foreground: 215 8% 55%;
+  --secondary: 220 10% 21%;
+  --secondary-foreground: 40 8% 88%;
+  --muted: 220 9% 24%;
+  --muted-foreground: 220 8% 58%;
   --accent: 183 100% 40%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 100% 67%;
   --destructive-foreground: 0 0% 100%;
-  --border: 215 10% 22%;
-  --input: 215 10% 22%;
+  --border: 220 8% 28%;
+  --input: 220 8% 28%;
   --ring: 271 79% 54%;
   --success: 168 100% 36%;
 
   --brand-gradient: linear-gradient(135deg, #7d2ae8, #00c4cc);
   --brand-gradient-pro: linear-gradient(135deg, #7d2ae8, #ff5757);
   --primary-hover: 271 82% 46%;
-  --surface-inset: 215 14% 8%;
-  --surface-cool: 234 30% 12%;
-  --ink-secondary: 210 10% 70%;
-  --ink-faint: 215 8% 45%;
+  --surface-inset: 220 12% 11%;
+  --surface-cool: 234 18% 18%;
+  --ink-secondary: 40 6% 72%;
+  --ink-faint: 220 8% 50%;
   --warn: 38 100% 56%;
   --info: 204 100% 53%;
   --category-coral: 8 100% 67%;
@@ -44,8 +44,8 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-pill: 9999px;
-  --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.35);
-  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.28);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.38);
   --focus-ring: 0 0 0 3px rgba(125, 42, 232, 0.28);
   --motion-fast: 180ms;
   --motion-base: 280ms;

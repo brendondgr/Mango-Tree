@@ -2,27 +2,36 @@
 
 export const COLOR_PALETTE_STORAGE_KEY = "mango-color-palette";
 
-/** shadcn semantic tokens that accept HSL components (no hsl() wrapper). */
-export const COLOR_TOKENS = [
-  "primary",
-  "accent",
+/** Accent tokens — preset palettes and brand chrome only. */
+export const PRESET_COLOR_TOKENS = ["primary", "accent", "ring"] as const;
+
+/** Surface tokens — controlled by light/dark base theme; optional manual override. */
+export const SURFACE_COLOR_TOKENS = [
   "background",
   "foreground",
   "card",
+  "muted",
+  "secondary",
   "border",
-  "ring",
 ] as const;
 
+/** All editable tokens in the settings UI. */
+export const COLOR_TOKENS = [...PRESET_COLOR_TOKENS, ...SURFACE_COLOR_TOKENS] as const;
+
+export type PresetColorToken = (typeof PRESET_COLOR_TOKENS)[number];
+export type SurfaceColorToken = (typeof SURFACE_COLOR_TOKENS)[number];
 export type ColorToken = (typeof COLOR_TOKENS)[number];
 
 export const COLOR_TOKEN_LABELS: Record<ColorToken, string> = {
   primary: "Primary",
   accent: "Accent",
+  ring: "Focus ring",
   background: "Background",
   foreground: "Text",
   card: "Card surface",
+  muted: "Muted surface",
+  secondary: "Secondary surface",
   border: "Border",
-  ring: "Focus ring",
 };
 
 export interface PalettePreset {
@@ -30,7 +39,7 @@ export interface PalettePreset {
   name: string;
   description: string;
   swatches: string[];
-  colors: Partial<Record<ColorToken, string>>;
+  colors: Partial<Record<PresetColorToken, string>>;
 }
 
 /** Curated palettes — values are HSL components matching theme CSS files. */
@@ -39,7 +48,7 @@ export const PRESET_PALETTES: PalettePreset[] = [
     id: "mango",
     name: "Mango",
     description: "Purple accent with cyan highlights",
-    swatches: ["#7d2ae8", "#00c4cc", "#ffffff", "#111418"],
+    swatches: ["#7d2ae8", "#00c4cc", "#6815d4"],
     colors: {
       primary: "271 79% 54%",
       accent: "183 100% 40%",
@@ -49,7 +58,7 @@ export const PRESET_PALETTES: PalettePreset[] = [
     id: "ocean",
     name: "Ocean",
     description: "Cool blues and teal accents",
-    swatches: ["#0ea5e9", "#06b6d4", "#f0f9ff", "#0c4a6e"],
+    swatches: ["#0ea5e9", "#06b6d4", "#0284c7"],
     colors: {
       primary: "199 89% 48%",
       accent: "187 85% 43%",
@@ -59,8 +68,8 @@ export const PRESET_PALETTES: PalettePreset[] = [
   {
     id: "forest",
     name: "Forest",
-    description: "Earthy greens with calm surfaces",
-    swatches: ["#16a34a", "#84cc16", "#f0fdf4", "#14532d"],
+    description: "Earthy greens with lime highlights",
+    swatches: ["#16a34a", "#84cc16", "#15803d"],
     colors: {
       primary: "142 71% 36%",
       accent: "84 81% 44%",
@@ -71,7 +80,7 @@ export const PRESET_PALETTES: PalettePreset[] = [
     id: "sunset",
     name: "Sunset",
     description: "Warm coral and amber tones",
-    swatches: ["#f97316", "#ef4444", "#fff7ed", "#7c2d12"],
+    swatches: ["#f97316", "#ef4444", "#ea580c"],
     colors: {
       primary: "25 95% 53%",
       accent: "0 84% 60%",
@@ -81,8 +90,8 @@ export const PRESET_PALETTES: PalettePreset[] = [
   {
     id: "lavender",
     name: "Lavender",
-    description: "Soft violet with muted surfaces",
-    swatches: ["#a78bfa", "#c4b5fd", "#faf5ff", "#4c1d95"],
+    description: "Soft violet accents",
+    swatches: ["#a78bfa", "#c4b5fd", "#8b5cf6"],
     colors: {
       primary: "258 90% 66%",
       accent: "252 84% 75%",
@@ -93,7 +102,7 @@ export const PRESET_PALETTES: PalettePreset[] = [
     id: "slate",
     name: "Slate",
     description: "Neutral grays with blue undertone",
-    swatches: ["#64748b", "#94a3b8", "#f8fafc", "#1e293b"],
+    swatches: ["#64748b", "#94a3b8", "#475569"],
     colors: {
       primary: "215 16% 47%",
       accent: "215 20% 65%",
@@ -103,6 +112,20 @@ export const PRESET_PALETTES: PalettePreset[] = [
 ];
 
 export type ColorOverrides = Partial<Record<ColorToken, string>>;
+
+/** Keep only accent overrides — presets must not touch base theme surfaces. */
+export function accentOnlyOverrides(overrides: ColorOverrides): ColorOverrides {
+  const accent: ColorOverrides = {};
+  for (const token of PRESET_COLOR_TOKENS) {
+    if (overrides[token]) accent[token] = overrides[token];
+  }
+  return accent;
+}
+
+/** Build accent overrides from a preset (primary, accent, ring only). */
+export function applyPresetPalette(preset: PalettePreset): ColorOverrides {
+  return accentOnlyOverrides(preset.colors);
+}
 
 function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
@@ -221,11 +244,6 @@ export function clearColorOverrides(): void {
   for (const token of COLOR_TOKENS) {
     root.style.removeProperty(`--${token}`);
   }
-}
-
-/** Apply a preset palette on top of the current theme. */
-export function applyPresetPalette(preset: PalettePreset): ColorOverrides {
-  return { ...preset.colors };
 }
 
 /** Browser EyeDropper when available; returns #rrggbb or null. */

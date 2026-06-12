@@ -51,24 +51,24 @@ shadcn expects space-separated HSL components (`hsl(var(--primary))`). The defau
 
 | shadcn variable | Canva source | Default HSL | Hex reference |
 | --- | --- | --- | --- |
-| `--background` | `--bg` | `0 0% 100%` | `#ffffff` |
-| `--foreground` | `--fg` | `210 24% 7%` | `#0e1318` |
-| `--card` | `--bg` | `0 0% 100%` | `#ffffff` |
-| `--card-foreground` | `--fg` | `210 24% 7%` | `#0e1318` |
-| `--popover` | `--bg` | `0 0% 100%` | `#ffffff` |
-| `--popover-foreground` | `--fg` | `210 24% 7%` | `#0e1318` |
+| `--background` | adapted `--bg` | `40 14% 96%` | `#f6f4f1` |
+| `--foreground` | `--fg` | `210 20% 10%` | `#141a1f` |
+| `--card` | elevated surface | `40 10% 99%` | `#fcfbfa` |
+| `--card-foreground` | `--fg` | `210 20% 10%` | `#141a1f` |
+| `--popover` | floating surface | `0 0% 100%` | `#ffffff` |
+| `--popover-foreground` | `--fg` | `210 20% 10%` | `#141a1f` |
 | `--primary` | `--accent` | `271 79% 54%` | `#7d2ae8` |
 | `--primary-foreground` | `--accent-on` | `0 0% 100%` | `#ffffff` |
-| `--secondary` | `--surface` | `220 14% 96%` | `#f4f5f7` |
-| `--secondary-foreground` | `--fg` | `210 24% 7%` | `#0e1318` |
-| `--muted` | `--surface` | `220 14% 96%` | `#f4f5f7` |
-| `--muted-foreground` | `--muted` | `210 5% 39%` | `#5f6368` |
+| `--secondary` | `--surface` | `40 8% 92%` | `#ebe9e5` |
+| `--secondary-foreground` | `--fg` | `210 20% 10%` | `#141a1f` |
+| `--muted` | inset surface | `220 10% 90%` | `#e3e5e8` |
+| `--muted-foreground` | `--muted` | `210 6% 42%` | `#656b72` |
 | `--accent` | Canva Cyan | `183 100% 40%` | `#00c4cc` |
 | `--accent-foreground` | `--accent-on` | `0 0% 100%` | `#ffffff` |
 | `--destructive` | `--danger` | `0 100% 67%` | `#ff5757` |
 | `--destructive-foreground` | `--accent-on` | `0 0% 100%` | `#ffffff` |
-| `--border` | `--border` | `210 8% 89%` | `#e1e3e6` |
-| `--input` | `--border` | `210 8% 89%` | `#e1e3e6` |
+| `--border` | `--border` | `40 7% 84%` | `#d9d6d1` |
+| `--input` | `--border` | `40 7% 84%` | `#d9d6d1` |
 | `--ring` | `--accent` | `271 79% 54%` | `#7d2ae8` |
 | `--success` | `--success` | `168 100% 36%` | `#00b894` |
 
@@ -76,7 +76,8 @@ Extended brand tokens (gradient CTAs, category tags) may use raw CSS custom prop
 
 ## Visual Guardrails (from Canva, adapted for Mango)
 
-- White canvas dominates; purple-to-cyan gradient is for focal moments (empty states, one primary CTA, Pro-style badges) — not every button.
+- Layered off-white surfaces dominate the operational UI (warm paper canvas, brighter cards, distinct muted/secondary tiers). Pure `#ffffff` is reserved for popovers and floating layers — a deliberate deviation from the external Canva fixture’s all-white canvas.
+- Purple-to-cyan gradient is for focal moments (empty states, one primary CTA, Pro-style badges) — not every button.
 - Weight contrast carries hierarchy (800→700→600→400); ink tiers stay neutral.
 - Soft geometry: 8px buttons/inputs, 12px cards, 16px panels, pill chips.
 - Category accent colors belong in tags and metadata, not primary chrome.

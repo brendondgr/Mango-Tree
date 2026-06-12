@@ -7,15 +7,17 @@ import { Label } from "@/components/ui/label";
 import { useTheme } from "@/hooks/useTheme";
 import {
   COLOR_TOKEN_LABELS,
-  COLOR_TOKENS,
   type ColorToken,
   hexToHslComponents,
   hslComponentsToHex,
   isEyedropperSupported,
   pickColorWithEyedropper,
+  PRESET_COLOR_TOKENS,
   PRESET_PALETTES,
   readCssToken,
+  SURFACE_COLOR_TOKENS,
 } from "@/lib/colorPalette";
+import { ColorPalettePreview } from "@/features/workspace/components/ColorPalettePreview";
 import { THEMES, type ThemeName } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +25,73 @@ const THEME_LABELS: Record<ThemeName, string> = {
   dark: "Dark",
   default: "Light",
 };
+
+interface TokenColorListProps {
+  tokens: readonly ColorToken[];
+  label: string;
+  description?: string;
+  getTokenHex: (token: ColorToken) => string;
+  eyedropTarget: ColorToken | null;
+  onTokenInput: (token: ColorToken, hex: string) => void;
+  onEyedrop: (token: ColorToken) => void;
+}
+
+function TokenColorList({
+  tokens,
+  label,
+  description,
+  getTokenHex,
+  eyedropTarget,
+  onTokenInput,
+  onEyedrop,
+}: TokenColorListProps) {
+  return (
+    <div className="grid gap-2">
+      <p className="text-sm font-medium">{label}</p>
+      {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      <div className="grid gap-3">
+        {tokens.map((token) => {
+          const hex = getTokenHex(token);
+          const isPicking = eyedropTarget === token;
+          return (
+            <div
+              key={token}
+              className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border px-3 py-2"
+            >
+              <input
+                type="color"
+                value={hex}
+                onChange={(e) => onTokenInput(token, e.target.value)}
+                className="h-9 w-9 shrink-0 cursor-pointer rounded-md border border-border bg-transparent p-0.5"
+                aria-label={`${COLOR_TOKEN_LABELS[token]} color picker`}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">{COLOR_TOKEN_LABELS[token]}</p>
+                <p className="font-mono text-xs text-muted-foreground">{hex}</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                disabled={!isEyedropperSupported() || isPicking}
+                onClick={() => onEyedrop(token)}
+                aria-label={`Pick ${COLOR_TOKEN_LABELS[token]} from screen`}
+                title={
+                  isEyedropperSupported()
+                    ? "Pick color from screen"
+                    : "Eyedropper not supported in this browser"
+                }
+              >
+                <Pipette className="h-4 w-4" />
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export function ColorPalettePanel() {
   const { theme, setTheme } = useTheme();
@@ -81,12 +150,17 @@ export function ColorPalettePanel() {
           ))}
         </div>
         <p className="text-xs text-muted-foreground">
-          Switch light or dark surfaces. Custom color overrides apply on top.
+          Light and dark control page surfaces. Preset palettes only change accent
+          colors on top.
         </p>
       </div>
 
       <div className="grid gap-3">
         <Label>Preset palettes</Label>
+        <p className="text-xs text-muted-foreground">
+          Accent colors only — primary, highlight, and focus ring. Surfaces stay
+          on the base theme above.
+        </p>
         <div className="grid gap-2 sm:grid-cols-2">
           {PRESET_PALETTES.map((preset) => (
             <button
@@ -123,6 +197,14 @@ export function ColorPalettePanel() {
       </div>
 
       <div className="grid gap-3">
+        <Label>Preview</Label>
+        <ColorPalettePreview />
+        <p className="text-xs text-muted-foreground">
+          Surfaces follow the base theme; accent regions map to preset tokens below.
+        </p>
+      </div>
+
+      <div className="grid gap-3">
         <div className="flex items-center justify-between gap-2">
           <Label>Custom colors</Label>
           <Button type="button" variant="ghost" size="sm" onClick={resetPalette}>
@@ -130,46 +212,23 @@ export function ColorPalettePanel() {
             Reset colors
           </Button>
         </div>
-        <div className="grid gap-3">
-          {COLOR_TOKENS.map((token) => {
-            const hex = getTokenHex(token);
-            const isPicking = eyedropTarget === token;
-            return (
-              <div
-                key={token}
-                className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border px-3 py-2"
-              >
-                <input
-                  type="color"
-                  value={hex}
-                  onChange={(e) => handleTokenInput(token, e.target.value)}
-                  className="h-9 w-9 shrink-0 cursor-pointer rounded-md border border-border bg-transparent p-0.5"
-                  aria-label={`${COLOR_TOKEN_LABELS[token]} color picker`}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{COLOR_TOKEN_LABELS[token]}</p>
-                  <p className="font-mono text-xs text-muted-foreground">{hex}</p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9 shrink-0"
-                  disabled={!isEyedropperSupported() || isPicking}
-                  onClick={() => handleEyedrop(token)}
-                  aria-label={`Pick ${COLOR_TOKEN_LABELS[token]} from screen`}
-                  title={
-                    isEyedropperSupported()
-                      ? "Pick color from screen"
-                      : "Eyedropper not supported in this browser"
-                  }
-                >
-                  <Pipette className="h-4 w-4" />
-                </Button>
-              </div>
-            );
-          })}
-        </div>
+        <TokenColorList
+          tokens={PRESET_COLOR_TOKENS}
+          label="Accent colors"
+          getTokenHex={getTokenHex}
+          eyedropTarget={eyedropTarget}
+          onTokenInput={handleTokenInput}
+          onEyedrop={handleEyedrop}
+        />
+        <TokenColorList
+          tokens={SURFACE_COLOR_TOKENS}
+          label="Surface colors"
+          description="From the light/dark base theme. Override only for testing."
+          getTokenHex={getTokenHex}
+          eyedropTarget={eyedropTarget}
+          onTokenInput={handleTokenInput}
+          onEyedrop={handleEyedrop}
+        />
         {eyedropError && (
           <p className="text-xs text-muted-foreground" role="status">
             {eyedropError}
