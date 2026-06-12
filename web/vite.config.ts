@@ -9,6 +9,9 @@ export default defineConfig({
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
   },
   plugins: [react(), tailwindcss()],
+  optimizeDeps: {
+    exclude: ["pdfjs-dist"],
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

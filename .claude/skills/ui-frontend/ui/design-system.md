@@ -12,36 +12,53 @@ Mango Tree uses a **swappable theme layer** on top of shadcn/ui. The default the
 
 ## Theme Architecture
 
-Themes are CSS files under `web/src/styles/themes/`. Each theme scopes shadcn variables under `[data-theme="{name}"]`. `globals.css` imports all theme files and sets a default on `:root`.
+Themes are CSS files under `web/src/styles/themes/`. Each theme scopes shadcn variables under `[data-theme="{id}"]`. `globals.css` imports all theme files; Mango light also sets `:root` fallback via `default.css`.
 
 ```text
 web/src/styles/
-  globals.css          # imports themes; base resets
+  globals.css          # imports themes; color-scheme; base resets
   themes/
-    default.css        # Canva-inspired (shipped default)
-    {name}.css         # future themes — same variable contract
-web/src/lib/theme.ts   # setTheme / initTheme for runtime swap
+    default.css        # Mango Light (id: default)
+    dark.css           # Mango Dark
+    blue-light.css     # generic blue tone
+    fsu-dark.css       # branded family example
+    pulse-light.css    # lab brand example
+web/src/lib/
+  theme.ts             # setTheme / initTheme / persistence
+  themeMeta.ts         # THEME_META, families, REQUIRED_THEME_CSS_VARS
 ```
+
+### Theme families
+
+| Family | Light id | Dark id | Accent presets |
+| --- | --- | --- | --- |
+| Mango | `default` | `dark` | Yes |
+| Blue | `blue-light` | `blue-dark` | No (`selfContained`) |
+| FSU | `fsu-light` | `fsu-dark` | No |
+| PULSE | `pulse-light` | `pulse-dark` | No |
+
+Brand hex values map to shadcn **roles** (background, primary, accent, etc.), not 1:1 from source variable names. See `docs/misc/fsu/tokens.md` and `docs/misc/pulse/tokens.md`.
 
 ### Swapping at Runtime
 
-Set `data-theme` on `<html>` via JavaScript. Persist the choice in `localStorage` so it survives reloads.
+Set `data-theme` on `<html>`. Persist in `localStorage` key `mango-theme`. `index.html` includes an inline script that reads storage before React boots to reduce flash.
 
 ```ts
-import { initTheme, setTheme } from "@/lib/theme";
+import { initTheme, setTheme, toggleThemeInFamily } from "@/lib/theme";
 
-// Call once at app boot (e.g. main.tsx)
 initTheme();
-
-// Settings UI or dev toggle
-setTheme("default");
+setTheme("fsu-dark");
+toggleThemeInFamily("fsu-dark"); // → "fsu-light"
 ```
 
-Add a new theme by:
+Chat quick-toggle and settings picker call `toggleThemeInFamily` / `setThemeFamily` so light/dark switches stay within the active family.
 
-1. Creating `web/src/styles/themes/{name}.css` with the same shadcn variable names.
-2. Importing it in `globals.css`.
-3. Registering `{name}` in `THEMES` inside `web/src/lib/theme.ts`.
+### Adding a new theme
+
+1. Create `web/src/styles/themes/{id}.css` defining every variable in `REQUIRED_THEME_CSS_VARS`.
+2. Import the file in `globals.css` and add a `color-scheme` rule.
+3. Register `{id}` in `THEMES` (`theme.ts`) and add a `ThemeMeta` entry in `THEME_META_LIST` (`themeMeta.ts`).
+4. Run `npm test` in `web/` — `themeContract.test.ts` fails if tokens are missing.
 
 Do not hardcode colors in components. Do not redefine tokens in feature modules.
 
