@@ -12,7 +12,25 @@ export interface LlmChatMessage {
 export interface LlmChatCompletionResponse {
   choices: Array<{
     message: {
-      content: string;
+      content?: string;
+      reasoning_content?: string;
+      reasoning?: string;
+      thinking?: string;
     };
   }>;
+}
+
+export interface LlmStreamDelta {
+  content?: string;
+  thinking?: string;
+}
+
+export interface LlmStreamCallbacks {
+  onThinkingDelta?: (delta: string) => void;
+  onContentDelta?: (delta: string) => void;
+}
+
+export interface LlmStreamResult {
+  content: string;
+  thinking: string;
 }

@@ -8,7 +8,7 @@ import {
   Sun,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useLlmConfigStore } from "@/app/stores/llmConfigStore";
 import { useWorkspaceStore } from "@/app/stores/workspaceStore";
@@ -24,10 +24,9 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatEmptyState } from "@/features/chat/components/ChatEmptyState";
 import { ChatMessage } from "@/features/chat/components/ChatMessage";
-import { TypingIndicator } from "@/features/chat/components/TypingIndicator";
 import { useChatAutoScroll } from "@/features/chat/hooks/useChatAutoScroll";
 import { groupMessagesIntoTurns } from "@/features/chat/utils/groupMessagesIntoTurns";
-import { LlmClientError, queryLlm } from "@/services/llmClient";
+import { LlmClientError, streamLlm } from "@/services/llmClient";
 import type { LlmChatMessage } from "@/services/llmTypes";
 import { useSidebarResize } from "@/hooks/useSidebarResize";
 import { useTheme } from "@/hooks/useTheme";
@@ -49,9 +48,17 @@ export function ChatWindow() {
   const messages = useWorkspaceStore((s) => s.messages);
   const isTyping = useWorkspaceStore((s) => s.isTyping);
   const addMessage = useWorkspaceStore((s) => s.addMessage);
+  const appendToMessage = useWorkspaceStore((s) => s.appendToMessage);
+  const updateMessage = useWorkspaceStore((s) => s.updateMessage);
   const setIsTyping = useWorkspaceStore((s) => s.setIsTyping);
   const clearMessages = useWorkspaceStore((s) => s.clearMessages);
   const llmConfig = useLlmConfigStore((s) => s.config);
+
+  const streamScrollKey = useMemo(() => {
+    const streaming = messages.find((message) => message.isStreaming);
+    if (!streaming) return undefined;
+    return `${streaming.id}:${streaming.thinking?.length ?? 0}:${streaming.content.length}`;
+  }, [messages]);
 
   const {
     isMobile,
@@ -67,6 +74,7 @@ export function ChatWindow() {
     useChatAutoScroll({
       messagesLength: messages.length,
       isTyping,
+      streamScrollKey,
     });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,7 +82,7 @@ export function ChatWindow() {
     const text = input.trim();
     if (!text || isTyping) return;
 
-    const nextMessages = [
+    const history = [
       ...messages,
       {
         id: "pending-user",
@@ -89,15 +97,38 @@ export function ChatWindow() {
     forceScrollToBottom();
     setIsTyping(true);
 
+    const agentMessageId = addMessage({
+      role: "agent",
+      content: "",
+      thinking: "",
+      isStreaming: true,
+    });
+    forceScrollToBottom();
+
     try {
-      const reply = await queryLlm(toLlmMessages(nextMessages), llmConfig);
-      addMessage({ role: "agent", content: reply });
+      await streamLlm(toLlmMessages(history), llmConfig, {
+        onThinkingDelta: (delta) => {
+          appendToMessage(agentMessageId, { thinking: delta });
+        },
+        onContentDelta: (delta) => {
+          appendToMessage(agentMessageId, { content: delta });
+        },
+      });
+      updateMessage(agentMessageId, { isStreaming: false });
     } catch (error) {
       const message =
         error instanceof LlmClientError
           ? error.message
           : "Something went wrong while contacting the model.";
-      addMessage({ role: "agent", content: `Error: ${message}` });
+      const current = useWorkspaceStore
+        .getState()
+        .messages.find((entry) => entry.id === agentMessageId);
+      updateMessage(agentMessageId, {
+        content: current?.content
+          ? `${current.content}\n\n**Error:** ${message}`
+          : `Error: ${message}`,
+        isStreaming: false,
+      });
     } finally {
       setIsTyping(false);
     }
@@ -214,7 +245,6 @@ export function ChatWindow() {
             {groupMessagesIntoTurns(messages).map((turn) => (
               <ChatMessage key={turn.id} turn={turn} />
             ))}
-            {isTyping && <TypingIndicator />}
           </div>
         </ScrollArea>
 
@@ -245,6 +275,7 @@ export function ChatWindow() {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type a message…"
                 autoComplete="off"
+                disabled={isTyping}
                 className="flex-1 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
               />
               <Button
@@ -252,6 +283,7 @@ export function ChatWindow() {
                 size="icon"
                 className="h-11 w-11 shrink-0 rounded-full"
                 aria-label="Send message"
+                disabled={isTyping}
               >
                 <Send className="h-4 w-4" />
               </Button>

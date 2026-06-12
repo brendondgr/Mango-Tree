@@ -9,11 +9,14 @@ function isNearBottom(el: HTMLElement): boolean {
 interface UseChatAutoScrollOptions {
   messagesLength: number;
   isTyping: boolean;
+  /** Changes while streamed tokens append so the viewport can follow. */
+  streamScrollKey?: string;
 }
 
 export function useChatAutoScroll({
   messagesLength,
   isTyping,
+  streamScrollKey,
 }: UseChatAutoScrollOptions) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
@@ -62,7 +65,7 @@ export function useChatAutoScroll({
     } else {
       setHasUnreadBelow(true);
     }
-  }, [messagesLength, isTyping, scrollToBottom]);
+  }, [messagesLength, isTyping, streamScrollKey, scrollToBottom]);
 
   return {
     viewportRef,

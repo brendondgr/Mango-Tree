@@ -9,7 +9,9 @@ export interface ChatMessage {
   id: string;
   role: MessageRole;
   content: string;
+  thinking?: string;
   timestamp: Date;
+  isStreaming?: boolean;
 }
 
 export const SIDEBAR_DEFAULT = 360;
@@ -37,7 +39,15 @@ interface WorkspaceState {
   setLastWidth: (width: number) => void;
   setIsTyping: (typing: boolean) => void;
   setActiveTab: (tab: WorkspaceTabId) => void;
-  addMessage: (message: Omit<ChatMessage, "id" | "timestamp">) => void;
+  addMessage: (message: Omit<ChatMessage, "id" | "timestamp"> & { id?: string }) => string;
+  appendToMessage: (
+    id: string,
+    delta: { content?: string; thinking?: string },
+  ) => void;
+  updateMessage: (
+    id: string,
+    update: Partial<Pick<ChatMessage, "content" | "thinking" | "isStreaming">>,
+  ) => void;
   clearMessages: () => void;
   toggleSidebar: (mobile: boolean) => void;
 }
@@ -69,16 +79,44 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
       setActiveTab: (tab) => set({ activeTab: tab }),
 
-      addMessage: (message) =>
+      addMessage: (message) => {
+        const id = message.id ?? crypto.randomUUID();
         set((state) => ({
           messages: [
             ...state.messages,
             {
               ...message,
-              id: crypto.randomUUID(),
+              id,
               timestamp: new Date(),
             },
           ],
+        }));
+        return id;
+      },
+
+      appendToMessage: (id, delta) =>
+        set((state) => ({
+          messages: state.messages.map((message) => {
+            if (message.id !== id) return message;
+            return {
+              ...message,
+              content:
+                delta.content !== undefined
+                  ? message.content + delta.content
+                  : message.content,
+              thinking:
+                delta.thinking !== undefined
+                  ? (message.thinking ?? "") + delta.thinking
+                  : message.thinking,
+            };
+          }),
+        })),
+
+      updateMessage: (id, update) =>
+        set((state) => ({
+          messages: state.messages.map((message) =>
+            message.id === id ? { ...message, ...update } : message,
+          ),
         })),
 
       clearMessages: () => set({ messages: [], isTyping: false }),

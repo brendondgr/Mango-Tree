@@ -1,6 +1,6 @@
 import { motion, useReducedMotion } from "framer-motion";
 
-import { MarkdownContent } from "@/components/markdown/MarkdownContent";
+import { AgentReply } from "@/features/chat/components/AgentReply";
 import type { ChatTurn } from "@/features/chat/utils/groupMessagesIntoTurns";
 
 interface ChatMessageProps {
@@ -50,14 +50,13 @@ export function ChatMessage({ turn }: ChatMessageProps) {
         </>
       )}
       {turn.replies.map((reply) => (
-        <div key={reply.id} className="flex flex-col gap-0.5">
-          <div className="flex justify-start">
-            <span className="text-[10px] text-muted-foreground/60">
-              {formatChatTime(reply.timestamp)}
-            </span>
-          </div>
-          <MarkdownContent content={reply.content} />
-        </div>
+        <AgentReply
+          key={reply.id}
+          content={reply.content}
+          thinking={reply.thinking}
+          isStreaming={reply.isStreaming}
+          timestamp={reply.timestamp}
+        />
       ))}
     </motion.div>
   );
