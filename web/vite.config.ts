@@ -16,6 +16,7 @@ export default defineConfig({
         __dirname,
         "./node_modules/@tanstack/react-query",
       ),
+      "pdfjs-dist": path.resolve(__dirname, "./node_modules/pdfjs-dist"),
     },
   },
   server: {

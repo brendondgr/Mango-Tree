@@ -1,10 +1,16 @@
 import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { getWorkspaceTab } from "@/features/workspace/components/workspaceTabs";
+import { MediaViewerShell } from "@media-viewer/components/MediaViewerShell";
 
 export function WorkspaceMainBody() {
   const activeTab = useWorkspaceStore((s) => s.activeTab);
+  const selectedArtifactId = useWorkspaceStore((s) => s.selectedArtifactId);
   const tab = getWorkspaceTab(activeTab);
   const Icon = tab.icon;
+
+  if (selectedArtifactId) {
+    return <MediaViewerShell artifactId={selectedArtifactId} />;
+  }
 
   return (
     <section
