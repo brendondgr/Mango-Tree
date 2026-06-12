@@ -1,0 +1,21 @@
+tools:
+  media_viewer_list_artifacts:
+    app: media_viewer
+    module: utils.apps.media_viewer.agent.tools
+    function: list_artifacts
+    description: List persisted artifacts, optionally filtered by kind.
+  media_viewer_get_artifact:
+    app: media_viewer
+    module: utils.apps.media_viewer.agent.tools
+    function: get_artifact
+    description: Fetch artifact metadata by ID.
+  media_viewer_save_artifact:
+    app: media_viewer
+    module: utils.apps.media_viewer.agent.tools
+    function: save_artifact
+    description: Save base64-encoded bytes as a local artifact.
+  media_viewer_delete_artifact:
+    app: media_viewer
+    module: utils.apps.media_viewer.agent.tools
+    function: delete_artifact
+    description: Delete an artifact after explicit user confirmation.

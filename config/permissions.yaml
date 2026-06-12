@@ -1,0 +1,11 @@
+filesystem:
+  media_viewer_artifacts:
+    description: Local artifact store read/write scope
+    allow:
+      - "{artifacts_root}/**"
+    deny:
+      - "../**"
+      - "**/.env"
+      - "config/**"
+
+artifacts_root: data/artifacts
