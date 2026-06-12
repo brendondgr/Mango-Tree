@@ -6,4 +6,17 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "pyyaml>=6.0.3",
+    "django>=5.2",
+    "djangorestframework>=3.16",
+    "pillow>=11.2",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4",
+    "pytest-django>=4.11",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

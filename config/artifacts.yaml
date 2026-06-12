@@ -1,0 +1,12 @@
+artifacts:
+  root: data/artifacts
+  max_file_size_bytes: 20971520
+  max_image_size_bytes: 5242880
+  max_pdf_size_bytes: 10485760
+  allowed_kinds:
+    - image
+    - video
+    - pdf
+    - markdown
+    - latex
+    - text

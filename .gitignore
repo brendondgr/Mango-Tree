@@ -1,6 +1,9 @@
 # Project specific
 conversations/
 
+# Local runtime data (artifacts, future datasets)
+data/
+
 # Python
 __pycache__/
 *.py[cod]
