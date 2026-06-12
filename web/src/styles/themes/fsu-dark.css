@@ -1,0 +1,56 @@
+/**
+ * FSU Dark — stadium night surfaces with garnet and gold.
+ * Swap via data-theme="fsu-dark" on <html>.
+ */
+
+[data-theme="fsu-dark"] {
+  --background: 210 33% 9%;
+  --foreground: 0 0% 100%;
+  --card: 343 36% 25%;
+  --card-foreground: 0 0% 100%;
+  --popover: 343 32% 22%;
+  --popover-foreground: 0 0% 100%;
+  --primary: 343 44% 33%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 343 30% 20%;
+  --secondary-foreground: 43 41% 76%;
+  --muted: 204 20% 32%;
+  --muted-foreground: 43 30% 72%;
+  --accent: 43 41% 67%;
+  --accent-foreground: 210 33% 9%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 343 22% 32%;
+  --input: 343 22% 32%;
+  --ring: 343 44% 33%;
+  --success: 160 84% 45%;
+
+  --brand-gradient: linear-gradient(135deg, #782f40, #572932);
+  --brand-gradient-pro: linear-gradient(135deg, #782f40, #ceb888);
+  --primary-hover: 343 44% 38%;
+  --surface-inset: 210 33% 7%;
+  --surface-cool: 343 28% 18%;
+  --ink-secondary: 43 30% 76%;
+  --ink-faint: 204 12% 55%;
+  --warn: 38 92% 55%;
+  --info: 174 44% 52%;
+  --category-coral: 8 85% 58%;
+  --category-tangerine: 28 90% 52%;
+  --category-mint: 156 45% 48%;
+  --category-sky: 174 44% 52%;
+  --category-lavender: 343 30% 55%;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+  --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --focus-ring: 0 0 0 3px rgba(120, 47, 64, 0.32);
+  --motion-fast: 180ms;
+  --motion-base: 280ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --font-sans: "Canva Sans", "YS Text", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
