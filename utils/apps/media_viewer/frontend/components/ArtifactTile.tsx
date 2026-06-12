@@ -3,12 +3,14 @@ import {
   Film,
   ImageIcon,
   Play,
+  Plus,
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
 
 import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
+import { useComposerArtifactStore } from "@/features/chat/stores/composerArtifactStore";
 import { artifactThumbnailUrl } from "@/services/mediaViewerClient";
 import { formatBytes } from "@/features/chat/utils/fileType";
 import type { ArtifactKind, ArtifactRecord } from "@/types/mediaViewer";
@@ -61,6 +63,9 @@ interface ArtifactTileProps {
 export function ArtifactTile({ artifact }: ArtifactTileProps) {
   const ephemeralTab = useWorkspaceStore((s) => s.ephemeralTab);
   const openArtifactTab = useWorkspaceStore((s) => s.openArtifactTab);
+  const setSidebarMode = useWorkspaceStore((s) => s.setSidebarMode);
+  const expandSidebar = useWorkspaceStore((s) => s.expandSidebar);
+  const enqueueArtifact = useComposerArtifactStore((s) => s.enqueueArtifact);
   const {
     confirmDelete,
     requestDelete,
@@ -140,16 +145,36 @@ export function ArtifactTile({ artifact }: ArtifactTileProps) {
         </button>
 
         {!confirmDelete && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-            aria-label={`Delete ${artifact.filename}`}
-            onClick={requestDelete}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          <div className="flex shrink-0 items-center">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              aria-label={`Add ${artifact.filename} to chat context`}
+              onClick={(event) => {
+                event.stopPropagation();
+                enqueueArtifact(artifact.id);
+                setSidebarMode("chat");
+                expandSidebar();
+              }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+              aria-label={`Delete ${artifact.filename}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                requestDelete();
+              }}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         )}
       </div>
 
