@@ -96,10 +96,10 @@ export function AgentActivityTracker({
   return (
     <div
       className={cn(
-        "mb-3 min-w-0 max-w-full overflow-hidden rounded-[var(--radius-md)] border transition-all duration-300 shadow-sm",
+        "mb-3 min-w-0 max-w-full overflow-hidden rounded-[var(--radius-md)] border bg-surface-reasoning transition-all duration-300 shadow-sm",
         isStreaming
-          ? "border-primary/30 bg-primary/5 shadow-md shadow-primary/5"
-          : "border-border/60 bg-muted/20"
+          ? "border-primary/30 shadow-md shadow-primary/5"
+          : "border-border/60"
       )}
     >
       {/* Header Panel */}
@@ -127,7 +127,7 @@ export function AgentActivityTracker({
 
       {/* Expanded Content */}
       {expanded && (
-        <div className="min-w-0 max-w-full overflow-hidden border-t border-border/50 px-3 py-2.5 space-y-3 bg-card/40">
+        <div className="min-w-0 max-w-full overflow-hidden border-t border-border/50 px-3 py-2.5 space-y-3">
           {/* Real-time Streaming Thoughts / Reasoning */}
           {hasThinking && (
             <div className="space-y-1">
@@ -135,7 +135,7 @@ export function AgentActivityTracker({
                 <Brain className="h-3 w-3" />
                 Reasoning
               </div>
-              <div className="relative rounded-[var(--radius-sm)] bg-muted/30 dark:bg-muted/10 border border-border/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              <div className="relative rounded-[var(--radius-sm)] border border-border/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
                 <MarkdownContent
                   content={thinking}
                   className="min-w-0 max-w-full text-xs leading-relaxed [&_pre]:overflow-x-auto [&_.katex-display]:overflow-x-auto [&_p]:text-muted-foreground"
@@ -188,7 +188,7 @@ export function AgentActivityTracker({
                         )}
                       </span>
 
-                      <div className="min-w-0 flex-1 bg-muted/20 dark:bg-muted/5 rounded-[var(--radius-sm)] border border-border/30 px-2.5 py-1.5 hover:bg-muted/40 transition-colors">
+                      <div className="min-w-0 flex-1 rounded-[var(--radius-sm)] border border-border/30 px-2.5 py-1.5 hover:border-border/50 transition-colors">
                         <div className="font-mono text-[11px] text-foreground flex flex-wrap items-center gap-x-1.5 leading-normal">
                           <span className="font-semibold text-primary">{call.name}</span>
                           <span className="text-[10px] text-muted-foreground font-normal break-all">
