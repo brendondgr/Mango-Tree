@@ -102,3 +102,16 @@ def test_format_messages_with_attachments():
     assert "Attached file: clip.mp4 (Type: video, ID: art-uuid-abc)" in formatted_bin[0]["content"]
 
 
+def test_missing_arguments_graceful_error():
+    # Calling read_artifact with no arguments should fail gracefully
+    res_art = registry.execute("read_artifact", {})
+    assert res_art.success is False
+    assert "required argument but was not provided" in res_art.summary
+
+    # Calling read_skill with no arguments should fail gracefully
+    res_skill = registry.execute("read_skill", {})
+    assert res_skill.success is False
+    assert "required argument but was not provided" in res_skill.summary
+
+
+

@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Dict, Any, Callable, List
+from typing import Dict, Any, Callable, List, Optional
 from agents.schemas.agent import ToolResult
 
 class ToolRegistry:
@@ -68,7 +68,14 @@ def list_artifacts() -> ToolResult:
         )
 
 @registry.register("read_artifact")
-def read_artifact(artifact_id: str) -> ToolResult:
+def read_artifact(artifact_id: Optional[str] = None) -> ToolResult:
+    if not artifact_id:
+        return ToolResult(
+            success=False,
+            result={},
+            summary="Error: 'artifact_id' is a required argument but was not provided.",
+            artifact_ids=[]
+        )
     manifest_path = os.path.join(ARTIFACTS_DIR, "manifest.json")
     if not os.path.exists(manifest_path):
         return ToolResult(
@@ -221,7 +228,14 @@ def inspect_chat_context(state_messages: List[Dict[str, Any]]) -> ToolResult:
       )
 
 @registry.register("read_skill")
-def read_skill(skill_name: str) -> ToolResult:
+def read_skill(skill_name: Optional[str] = None) -> ToolResult:
+    if not skill_name:
+        return ToolResult(
+            success=False,
+            result={},
+            summary="Error: 'skill_name' is a required argument but was not provided.",
+            artifact_ids=[]
+        )
     # Look for SKILL.md under agents/skills/{skill_name}/
     skill_path = os.path.join(SKILLS_DIR, skill_name, "SKILL.md")
     

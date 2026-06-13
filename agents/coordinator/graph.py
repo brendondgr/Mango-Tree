@@ -24,7 +24,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "read_artifact",
-            "description": "Read the content of a specific artifact file.",
+            "description": "Read the content of a specific text-based artifact file (e.g., code, markdown, txt, json, yaml). Do not use this tool for binary files like images, videos, PDFs, zip, or audio files, as they cannot be represented as text.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -52,7 +52,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "read_skill",
-            "description": "Read the content of a specific agent skill document.",
+            "description": "Read the content of a specific agent skill document. Always call inspect_skills first to get valid skill names.",
             "parameters": {
                 "type": "object",
                 "properties": {
