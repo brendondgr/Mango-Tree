@@ -68,6 +68,9 @@ export function ChatMessage({ turn }: ChatMessageProps) {
           thinking={reply.thinking}
           isStreaming={reply.isStreaming}
           timestamp={reply.timestamp}
+          toolCalls={reply.toolCalls}
+          toolResults={reply.toolResults}
+          currentNode={reply.currentNode}
         />
       ))}
     </motion.div>

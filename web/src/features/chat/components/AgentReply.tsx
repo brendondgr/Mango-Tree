@@ -1,5 +1,6 @@
 import { MarkdownContent } from "@/components/markdown/MarkdownContent";
 import { ThinkingBlock } from "@/features/chat/components/ThinkingBlock";
+import { ToolExecutionBlock } from "@/features/chat/components/ToolExecutionBlock";
 import { cn } from "@/lib/utils";
 
 interface AgentReplyProps {
@@ -7,6 +8,16 @@ interface AgentReplyProps {
   thinking?: string;
   isStreaming?: boolean;
   timestamp: Date;
+  toolCalls?: { id: string; name: string; arguments: Record<string, any> }[];
+  toolResults?: {
+    tool: string;
+    call_id: string;
+    success: boolean;
+    result: Record<string, any>;
+    summary: string;
+    artifact_ids: string[];
+  }[];
+  currentNode?: string;
 }
 
 function formatChatTime(date: Date): string {
@@ -21,6 +32,9 @@ export function AgentReply({
   thinking,
   isStreaming = false,
   timestamp,
+  toolCalls,
+  toolResults,
+  currentNode,
 }: AgentReplyProps) {
   const hasThinking = Boolean(thinking?.trim()) || (isStreaming && !content);
   const showWaiting = isStreaming && !content && !thinking?.trim();
@@ -38,6 +52,14 @@ export function AgentReply({
           isStreaming && "border-primary/20",
         )}
       >
+        {((toolCalls && toolCalls.length > 0) || (toolResults && toolResults.length > 0)) && (
+          <ToolExecutionBlock
+            toolCalls={toolCalls ?? []}
+            toolResults={toolResults ?? []}
+            currentNode={currentNode}
+            isStreaming={isStreaming}
+          />
+        )}
         {hasThinking && (
           <ThinkingBlock
             content={thinking ?? ""}

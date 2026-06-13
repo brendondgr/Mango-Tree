@@ -23,7 +23,7 @@ def chat_complete(
 ) -> Any:
     """
     Sends a chat completion request to the OpenAI-compatible endpoint.
-    If stream=True and not calling tools, it returns a generator yielding content/thinking.
+    Supports streaming for token-by-token reasoning/thinking and tool calls.
     """
     url = f"{LLM_BASE_URL}/chat/completions"
     payload = {
@@ -33,16 +33,13 @@ def chat_complete(
     }
     if tools:
         payload["tools"] = tools
-        # Disable streaming if LLM tool calling doesn't support streaming easily,
-        # or handle tool call streams. For simplicity, we disable stream when tools are used.
-        payload["stream"] = False
 
     try:
-        response = requests.post(url, json=payload, headers=get_headers(), timeout=30)
+        response = requests.post(url, json=payload, headers=get_headers(), timeout=30, stream=stream)
         if response.status_code != 200:
             raise LLMProviderError(f"LLM request failed with status {response.status_code}: {response.text}")
         
-        if payload["stream"]:
+        if stream:
             return response # Caller can process the stream
         else:
             return response.json()

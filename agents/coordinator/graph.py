@@ -1,4 +1,5 @@
 import json
+import time
 from typing import List, Dict, Any, Optional
 from langgraph.graph import StateGraph, END
 from agents.coordinator.state import AgentState
@@ -109,36 +110,71 @@ def reason_node(state: AgentState) -> Dict[str, Any]:
     final_answer = None
     error = None
     
-    # Try calling LLM, fallback to simulation if server is offline
     try:
         if callback:
             callback("thinking_start", {})
         
-        # We do a non-streaming tool-call check
-        response = chat_complete(llm_msgs, tools=TOOL_SCHEMAS)
+        # We do a streaming tool-call check
+        response_stream = chat_complete(llm_msgs, tools=TOOL_SCHEMAS, stream=True)
         
-        choice = response["choices"][0]["message"]
-        content = choice.get("content") or ""
-        tool_calls_raw = choice.get("tool_calls") or []
+        content_accum = ""
+        tool_calls_accum = {}
         
-        if callback and content:
-            callback("thinking_delta", {"content": content})
+        for line in response_stream.iter_lines():
+            if not line:
+                continue
+            line_str = line.decode("utf-8").strip()
+            if not line_str.startswith("data:"):
+                continue
+            data_str = line_str[5:].strip()
+            if data_str == "[DONE]":
+                break
+            try:
+                chunk = json.loads(data_str)
+                if not chunk.get("choices"):
+                    continue
+                delta = chunk["choices"][0].get("delta", {})
+                
+                # Stream thinking text delta
+                if "content" in delta and delta["content"]:
+                    content_delta = delta["content"]
+                    content_accum += content_delta
+                    if callback:
+                        callback("thinking_delta", {"content": content_delta})
+                        
+                # Handle streaming tool calls
+                if "tool_calls" in delta:
+                    for tc in delta["tool_calls"]:
+                        idx = tc.get("index", 0)
+                        if idx not in tool_calls_accum:
+                            tool_calls_accum[idx] = {"id": "", "name": "", "arguments": ""}
+                        
+                        if "id" in tc and tc["id"]:
+                            tool_calls_accum[idx]["id"] = tc["id"]
+                        if "function" in tc:
+                            fn = tc["function"]
+                            if "name" in fn and fn["name"]:
+                                tool_calls_accum[idx]["name"] = fn["name"]
+                            if "arguments" in fn and fn["arguments"]:
+                                tool_calls_accum[idx]["arguments"] += fn["arguments"]
+            except Exception:
+                pass
+                
+        # Post-process accumulated tool calls
+        for idx, tc in tool_calls_accum.items():
+            args = {}
+            try:
+                args = json.loads(tc["arguments"])
+            except:
+                pass
+            pending_actions.append(ToolCall(
+                id=tc["id"] or f"call_{idx}",
+                name=tc["name"],
+                arguments=args
+            ))
             
-        if tool_calls_raw:
-            for tc in tool_calls_raw:
-                func = tc.get("function", {})
-                args = {}
-                try:
-                    args = json.loads(func.get("arguments", "{}"))
-                except:
-                    pass
-                pending_actions.append(ToolCall(
-                    id=tc.get("id", "call_unknown"),
-                    name=func.get("name"),
-                    arguments=args
-                ))
-        else:
-            final_answer = content
+        if not pending_actions:
+            final_answer = content_accum
             
     except LLMProviderError as e:
         # Graceful fallback simulation
@@ -148,19 +184,34 @@ def reason_node(state: AgentState) -> Dict[str, Any]:
         
         # Simulate check skills workflow
         if state["step_count"] == 0:
-            final_answer = f"The model server is offline. Simulating agent state machine flow...\nLet me check the skills directory."
+            simulated_thoughts = (
+                "The model server is offline. Simulating agent state machine flow...\n"
+                "Let me list all available skills to understand what capabilities exist."
+            )
+            # Stream simulated thoughts
+            if callback:
+                for word in simulated_thoughts.split(" "):
+                    callback("thinking_delta", {"content": word + " "})
+                    time.sleep(0.06)
+            final_answer = simulated_thoughts
             pending_actions.append(ToolCall(
                 id="sim_call_1",
                 name="inspect_skills",
                 arguments={}
             ))
         else:
-            final_answer = (
+            simulated_thoughts = (
                 "Simulated Agent state machine workflow complete.\n\n"
-                "I was able to run the loop (`reason -> act -> observe -> respond`) locally, "
+                "I successfully completed the loop (`reason -> act -> observe -> respond`) locally, "
                 "triggering the `inspect_skills` tool and receiving the result. "
                 "Once the LLM backend is online, it will fully orchestrate these tools dynamically."
             )
+            # Stream simulated thoughts
+            if callback:
+                for word in simulated_thoughts.split(" "):
+                    callback("thinking_delta", {"content": word + " "})
+                    time.sleep(0.06)
+            final_answer = simulated_thoughts
             
     except Exception as e:
         error = f"Unexpected error in reason node: {str(e)}"

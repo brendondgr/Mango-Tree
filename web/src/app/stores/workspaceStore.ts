@@ -16,6 +16,16 @@ export interface ChatMessage {
   thinking?: string;
   timestamp: Date;
   isStreaming?: boolean;
+  toolCalls?: { id: string; name: string; arguments: Record<string, any> }[];
+  toolResults?: {
+    tool: string;
+    call_id: string;
+    success: boolean;
+    result: Record<string, any>;
+    summary: string;
+    artifact_ids: string[];
+  }[];
+  currentNode?: string;
 }
 
 export const SIDEBAR_DEFAULT = 360;
@@ -107,7 +117,16 @@ interface WorkspaceState {
   updateMessage: (
     id: string,
     update: Partial<
-      Pick<ChatMessage, "content" | "thinking" | "isStreaming" | "attachments">
+      Pick<
+        ChatMessage,
+        | "content"
+        | "thinking"
+        | "isStreaming"
+        | "attachments"
+        | "toolCalls"
+        | "toolResults"
+        | "currentNode"
+      >
     >,
   ) => void;
   setLastKnownUsage: (usage: LlmUsage | null) => void;

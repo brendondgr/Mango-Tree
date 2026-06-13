@@ -158,25 +158,7 @@ export function ChatWindow() {
 
     try {
       const unsubscribe = useAgentStore.subscribe((state) => {
-        let content = "";
-        
-        // Format tool logs
-        if (state.toolResults.length > 0) {
-          content += "### Tools Executed:\n";
-          state.toolResults.forEach((res) => {
-            const icon = res.success ? "✅" : "❌";
-            content += `${icon} **${res.tool}**: ${res.summary}\n`;
-          });
-          content += "\n";
-        }
-        
-        if (state.status === "running") {
-          content += `*Executing node: ${state.currentNode}…*\n`;
-        }
-        
-        if (state.finalAnswer) {
-          content += state.finalAnswer;
-        }
+        let content = state.finalAnswer || "";
         
         if (state.error) {
           content += `\n\n**Error:** ${state.error}`;
@@ -185,6 +167,9 @@ export function ChatWindow() {
         updateMessage(agentMessageId, {
           content,
           thinking: state.thinking,
+          toolCalls: state.toolCalls,
+          toolResults: state.toolResults,
+          currentNode: state.currentNode || undefined,
         });
         forceScrollToBottom();
       });
