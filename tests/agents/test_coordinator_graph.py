@@ -146,13 +146,16 @@ def test_read_artifact_returns_media_for_image():
 
 
 def test_read_artifact_returns_media_for_video():
-    # Test that reading a video artifact returns media_base64 data
+    # Test that reading a video artifact returns a JPEG poster frame (not raw video bytes).
+    # The backend extracts a still frame via cv2 and sends it as image/jpeg,
+    # exactly matching what the frontend canvas does for direct chat uploads.
     result = registry.execute("read_artifact", {"artifact_id": "1402.mp4"})
     assert result.success is True
     assert "media_base64" in result.result
-    assert result.result["media_type"] == "video"
-    assert result.result["mime_type"].startswith("video/")
-    assert "loaded" in result.summary.lower()
+    # Frame is always sent as image/jpeg regardless of source format
+    assert result.result["media_type"] == "image"
+    assert result.result["mime_type"] == "image/jpeg"
+    assert "frame" in result.summary.lower() or "loaded" in result.summary.lower()
 
 
 def test_missing_arguments_graceful_error():

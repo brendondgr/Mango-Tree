@@ -152,42 +152,86 @@ def read_artifact(artifact_id: Optional[str] = None) -> ToolResult:
             is_image = kind == "image" or mime_type.startswith("image/") or ext in [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"]
             is_video = kind == "video" or mime_type.startswith("video/") or ext in [".mp4", ".webm", ".mov", ".avi", ".mkv"]
             
-            if is_image or is_video:
-                media_type = "image" if is_image else "video"
-                MAX_MEDIA_SIZE = 20 * 1024 * 1024  # 20 MB limit for both image and video
+            if is_image:
+                # Send image as-is via base64 — LLM servers accept image/* natively
+                MAX_IMAGE_SIZE = 20 * 1024 * 1024  # 20 MB limit
                 file_size = os.path.getsize(storage_path)
-                
-                if file_size > MAX_MEDIA_SIZE:
+                if file_size > MAX_IMAGE_SIZE:
                     return ToolResult(
                         success=True,
-                        result={"metadata": artifact, "content": f"[{media_type.title()} too large to analyze: {file_size} bytes]"},
-                        summary=f"{media_type.title()} {filename} is too large to send to the model ({file_size} bytes, limit is {MAX_MEDIA_SIZE} bytes).",
+                        result={"metadata": artifact, "content": f"[Image too large to analyze: {file_size} bytes]"},
+                        summary=f"Image {filename} is too large to send to the model ({file_size} bytes).",
                         artifact_ids=[artifact.get("id", "")]
                     )
-                
                 with open(storage_path, "rb") as f:
-                    media_bytes = f.read()
-                
-                b64_data = base64.b64encode(media_bytes).decode("utf-8")
-                # Determine the MIME type for the data URL
+                    img_bytes = f.read()
+                b64_data = base64.b64encode(img_bytes).decode("utf-8")
                 detected_mime = mimetypes.guess_type(filename)[0]
-                if is_image:
-                    media_mime = mime_type if mime_type and mime_type.startswith("image/") else (detected_mime or "image/png")
-                else:
-                    media_mime = mime_type if mime_type and mime_type.startswith("video/") else (detected_mime or "video/mp4")
-                
+                img_mime = mime_type if mime_type and mime_type.startswith("image/") else (detected_mime or "image/png")
                 return ToolResult(
                     success=True,
                     result={
                         "metadata": artifact,
                         "media_base64": b64_data,
-                        "media_type": media_type,
-                        "mime_type": media_mime,
-                        "content": f"[{media_type.title()} loaded: {filename} ({file_size} bytes)]"
+                        "media_type": "image",
+                        "mime_type": img_mime,
+                        "content": f"[Image loaded: {filename} ({file_size} bytes)]"
                     },
-                    summary=f"Successfully loaded {media_type} {filename} ({artifact_id}). The {media_type} data has been sent to the model for analysis.",
+                    summary=f"Successfully loaded image {filename} ({artifact_id}). The image has been sent to the model for analysis.",
                     artifact_ids=[artifact.get("id", "")]
                 )
+            
+            if is_video:
+                # Extract a mid-point JPEG poster frame from the video using cv2.
+                # This mirrors what the frontend canvas does — the LLM receives a still image,
+                # not raw video bytes (which most LLM servers cannot decode directly).
+                try:
+                    import cv2
+                    import io
+                    cap = cv2.VideoCapture(storage_path)
+                    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                    fps = cap.get(cv2.CAP_PROP_FPS) or 25
+                    duration_sec = frame_count / fps if fps > 0 else 0
+                    
+                    # Seek to midpoint (or 1s in, whichever is earlier), same as frontend
+                    target_sec = min(1.0, duration_sec / 2) if duration_sec > 0 else 0
+                    cap.set(cv2.CAP_PROP_POS_MSEC, target_sec * 1000)
+                    ok, frame = cap.read()
+                    cap.release()
+                    
+                    if not ok or frame is None:
+                        raise ValueError("Could not read video frame")
+                    
+                    # Encode frame as JPEG (same format as frontend canvas.toDataURL)
+                    ok2, jpeg_buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+                    if not ok2:
+                        raise ValueError("Failed to encode frame as JPEG")
+                    
+                    b64_data = base64.b64encode(jpeg_buf.tobytes()).decode("utf-8")
+                    file_size = os.path.getsize(storage_path)
+                    return ToolResult(
+                        success=True,
+                        result={
+                            "metadata": artifact,
+                            "media_base64": b64_data,
+                            "media_type": "image",  # Sent as image/jpeg frame
+                            "mime_type": "image/jpeg",
+                            "content": f"[Video frame extracted from: {filename} ({file_size} bytes, {duration_sec:.1f}s at {fps:.0f}fps)]"
+                        },
+                        summary=f"Successfully extracted poster frame from video {filename} ({artifact_id}) at {target_sec:.1f}s. Frame sent as image for visual analysis.",
+                        artifact_ids=[artifact.get("id", "")]
+                    )
+                except Exception as ve:
+                    file_size = os.path.getsize(storage_path)
+                    return ToolResult(
+                        success=True,
+                        result={
+                            "metadata": artifact,
+                            "content": f"[Video file: {filename} ({file_size} bytes) — frame extraction failed: {ve}. Use the chat attachment panel to view this video.]"
+                        },
+                        summary=f"Could not extract frame from video {filename}: {ve}. The file exists but cannot be analyzed automatically.",
+                        artifact_ids=[artifact.get("id", "")]
+                    )
             
             # Non-viewable binary (audio, pdf, zip, etc.) — truly cannot be analyzed
             return ToolResult(

@@ -1,6 +1,5 @@
 import { MarkdownContent } from "@/components/markdown/MarkdownContent";
-import { ThinkingBlock } from "@/features/chat/components/ThinkingBlock";
-import { ToolExecutionBlock } from "@/features/chat/components/ToolExecutionBlock";
+import { AgentActivityTracker } from "@/features/chat/components/AgentActivityTracker";
 import { cn } from "@/lib/utils";
 
 interface AgentReplyProps {
@@ -36,7 +35,6 @@ export function AgentReply({
   toolResults,
   currentNode,
 }: AgentReplyProps) {
-  const hasThinking = Boolean(thinking?.trim()) || (isStreaming && !content);
   const showWaiting = isStreaming && !content && !thinking?.trim();
 
   return (
@@ -52,20 +50,13 @@ export function AgentReply({
           isStreaming && "border-primary/20",
         )}
       >
-        {((toolCalls && toolCalls.length > 0) || (toolResults && toolResults.length > 0)) && (
-          <ToolExecutionBlock
-            toolCalls={toolCalls ?? []}
-            toolResults={toolResults ?? []}
-            currentNode={currentNode}
-            isStreaming={isStreaming}
-          />
-        )}
-        {hasThinking && (
-          <ThinkingBlock
-            content={thinking ?? ""}
-            isStreaming={isStreaming && !content}
-          />
-        )}
+        <AgentActivityTracker
+          thinking={thinking ?? ""}
+          isStreaming={isStreaming}
+          toolCalls={toolCalls}
+          toolResults={toolResults}
+          currentNode={currentNode}
+        />
         {content ? (
           <MarkdownContent
             content={content}
