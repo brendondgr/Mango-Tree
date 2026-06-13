@@ -1,5 +1,5 @@
 import { useAgentStore } from "./agentState";
-import type { AgentEvent } from "./types";
+import type { AgentEvent, ChatReference } from "./types";
 
 /**
  * Triggers a backend agent execution turn and processes the live Server-Sent Events (SSE) stream,
@@ -75,6 +75,16 @@ export async function runAgentTurn(
   }
 }
 
+function normalizeReferences(
+  references: ChatReference[] | undefined,
+): ChatReference[] {
+  return (references ?? []).map((reference) => ({
+    index: Number(reference.index),
+    title: reference.title,
+    url: reference.url,
+  }));
+}
+
 function handleAgentEvent(event: AgentEvent) {
   const store = useAgentStore.getState();
   switch (event.event) {
@@ -93,7 +103,7 @@ function handleAgentEvent(event: AgentEvent) {
     case "final_answer":
       store.setFinalAnswer(
         event.payload.text,
-        event.payload.references ?? [],
+        normalizeReferences(event.payload.references),
       );
       break;
     case "error":

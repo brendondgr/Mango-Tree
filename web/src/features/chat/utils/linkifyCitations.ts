@@ -1,12 +1,21 @@
 import type { ChatReference } from "@/features/chat/utils/formatReplyMarkdown";
+import { escapeMarkdownLinkUrl } from "@/features/chat/utils/citationMarkdown";
 
 const CITATION_PATTERN = /\[(\d+)\]/g;
 const FENCED_CODE_PATTERN = /(```[\s\S]*?```)/g;
 const INLINE_CODE_PATTERN = /(`[^`\n]+`)/g;
 
+function referenceUrlByIndex(
+  references: ChatReference[],
+): Map<number, string> {
+  return new Map(
+    references.map((reference) => [Number(reference.index), reference.url]),
+  );
+}
+
 /**
- * Turns inline [n] citation markers into markdown links (cite:n) outside code spans.
- * MarkdownContent renders cite: links as circular CitationBadge components.
+ * Turns inline [n] citation markers into markdown links using real source URLs.
+ * MarkdownContent renders numeric source links as circular CitationBadge components.
  */
 export function linkifyCitations(
   content: string,
@@ -14,7 +23,7 @@ export function linkifyCitations(
 ): string {
   if (references.length === 0) return content;
 
-  const indexSet = new Set(references.map((ref) => ref.index));
+  const urlByIndex = referenceUrlByIndex(references);
 
   return content
     .split(FENCED_CODE_PATTERN)
@@ -26,8 +35,9 @@ export function linkifyCitations(
           if (part.startsWith("`") && part.endsWith("`")) return part;
           return part.replace(CITATION_PATTERN, (match, rawIndex) => {
             const index = Number(rawIndex);
-            if (!indexSet.has(index)) return match;
-            return `[${index}](cite:${index})`;
+            const url = urlByIndex.get(index);
+            if (!url) return match;
+            return `[${index}](${escapeMarkdownLinkUrl(url)})`;
           });
         })
         .join("");

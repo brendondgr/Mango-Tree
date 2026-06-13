@@ -12,12 +12,20 @@ import remarkMath from "remark-math";
 
 import { MarkdownCodeBlock } from "@/components/markdown/MarkdownCodeBlock";
 import { CitationBadge } from "@/features/chat/components/CitationBadge";
+import {
+  buildReferencesByIndex,
+  resolveCitationIndex,
+} from "@/features/chat/utils/citationMarkdown";
 import type { ChatReference } from "@/features/chat/utils/formatReplyMarkdown";
 import { linkifyCitations } from "@/features/chat/utils/linkifyCitations";
 import { cn } from "@/lib/utils";
 
 const sanitizeSchema = {
   ...defaultSchema,
+  protocols: {
+    ...defaultSchema.protocols,
+    href: [...(defaultSchema.protocols?.href ?? []), "cite"],
+  },
   tagNames: [...(defaultSchema.tagNames ?? []), "u"],
   attributes: {
     ...defaultSchema.attributes,
@@ -36,21 +44,23 @@ function createMarkdownComponents(
 ): Components {
   const isChat = variant === "chat";
   const chatHeadingColor = "text-accent";
-  const referencesByIndex = new Map(
-    (references ?? []).map((reference) => [reference.index, reference]),
-  );
+  const referencesByIndex = buildReferencesByIndex(references ?? []);
 
   return {
   p: ({ children }) => (
     <p className={cn("mb-2 leading-relaxed last:mb-0", textWrap)}>{children}</p>
   ),
   a: ({ href, children }) => {
-    if (href?.startsWith("cite:")) {
-      const index = Number(href.slice(5));
-      const reference = referencesByIndex.get(index);
-      if (reference) {
-        return <CitationBadge index={index} url={reference.url} />;
-      }
+    const citationIndex = resolveCitationIndex(
+      href,
+      children,
+      referencesByIndex,
+    );
+    if (citationIndex !== null) {
+      const reference = referencesByIndex.get(citationIndex)!;
+      return (
+        <CitationBadge index={citationIndex} url={reference.url} />
+      );
     }
 
     return (
