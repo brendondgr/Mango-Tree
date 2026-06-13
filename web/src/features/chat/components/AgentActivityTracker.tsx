@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Brain, Wrench, Sparkles, ChevronDown, CheckCircle2, XCircle, Loader2, Terminal } from "lucide-react";
 import { MarkdownContent } from "@/components/markdown/MarkdownContent";
 import { cn } from "@/lib/utils";
@@ -33,14 +33,7 @@ export function AgentActivityTracker({
   toolResults = [],
   currentNode,
 }: AgentActivityTrackerProps) {
-  const [expanded, setExpanded] = useState(isStreaming);
-
-  // Auto-expand during live streaming/execution
-  useEffect(() => {
-    if (isStreaming) {
-      setExpanded(true);
-    }
-  }, [isStreaming]);
+  const [expanded, setExpanded] = useState(false);
 
   const hasThinking = Boolean(thinking?.trim());
   const hasTools = toolCalls.length > 0 || toolResults.length > 0;
