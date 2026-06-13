@@ -1,6 +1,7 @@
 import pytest
 from agents.coordinator.graph import agent_graph
 from agents.schemas.agent import AgentMessage
+from agents.tools.registry import registry
 
 def test_coordinator_graph_flow():
     # Construct initial state
@@ -30,3 +31,18 @@ def test_coordinator_graph_flow():
     assert first_obs["success"] is True
     assert "skills" in first_obs["result"]
     assert isinstance(first_obs["result"]["skills"], list)
+    
+    # It should only find skills under agents/skills/, which currently contains artifacts/SKILL.md
+    skills = first_obs["result"]["skills"]
+    assert "artifacts/SKILL.md" in skills
+    # Internal developer docs (like django-backend) must NOT be present
+    assert "django-backend/SKILL.md" not in skills
+
+def test_read_skill_tool():
+    # Test reading the artifacts skill directly through the tool registry
+    result = registry.execute("read_skill", {"skill_name": "artifacts"})
+    assert result.success is True
+    assert "skill_name" in result.result
+    assert "content" in result.result
+    assert "workspace" in result.result["content"]
+

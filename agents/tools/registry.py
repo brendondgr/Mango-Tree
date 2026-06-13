@@ -37,7 +37,7 @@ registry = ToolRegistry()
 # Define project-relative paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ARTIFACTS_DIR = os.path.join(BASE_DIR, "data", "artifacts")
-SKILLS_DIR = os.path.join(BASE_DIR, "docs", "skills")
+SKILLS_DIR = os.path.join(BASE_DIR, "agents", "skills")
 
 @registry.register("list_artifacts")
 def list_artifacts() -> ToolResult:
@@ -165,3 +165,43 @@ def inspect_chat_context(state_messages: List[Dict[str, Any]]) -> ToolResult:
         summary=f"Inspected chat context. Session contains {len(state_messages)} messages.",
         artifact_ids=[]
       )
+
+@registry.register("read_skill")
+def read_skill(skill_name: str) -> ToolResult:
+    # Look for SKILL.md under agents/skills/{skill_name}/
+    skill_path = os.path.join(SKILLS_DIR, skill_name, "SKILL.md")
+    
+    # Check if folder name has .md appended from listing
+    if not os.path.exists(skill_path):
+        normalized_name = skill_name
+        if normalized_name.endswith(".md"):
+            normalized_name = normalized_name[:-3]
+        if normalized_name.endswith("/SKILL"):
+            normalized_name = normalized_name[:-6]
+            
+        skill_path = os.path.join(SKILLS_DIR, normalized_name, "SKILL.md")
+        
+    if not os.path.exists(skill_path):
+        return ToolResult(
+            success=False,
+            result={},
+            summary=f"Skill '{skill_name}' not found. Searched path: agents/skills/{skill_name}/SKILL.md",
+            artifact_ids=[]
+        )
+        
+    try:
+        with open(skill_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return ToolResult(
+            success=True,
+            result={"skill_name": skill_name, "content": content},
+            summary=f"Successfully read content of skill '{skill_name}'.",
+            artifact_ids=[]
+        )
+    except Exception as e:
+        return ToolResult(
+            success=False,
+            result={"error": str(e)},
+            summary=f"Failed to read skill '{skill_name}': {str(e)}",
+            artifact_ids=[]
+        )

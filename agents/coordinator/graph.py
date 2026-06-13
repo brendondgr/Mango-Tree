@@ -50,6 +50,23 @@ TOOL_SCHEMAS = [
     {
         "type": "function",
         "function": {
+            "name": "read_skill",
+            "description": "Read the content of a specific agent skill document.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "skill_name": {
+                        "type": "string",
+                        "description": "The name of the skill (e.g., 'artifacts')."
+                    }
+                },
+                "required": ["skill_name"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "inspect_chat_context",
             "description": "Inspect the conversation history and context.",
             "parameters": {
