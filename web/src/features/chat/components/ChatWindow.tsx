@@ -75,6 +75,7 @@ export function ChatWindow() {
   const handleSubmit = async (
     text: string,
     pendingAttachments: PendingAttachment[],
+    options?: { webSearchMode?: "auto" | "forced" },
   ) => {
     if (isTyping) return;
 
@@ -170,7 +171,13 @@ export function ChatWindow() {
         attachments: msg.attachments,
       }));
 
-      await runAgentTurn(chatSessionId, text, historyPayload, attachments);
+      await runAgentTurn(
+        chatSessionId,
+        text,
+        historyPayload,
+        attachments,
+        options?.webSearchMode ?? "auto",
+      );
       
       unsubscribe();
       updateMessage(agentMessageId, { isStreaming: false });

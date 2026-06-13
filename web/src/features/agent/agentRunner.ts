@@ -9,7 +9,8 @@ export async function runAgentTurn(
   chatSessionId: string,
   userMessage: string,
   history: { role: "user" | "agent"; content: string; thinking?: string; attachments?: any[] }[],
-  attachments?: any[]
+  attachments?: any[],
+  webSearchMode: "auto" | "forced" = "auto",
 ): Promise<void> {
   const store = useAgentStore.getState();
   store.reset();
@@ -25,6 +26,7 @@ export async function runAgentTurn(
         message: userMessage,
         history,
         attachments,
+        web_search_mode: webSearchMode,
       }),
     });
 

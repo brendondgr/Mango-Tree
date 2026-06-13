@@ -1,5 +1,6 @@
 import {
   FolderOpen,
+  Globe,
   Paperclip,
   Plus,
   Send,
@@ -11,6 +12,7 @@ import type { ChatMessage } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSub,
@@ -23,6 +25,7 @@ import { ComposerAttachmentStrip } from "@/features/chat/components/ComposerAtta
 import { ContextUsageRing } from "@/features/chat/components/ContextUsageRing";
 import { useContextUsage } from "@/features/chat/hooks/useContextUsage";
 import { useComposerArtifactStore } from "@/features/chat/stores/composerArtifactStore";
+import { useComposerWebSearchStore } from "@/features/chat/stores/composerWebSearchStore";
 import type { PendingAttachment } from "@/features/chat/types/attachment";
 import { artifactToPendingAttachment } from "@/features/chat/utils/artifactToPendingAttachment";
 import type { LlmUsage } from "@/services/llmTypes";
@@ -48,6 +51,7 @@ interface ChatComposerProps {
   onSubmit: (
     text: string,
     attachments: PendingAttachment[],
+    options?: { webSearchMode?: "auto" | "forced" },
   ) => void | Promise<void>;
 }
 
@@ -69,6 +73,8 @@ export function ChatComposer({
   const artifactQueue = useComposerArtifactStore((s) => s.queue);
   const dequeueAll = useComposerArtifactStore((s) => s.dequeueAll);
   const enqueueArtifact = useComposerArtifactStore((s) => s.enqueueArtifact);
+  const webSearchEnabled = useComposerWebSearchStore((s) => s.enabled);
+  const setWebSearchEnabled = useComposerWebSearchStore((s) => s.setEnabled);
 
   const [artifactQuery, setArtifactQuery] = useState("");
   const [artifactTypeFilter, setArtifactTypeFilter] =
@@ -250,7 +256,9 @@ export function ChatComposer({
     setIsSubmitting(true);
     try {
       const ready = attachments.filter((a) => a.status === "ready");
-      await onSubmit(text.trim(), ready);
+      await onSubmit(text.trim(), ready, {
+        webSearchMode: webSearchEnabled ? "forced" : "auto",
+      });
       setText("");
       clearAttachments();
     } finally {
@@ -393,8 +401,33 @@ export function ChatComposer({
                   </div>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
+              <DropdownMenuCheckboxItem
+                checked={webSearchEnabled}
+                disabled={inputDisabled}
+                onCheckedChange={(checked) => setWebSearchEnabled(checked === true)}
+                onSelect={(event) => event.preventDefault()}
+              >
+                <Globe className="h-4 w-4" />
+                Web Search
+              </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {webSearchEnabled && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={inputDisabled}
+              className="h-8 shrink-0 gap-1.5 rounded-full px-2.5 text-xs font-medium"
+              aria-label="Web search enabled"
+              aria-pressed={webSearchEnabled}
+              onClick={() => setWebSearchEnabled(false)}
+            >
+              <Globe className="h-3.5 w-3.5" />
+              Web
+            </Button>
+          )}
 
           <ComposerAttachmentPill
             attachments={attachments}
