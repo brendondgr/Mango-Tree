@@ -11,6 +11,9 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
 import { MarkdownCodeBlock } from "@/components/markdown/MarkdownCodeBlock";
+import { CitationBadge } from "@/features/chat/components/CitationBadge";
+import type { ChatReference } from "@/features/chat/utils/formatReplyMarkdown";
+import { linkifyCitations } from "@/features/chat/utils/linkifyCitations";
 import { cn } from "@/lib/utils";
 
 const sanitizeSchema = {
@@ -27,24 +30,40 @@ const textWrap = "min-w-0 break-words [overflow-wrap:anywhere]";
 
 type MarkdownVariant = "default" | "chat";
 
-function createMarkdownComponents(variant: MarkdownVariant): Components {
+function createMarkdownComponents(
+  variant: MarkdownVariant,
+  references?: ChatReference[],
+): Components {
   const isChat = variant === "chat";
   const chatHeadingColor = "text-accent";
+  const referencesByIndex = new Map(
+    (references ?? []).map((reference) => [reference.index, reference]),
+  );
 
   return {
   p: ({ children }) => (
     <p className={cn("mb-2 leading-relaxed last:mb-0", textWrap)}>{children}</p>
   ),
-  a: ({ href, children }) => (
-    <a
-      href={href}
-      className="text-primary underline underline-offset-2"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      {children}
-    </a>
-  ),
+  a: ({ href, children }) => {
+    if (href?.startsWith("cite:")) {
+      const index = Number(href.slice(5));
+      const reference = referencesByIndex.get(index);
+      if (reference) {
+        return <CitationBadge index={index} url={reference.url} />;
+      }
+    }
+
+    return (
+      <a
+        href={href}
+        className="text-primary underline underline-offset-2"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {children}
+      </a>
+    );
+  },
   strong: ({ children }) => (
     <strong
       className={cn(
@@ -198,25 +217,31 @@ function createMarkdownComponents(variant: MarkdownVariant): Components {
 }
 
 const defaultMarkdownComponents = createMarkdownComponents("default");
-const chatMarkdownComponents = createMarkdownComponents("chat");
-
-const markdownComponentsByVariant = {
-  default: defaultMarkdownComponents,
-  chat: chatMarkdownComponents,
-} as const;
 
 interface MarkdownContentProps {
   content: string;
   className?: string;
   variant?: MarkdownVariant;
+  references?: ChatReference[];
 }
 
 export function MarkdownContent({
   content,
   className,
   variant = "default",
+  references,
 }: MarkdownContentProps) {
   const isChat = variant === "chat";
+  const renderedContent =
+    references && references.length > 0
+      ? linkifyCitations(content, references)
+      : content;
+  const components =
+    references && references.length > 0
+      ? createMarkdownComponents(variant, references)
+      : variant === "chat"
+        ? createMarkdownComponents("chat")
+        : defaultMarkdownComponents;
 
   return (
     <div
@@ -236,9 +261,9 @@ export function MarkdownContent({
           rehypeHighlight,
           [rehypeSanitize, sanitizeSchema],
         ]}
-        components={markdownComponentsByVariant[variant]}
+        components={components}
       >
-        {content}
+        {renderedContent}
       </ReactMarkdown>
     </div>
   );

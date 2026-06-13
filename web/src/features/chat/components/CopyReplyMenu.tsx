@@ -34,8 +34,7 @@ export function CopyReplyMenu({ content, references }: CopyReplyMenuProps) {
   const copied = copiedMode !== null;
 
   return (
-    <div className="mt-2 flex justify-end">
-      <DropdownMenu>
+    <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             type="button"
@@ -64,7 +63,6 @@ export function CopyReplyMenu({ content, references }: CopyReplyMenuProps) {
             Copy without citations
           </DropdownMenuItem>
         </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+    </DropdownMenu>
   );
 }
