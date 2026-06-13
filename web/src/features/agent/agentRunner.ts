@@ -91,7 +91,10 @@ function handleAgentEvent(event: AgentEvent) {
       store.addToolResult(event.payload);
       break;
     case "final_answer":
-      store.setFinalAnswer(event.payload.text);
+      store.setFinalAnswer(
+        event.payload.text,
+        event.payload.references ?? [],
+      );
       break;
     case "error":
       store.setError(event.payload.message);

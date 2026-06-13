@@ -1,5 +1,8 @@
 import { MarkdownContent } from "@/components/markdown/MarkdownContent";
 import { AgentActivityTracker } from "@/features/chat/components/AgentActivityTracker";
+import { CopyReplyMenu } from "@/features/chat/components/CopyReplyMenu";
+import { ReferenceList } from "@/features/chat/components/ReferenceList";
+import type { ChatReference } from "@/features/agent/types";
 import { cn } from "@/lib/utils";
 
 interface AgentReplyProps {
@@ -17,6 +20,7 @@ interface AgentReplyProps {
     artifact_ids: string[];
   }[];
   currentNode?: string;
+  references?: ChatReference[];
 }
 
 function formatChatTime(date: Date): string {
@@ -34,8 +38,10 @@ export function AgentReply({
   toolCalls,
   toolResults,
   currentNode,
+  references,
 }: AgentReplyProps) {
   const showWaiting = isStreaming && !content && !thinking?.trim();
+  const showCopyMenu = !isStreaming && content.trim().length > 0;
 
   return (
     <div className="flex min-w-0 max-w-full flex-col gap-0.5">
@@ -66,11 +72,17 @@ export function AgentReply({
         ) : showWaiting ? (
           <p className="text-sm text-muted-foreground">Waiting for response…</p>
         ) : null}
+        {references && references.length > 0 && !isStreaming && (
+          <ReferenceList references={references} />
+        )}
         {isStreaming && content && (
           <span
             className="mt-0.5 inline-block h-4 w-0.5 animate-pulse bg-primary/70 align-text-bottom"
             aria-hidden
           />
+        )}
+        {showCopyMenu && (
+          <CopyReplyMenu content={content} references={references} />
         )}
       </div>
     </div>

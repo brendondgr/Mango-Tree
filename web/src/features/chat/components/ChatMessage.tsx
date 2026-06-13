@@ -71,6 +71,7 @@ export function ChatMessage({ turn }: ChatMessageProps) {
           toolCalls={reply.toolCalls}
           toolResults={reply.toolResults}
           currentNode={reply.currentNode}
+          references={reply.references}
         />
       ))}
     </motion.div>

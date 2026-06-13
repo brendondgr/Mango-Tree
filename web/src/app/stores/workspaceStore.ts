@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import type { ChatAttachment } from "@/features/chat/types/attachment";
+import type { ChatReference } from "@/features/agent/types";
 import type { WorkspaceTabId } from "@/features/workspace/components/workspaceTabs";
 import type { LlmUsage } from "@/services/llmTypes";
 
@@ -26,6 +27,7 @@ export interface ChatMessage {
     artifact_ids: string[];
   }[];
   currentNode?: string;
+  references?: ChatReference[];
 }
 
 export const SIDEBAR_DEFAULT = 360;
@@ -126,6 +128,7 @@ interface WorkspaceState {
         | "toolCalls"
         | "toolResults"
         | "currentNode"
+        | "references"
       >
     >,
   ) => void;

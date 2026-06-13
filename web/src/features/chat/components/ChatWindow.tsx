@@ -160,6 +160,7 @@ export function ChatWindow() {
           toolCalls: state.toolCalls,
           toolResults: state.toolResults,
           currentNode: state.currentNode || undefined,
+          references: state.references,
         });
         forceScrollToBottom();
       });
@@ -180,7 +181,11 @@ export function ChatWindow() {
       );
       
       unsubscribe();
-      updateMessage(agentMessageId, { isStreaming: false });
+      const finalState = useAgentStore.getState();
+      updateMessage(agentMessageId, {
+        isStreaming: false,
+        references: finalState.references,
+      });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
