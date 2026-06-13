@@ -75,10 +75,31 @@ TOOL_SCHEMAS = [
                 "properties": {}
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_web",
+            "description": (
+                "Search the web for external factual information via local SearXNG. "
+                "Use when the question needs current events, documentation, statistics, "
+                "or other facts not available in chat context."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Concise web search query."
+                    }
+                },
+                "required": ["query"]
+            }
+        }
     }
 ]
 
-SYSTEM_PROMPT = (
+SYSTEM_PROMPT_BASE = (
     "You are Mango, a helpful assistant. Follow these rules strictly:\n"
     "1. NEVER fabricate, invent, or hallucinate information about files you have not actually read. "
     "If a tool returns 'content omitted' or 'cannot be displayed', say so honestly.\n"
@@ -87,10 +108,91 @@ SYSTEM_PROMPT = (
     "If a tool fails or returns 'content omitted', do NOT retry it.\n"
     "4. Only call tools that are directly relevant to the user's request. "
     "Do NOT speculatively call list_artifacts, inspect_skills, or read_artifact unless the user asked about artifacts, files, or skills.\n"
+    "5. During reasoning, assess whether the user's question requires external factual information "
+    "(current events, documentation, statistics, or claims you cannot verify from context alone).\n"
+    "6. When you use search_web results, cite sources inline with numbered brackets like [1], [2] "
+    "matching the source index from the tool result. Do not invent citations.\n"
 )
 
-def format_messages_for_llm(messages: List[AgentMessage], observations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    llm_messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+def build_system_prompt(web_search_mode: str = "auto") -> str:
+    if web_search_mode == "forced":
+        return (
+            SYSTEM_PROMPT_BASE
+            + "7. Web search is REQUIRED for this turn. Do not provide a final answer until "
+            "search_web has been run and you have incorporated the returned sources.\n"
+        )
+    return (
+        SYSTEM_PROMPT_BASE
+        + "7. In auto mode, call search_web only when external factual grounding is needed; "
+        "otherwise answer from existing context.\n"
+    )
+
+
+def latest_user_message(messages: List[AgentMessage]) -> str:
+    for msg in reversed(messages):
+        if msg.role == "user" and msg.content.strip():
+            return msg.content.strip()
+    return ""
+
+
+def has_successful_web_search(observations: List[Dict[str, Any]]) -> bool:
+    return any(
+        obs.get("tool") == "search_web" and obs.get("success")
+        for obs in observations
+    )
+
+
+def search_citation_offset(observations: List[Dict[str, Any]]) -> int:
+    count = 0
+    for obs in observations:
+        if obs.get("tool") != "search_web" or not obs.get("success"):
+            continue
+        sources = obs.get("result", {}).get("sources") or []
+        count += len(sources)
+    return count
+
+
+def collect_references(observations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    references: List[Dict[str, Any]] = []
+    seen_urls: set[str] = set()
+    index = 1
+    for obs in observations:
+        if obs.get("tool") != "search_web" or not obs.get("success"):
+            continue
+        for source in obs.get("result", {}).get("sources") or []:
+            url = str(source.get("url") or "").strip()
+            if not url or url in seen_urls:
+                continue
+            seen_urls.add(url)
+            references.append({
+                "index": index,
+                "title": str(source.get("title") or url),
+                "url": url,
+            })
+            index += 1
+    return references
+
+
+def format_search_result_text(result: Dict[str, Any]) -> str:
+    lines = []
+    for source in result.get("sources") or []:
+        idx = source.get("index", "?")
+        title = source.get("title", "Untitled")
+        url = source.get("url", "")
+        excerpt = str(source.get("excerpt") or source.get("snippet") or "")
+        if len(excerpt) > 1200:
+            excerpt = excerpt[:1200] + "... [truncated]"
+        lines.append(f"[{idx}] {title}\nURL: {url}\nExcerpt: {excerpt}")
+    return "\n\n".join(lines) if lines else json.dumps(result, default=str)
+
+
+def format_messages_for_llm(
+    messages: List[AgentMessage],
+    observations: List[Dict[str, Any]],
+    web_search_mode: str = "auto",
+) -> List[Dict[str, Any]]:
+    llm_messages = [{"role": "system", "content": build_system_prompt(web_search_mode)}]
     
     for msg in messages:
         role = "assistant" if msg.role == "agent" else msg.role
@@ -147,11 +249,12 @@ def format_messages_for_llm(messages: List[AgentMessage], observations: List[Dic
                     }
                 })
             else:
-                # Regular text observation — omit the full result dict to save tokens
-                result_text = json.dumps(result.get("content", result), default=str)
-                # Truncate very large results
-                if len(result_text) > 4000:
-                    result_text = result_text[:4000] + "... [truncated]"
+                if obs.get("tool") == "search_web":
+                    result_text = format_search_result_text(result)
+                else:
+                    result_text = json.dumps(result.get("content", result), default=str)
+                    if len(result_text) > 4000:
+                        result_text = result_text[:4000] + "... [truncated]"
                 content_parts.append({
                     "type": "text",
                     "text": f"{summary_text}\nResult: {result_text}"
@@ -181,8 +284,9 @@ def reason_node(state: AgentState) -> Dict[str, Any]:
         
     messages = state["messages"]
     observations = state["observations"]
+    web_search_mode = state.get("web_search_mode", "auto")
     
-    llm_msgs = format_messages_for_llm(messages, observations)
+    llm_msgs = format_messages_for_llm(messages, observations, web_search_mode)
     
     pending_actions = []
     final_answer = None
@@ -253,6 +357,22 @@ def reason_node(state: AgentState) -> Dict[str, Any]:
             
         if not pending_actions:
             final_answer = content_accum
+
+        if (
+            web_search_mode == "forced"
+            and not has_successful_web_search(observations)
+            and not pending_actions
+        ):
+            query = latest_user_message(messages)
+            if query:
+                pending_actions = [
+                    ToolCall(
+                        id=f"forced_search_{state['step_count']}",
+                        name="search_web",
+                        arguments={"query": query},
+                    )
+                ]
+                final_answer = None
             
     except LLMProviderError as e:
         # Graceful fallback simulation
@@ -358,6 +478,9 @@ def observe_node(state: AgentState) -> Dict[str, Any]:
         if action.name == "inspect_chat_context":
             messages_raw = [m.model_dump() for m in state["messages"]]
             action.arguments["state_messages"] = messages_raw
+
+        if action.name == "search_web":
+            action.arguments["citation_offset"] = search_citation_offset(new_observations)
             
         tool_result: ToolResult = registry.execute(action.name, action.arguments)
         
@@ -387,8 +510,9 @@ def respond_node(state: AgentState) -> Dict[str, Any]:
         callback("node_start", {"node": "respond"})
         
     final_answer = state.get("final_answer") or "Done."
+    references = collect_references(state.get("observations", []))
     if callback:
-        callback("final_answer", {"text": final_answer})
+        callback("final_answer", {"text": final_answer, "references": references})
         
     return {}
 

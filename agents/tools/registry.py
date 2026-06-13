@@ -360,3 +360,5 @@ def read_skill(skill_name: Optional[str] = None) -> ToolResult:
             summary=f"Failed to read skill '{skill_name}': {str(e)}",
             artifact_ids=[]
         )
+
+import agents.tools.web_search  # noqa: F401, E402 — register search_web tool

@@ -1,7 +1,12 @@
+import json
 import pytest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 import requests
-from agents.coordinator.graph import agent_graph
+from agents.coordinator.graph import (
+    agent_graph,
+    collect_references,
+    reason_node,
+)
 from agents.schemas.agent import AgentMessage
 from agents.tools.registry import registry
 
@@ -19,6 +24,7 @@ def test_coordinator_graph_flow(mock_post):
         "observations": [],
         "final_answer": None,
         "error": None,
+        "web_search_mode": "auto",
         "callback": None
     }
     
@@ -195,6 +201,7 @@ def test_observe_node_deduplicates_tool_calls():
         ],
         "final_answer": None,
         "error": None,
+        "web_search_mode": "auto",
         "callback": None
     }
     
@@ -206,3 +213,62 @@ def test_observe_node_deduplicates_tool_calls():
     assert len(dup_obs) == 1
     assert dup_obs[0]["success"] is False
     assert "Skipped duplicate" in dup_obs[0]["summary"]
+
+
+def test_collect_references_dedupes_urls():
+    observations = [
+        {
+            "tool": "search_web",
+            "success": True,
+            "result": {
+                "sources": [
+                    {"index": 1, "title": "A", "url": "https://a.test"},
+                    {"index": 2, "title": "B", "url": "https://b.test"},
+                ]
+            },
+        },
+        {
+            "tool": "search_web",
+            "success": True,
+            "result": {
+                "sources": [
+                    {"index": 1, "title": "A dup", "url": "https://a.test"},
+                ]
+            },
+        },
+    ]
+
+    refs = collect_references(observations)
+    assert len(refs) == 2
+    assert refs[0]["index"] == 1
+    assert refs[1]["index"] == 2
+
+
+@patch("agents.coordinator.graph.chat_complete")
+def test_forced_web_search_injects_search_web(mock_chat_complete):
+    stream = MagicMock()
+    stream.iter_lines.return_value = [
+        b'data: {"choices":[{"delta":{"content":"Answer without search."}}]}',
+        b"data: [DONE]",
+    ]
+    mock_chat_complete.return_value = stream
+
+    state = {
+        "messages": [AgentMessage(role="user", content="What is the latest Django LTS?")],
+        "step_count": 0,
+        "max_steps": 6,
+        "pending_actions": [],
+        "observations": [],
+        "final_answer": None,
+        "error": None,
+        "web_search_mode": "forced",
+        "callback": None,
+    }
+
+    result = reason_node(state)
+
+    assert result["final_answer"] is None
+    assert len(result["pending_actions"]) == 1
+    assert result["pending_actions"][0].name == "search_web"
+    assert result["pending_actions"][0].arguments["query"] == "What is the latest Django LTS?"
+

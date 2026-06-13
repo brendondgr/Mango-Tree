@@ -44,6 +44,7 @@ def run_agent_turn(request, session_id):
         "observations": [],
         "final_answer": None,
         "error": None,
+        "web_search_mode": data.get("web_search_mode", "auto"),
         "callback": None
     }
     
