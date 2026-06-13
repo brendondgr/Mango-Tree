@@ -119,6 +119,43 @@ def read_artifact(artifact_id: str) -> ToolResult:
                 artifact_ids=[artifact.get("id", "")]
             )
             
+        kind = artifact.get("kind", "")
+        mime_type = artifact.get("mime_type", "")
+        
+        is_binary = kind in ["video", "image", "pdf", "audio", "zip", "tar", "gz"]
+        if not is_binary and mime_type:
+            is_binary = not (
+                mime_type.startswith("text/") 
+                or "json" in mime_type 
+                or "xml" in mime_type 
+                or "csv" in mime_type 
+                or "javascript" in mime_type 
+                or "typescript" in mime_type
+            )
+            
+        if is_binary:
+            return ToolResult(
+                success=True,
+                result={"metadata": artifact, "content": f"[Binary {kind} file - content omitted]"},
+                summary=f"Successfully read metadata of binary artifact {filename} ({artifact_id}). Content omitted.",
+                artifact_ids=[artifact.get("id", "")]
+            )
+            
+        # Limit text reading size to prevent context overflow (e.g. 50 KB limit)
+        file_size = os.path.getsize(storage_path)
+        MAX_SIZE = 50 * 1024
+        
+        if file_size > MAX_SIZE:
+            with open(storage_path, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read(MAX_SIZE)
+            content += "\n\n... [Content truncated due to size limit] ..."
+            return ToolResult(
+                success=True,
+                result={"metadata": artifact, "content": content},
+                summary=f"Successfully read truncated content of large artifact {filename} ({artifact_id}). Size: {file_size} bytes.",
+                artifact_ids=[artifact.get("id", "")]
+            )
+            
         with open(storage_path, "r", encoding="utf-8", errors="ignore") as f:
             content = f.read()
             
