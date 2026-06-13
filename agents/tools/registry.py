@@ -81,9 +81,15 @@ def read_artifact(artifact_id: str) -> ToolResult:
         with open(manifest_path, "r", encoding="utf-8") as f:
             manifest = json.load(f)
         
-        # Look up artifact in list/dict
+        # Look up artifact in list/dict by ID, artifactId, or filename
         artifacts = manifest.get("artifacts", []) if isinstance(manifest, dict) else manifest
-        artifact = next((a for a in artifacts if a.get("id") == artifact_id or a.get("artifactId") == artifact_id), None)
+        artifact = next((
+            a for a in artifacts 
+            if a.get("id") == artifact_id 
+            or a.get("artifactId") == artifact_id
+            or a.get("filename") == artifact_id
+            or os.path.basename(a.get("filename", "")) == artifact_id
+        ), None)
         
         if not artifact:
             return ToolResult(
@@ -94,8 +100,13 @@ def read_artifact(artifact_id: str) -> ToolResult:
             )
             
         filename = artifact.get("filename", "")
-        # Look in storage/
-        storage_path = os.path.join(ARTIFACTS_DIR, "storage", artifact_id)
+        # Resolve path using manifest's storage_path field
+        storage_rel_path = artifact.get("storage_path", "")
+        if not storage_rel_path:
+            storage_rel_path = os.path.join("storage", artifact.get("id", ""))
+            
+        storage_path = os.path.join(ARTIFACTS_DIR, storage_rel_path)
+        
         # Fallback to direct name if stored differently
         if not os.path.exists(storage_path):
             storage_path = os.path.join(ARTIFACTS_DIR, "storage", filename)
@@ -105,7 +116,7 @@ def read_artifact(artifact_id: str) -> ToolResult:
                 success=False,
                 result={"metadata": artifact},
                 summary=f"Artifact metadata found, but file content was missing on disk for {artifact_id}.",
-                artifact_ids=[artifact_id]
+                artifact_ids=[artifact.get("id", "")]
             )
             
         with open(storage_path, "r", encoding="utf-8", errors="ignore") as f:
@@ -115,7 +126,7 @@ def read_artifact(artifact_id: str) -> ToolResult:
             success=True,
             result={"metadata": artifact, "content": content},
             summary=f"Successfully read content of artifact {filename} ({artifact_id}).",
-            artifact_ids=[artifact_id]
+            artifact_ids=[artifact.get("id", "")]
         )
     except Exception as e:
         return ToolResult(
