@@ -24,12 +24,18 @@ function buildHeaders(config: LlmConfig): Record<string, string> {
   return headers;
 }
 
+let tokenizeEndpointUnavailable = false;
+
 /** Count tokens via vLLM /tokenize (model-native tokenizer + chat template). */
 export async function tokenizeMessages(
   messages: LlmChatMessage[],
   config: LlmConfig,
   signal?: AbortSignal,
 ): Promise<TokenizeResult | null> {
+  if (tokenizeEndpointUnavailable || messages.length === 0) {
+    return null;
+  }
+
   const url = resolveTokenizeUrl(config.baseUrl);
 
   let response: Response;
@@ -48,6 +54,9 @@ export async function tokenizeMessages(
   }
 
   if (!response.ok) {
+    if (response.status === 404 || response.status === 405) {
+      tokenizeEndpointUnavailable = true;
+    }
     return null;
   }
 

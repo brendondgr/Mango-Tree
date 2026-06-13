@@ -3,9 +3,30 @@ import queue
 import threading
 from django.http import StreamingHttpResponse
 from django.urls import path
+from pydantic import ValidationError
 from rest_framework.decorators import api_view
+from rest_framework.response import Response
 from agents.coordinator.graph import agent_graph
 from agents.schemas.agent import AgentMessage
+
+
+def _parse_web_search_mode(value) -> str:
+    if value in ("auto", "forced"):
+        return value
+    return "auto"
+
+
+def _coerce_agent_message(raw: dict) -> AgentMessage:
+    content = raw.get("content")
+    if content is None:
+        content = ""
+    return AgentMessage(
+        role=str(raw.get("role") or "user"),
+        content=str(content),
+        thinking=raw.get("thinking"),
+        attachments=raw.get("attachments"),
+    )
+
 
 @api_view(["POST"])
 def run_agent_turn(request, session_id):
@@ -13,29 +34,31 @@ def run_agent_turn(request, session_id):
     Triggers a turn of the agent state machine on the backend and streams
     live updates (node progress, tool calls/results, final answer) to the frontend via SSE.
     """
-    data = request.data or {}
-    user_message_text = data.get("message", "")
-    history_raw = data.get("history", [])
-    attachments_raw = data.get("attachments", [])
-    
-    # Reconstruct conversation messages list
+    try:
+        data = request.data or {}
+    except Exception as exc:
+        return Response({"detail": f"Invalid request body: {exc}"}, status=400)
+
+    user_message_text = data.get("message") or ""
+    history_raw = data.get("history") or []
+    attachments_raw = data.get("attachments") or []
+
     messages = []
-    for msg in history_raw:
-        messages.append(AgentMessage(
-            role=msg.get("role", "user"),
-            content=msg.get("content", ""),
-            thinking=msg.get("thinking"),
-            attachments=msg.get("attachments")
-        ))
-        
-    # Append current user message
-    if user_message_text or attachments_raw:
-        messages.append(AgentMessage(
-            role="user",
-            content=user_message_text,
-            attachments=attachments_raw if attachments_raw else None
-        ))
-        
+    try:
+        for msg in history_raw:
+            if not isinstance(msg, dict):
+                continue
+            messages.append(_coerce_agent_message(msg))
+
+        if user_message_text or attachments_raw:
+            messages.append(AgentMessage(
+                role="user",
+                content=str(user_message_text),
+                attachments=attachments_raw if attachments_raw else None,
+            ))
+    except ValidationError as exc:
+        return Response({"detail": exc.errors()}, status=400)
+
     initial_state = {
         "messages": messages,
         "step_count": 0,
@@ -44,8 +67,8 @@ def run_agent_turn(request, session_id):
         "observations": [],
         "final_answer": None,
         "error": None,
-        "web_search_mode": data.get("web_search_mode", "auto"),
-        "callback": None
+        "web_search_mode": _parse_web_search_mode(data.get("web_search_mode", "auto")),
+        "callback": None,
     }
     
     def event_generator():
