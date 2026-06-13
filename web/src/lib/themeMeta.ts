@@ -47,6 +47,7 @@ export const REQUIRED_THEME_CSS_VARS = [
   "--primary-hover",
   "--surface-inset",
   "--surface-cool",
+  "--surface-reasoning",
   "--ink-secondary",
   "--ink-faint",
   "--warn",
