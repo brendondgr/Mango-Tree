@@ -8,4 +8,11 @@ filesystem:
       - "**/.env"
       - "config/**"
 
+network:
+  web_research:
+    description: Outbound HTTP for SearXNG discovery and page text extraction
+    allow_schemes:
+      - http
+      - https
+
 artifacts_root: data/artifacts

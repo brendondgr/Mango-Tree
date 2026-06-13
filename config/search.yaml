@@ -1,0 +1,11 @@
+search:
+  searxng:
+    base_url: http://localhost:8080
+    max_results: 10
+  research:
+    max_rounds: 3
+  page:
+    max_chars: 5000
+    timeout_seconds: 10
+    max_bytes: 2000000
+    user_agent: "MangoTree/1.0 (local research agent)"
