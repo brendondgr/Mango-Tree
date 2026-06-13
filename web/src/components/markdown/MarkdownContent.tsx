@@ -29,7 +29,7 @@ type MarkdownVariant = "default" | "chat";
 
 function createMarkdownComponents(variant: MarkdownVariant): Components {
   const isChat = variant === "chat";
-  const chatHeadingColor = "text-primary";
+  const chatHeadingColor = "text-accent";
 
   return {
   p: ({ children }) => (
