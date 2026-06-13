@@ -82,7 +82,26 @@ def format_messages_for_llm(messages: List[AgentMessage], observations: List[Dic
     llm_messages = []
     for msg in messages:
         role = "assistant" if msg.role == "agent" else msg.role
-        llm_messages.append({"role": role, "content": msg.content})
+        content = msg.content
+        
+        # Append attachments if present to let the model know what files are uploaded/attached
+        if getattr(msg, "attachments", None):
+            attachment_texts = []
+            for att in msg.attachments:
+                name = att.get("name", "Unnamed File")
+                kind = att.get("kind", "file")
+                art_id = att.get("artifactId") or att.get("id")
+                
+                text_content = att.get("textContent")
+                if text_content:
+                    attachment_texts.append(f"[Attached file: {name}]\n```\n{text_content}\n```")
+                else:
+                    attachment_texts.append(f"[Attached file: {name} (Type: {kind}, ID: {art_id})]")
+            
+            if attachment_texts:
+                content = content + "\n\n" + "\n\n".join(attachment_texts)
+                
+        llm_messages.append({"role": role, "content": content})
         
     # Append observations to help the model reason in context
     if observations:

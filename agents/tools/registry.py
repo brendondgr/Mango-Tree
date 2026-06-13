@@ -122,8 +122,14 @@ def read_artifact(artifact_id: str) -> ToolResult:
         kind = artifact.get("kind", "")
         mime_type = artifact.get("mime_type", "")
         
+        # Check by extension first to override broad octet-stream MIME types for text uploads
+        ext = os.path.splitext(filename)[1].lower()
+        is_text_ext = ext in [".md", ".txt", ".py", ".js", ".ts", ".tsx", ".json", ".yaml", ".yml", ".ini", ".conf", ".sh", ".bat", ".ps1", ".csv", ".xml", ".html", ".css"]
+        
         is_binary = kind in ["video", "image", "pdf", "audio", "zip", "tar", "gz"]
-        if not is_binary and mime_type:
+        if is_text_ext:
+            is_binary = False
+        elif not is_binary and mime_type:
             is_binary = not (
                 mime_type.startswith("text/") 
                 or "json" in mime_type 

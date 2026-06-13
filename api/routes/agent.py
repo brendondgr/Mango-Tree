@@ -16,6 +16,7 @@ def run_agent_turn(request, session_id):
     data = request.data or {}
     user_message_text = data.get("message", "")
     history_raw = data.get("history", [])
+    attachments_raw = data.get("attachments", [])
     
     # Reconstruct conversation messages list
     messages = []
@@ -23,12 +24,17 @@ def run_agent_turn(request, session_id):
         messages.append(AgentMessage(
             role=msg.get("role", "user"),
             content=msg.get("content", ""),
-            thinking=msg.get("thinking")
+            thinking=msg.get("thinking"),
+            attachments=msg.get("attachments")
         ))
         
     # Append current user message
-    if user_message_text:
-        messages.append(AgentMessage(role="user", content=user_message_text))
+    if user_message_text or attachments_raw:
+        messages.append(AgentMessage(
+            role="user",
+            content=user_message_text,
+            attachments=attachments_raw if attachments_raw else None
+        ))
         
     initial_state = {
         "messages": messages,

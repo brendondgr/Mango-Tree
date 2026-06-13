@@ -8,7 +8,8 @@ import type { AgentEvent } from "./types";
 export async function runAgentTurn(
   chatSessionId: string,
   userMessage: string,
-  history: { role: "user" | "agent"; content: string; thinking?: string }[]
+  history: { role: "user" | "agent"; content: string; thinking?: string; attachments?: any[] }[],
+  attachments?: any[]
 ): Promise<void> {
   const store = useAgentStore.getState();
   store.reset();
@@ -23,6 +24,7 @@ export async function runAgentTurn(
       body: JSON.stringify({
         message: userMessage,
         history,
+        attachments,
       }),
     });
 

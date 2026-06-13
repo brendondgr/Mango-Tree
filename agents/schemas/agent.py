@@ -16,3 +16,4 @@ class AgentMessage(BaseModel):
     role: str = Field(..., description="Role of the sender (e.g. user, agent)")
     content: str = Field(..., description="Text content of the message")
     thinking: Optional[str] = Field(None, description="Optional thinking trace for agent messages")
+    attachments: Optional[List[Dict[str, Any]]] = Field(None, description="Attached files metadata")

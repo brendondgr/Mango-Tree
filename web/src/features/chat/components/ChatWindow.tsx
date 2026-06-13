@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { appQueryClient } from "@/app/providers";
-import type { ChatMessage } from "@/app/stores/workspaceStore";
 import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
 import {
@@ -86,16 +85,6 @@ export function ChatWindow() {
       );
 
     if (!text && attachments.length === 0) return;
-
-    const pendingUserMessage: ChatMessage = {
-      id: "pending-user",
-      role: "user",
-      content: text,
-      attachments: attachments.length > 0 ? attachments : undefined,
-      timestamp: new Date(),
-    };
-
-    const history = [...messages, pendingUserMessage];
 
     const userMessageId = addMessage({
       role: "user",
@@ -174,13 +163,14 @@ export function ChatWindow() {
         forceScrollToBottom();
       });
 
-      const historyPayload = history.map((msg) => ({
+      const historyPayload = messages.map((msg) => ({
         role: msg.role,
         content: msg.content,
         thinking: msg.thinking,
+        attachments: msg.attachments,
       }));
 
-      await runAgentTurn(chatSessionId, text, historyPayload);
+      await runAgentTurn(chatSessionId, text, historyPayload, attachments);
       
       unsubscribe();
       updateMessage(agentMessageId, { isStreaming: false });

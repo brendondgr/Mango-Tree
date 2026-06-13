@@ -62,3 +62,43 @@ def test_read_artifact_by_filename():
     assert "metadata" in result.result
     assert result.result["metadata"]["filename"] == "1402.mp4"
 
+
+def test_format_messages_with_attachments():
+    from agents.coordinator.graph import format_messages_for_llm
+    
+    # 1. Text attachment
+    msg_text = AgentMessage(
+        role="user",
+        content="Check this config",
+        attachments=[
+            {
+                "name": "config.json",
+                "kind": "text",
+                "id": "att-123",
+                "textContent": '{"debug": true}'
+            }
+        ]
+    )
+    formatted = format_messages_for_llm([msg_text], [])
+    assert len(formatted) == 1
+    assert "Attached file: config.json" in formatted[0]["content"]
+    assert '{"debug": true}' in formatted[0]["content"]
+
+    # 2. Binary/Video attachment
+    msg_bin = AgentMessage(
+        role="user",
+        content="What is this video?",
+        attachments=[
+            {
+                "name": "clip.mp4",
+                "kind": "video",
+                "id": "att-456",
+                "artifactId": "art-uuid-abc"
+            }
+        ]
+    )
+    formatted_bin = format_messages_for_llm([msg_bin], [])
+    assert len(formatted_bin) == 1
+    assert "Attached file: clip.mp4 (Type: video, ID: art-uuid-abc)" in formatted_bin[0]["content"]
+
+
