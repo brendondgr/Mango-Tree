@@ -1,5 +1,7 @@
 import os
 import json
+import base64
+import mimetypes
 from typing import Dict, Any, Callable, List, Optional
 from agents.schemas.agent import ToolResult
 
@@ -147,10 +149,51 @@ def read_artifact(artifact_id: Optional[str] = None) -> ToolResult:
             )
             
         if is_binary:
+            is_image = kind == "image" or mime_type.startswith("image/") or ext in [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"]
+            is_video = kind == "video" or mime_type.startswith("video/") or ext in [".mp4", ".webm", ".mov", ".avi", ".mkv"]
+            
+            if is_image or is_video:
+                media_type = "image" if is_image else "video"
+                MAX_MEDIA_SIZE = 20 * 1024 * 1024  # 20 MB limit for both image and video
+                file_size = os.path.getsize(storage_path)
+                
+                if file_size > MAX_MEDIA_SIZE:
+                    return ToolResult(
+                        success=True,
+                        result={"metadata": artifact, "content": f"[{media_type.title()} too large to analyze: {file_size} bytes]"},
+                        summary=f"{media_type.title()} {filename} is too large to send to the model ({file_size} bytes, limit is {MAX_MEDIA_SIZE} bytes).",
+                        artifact_ids=[artifact.get("id", "")]
+                    )
+                
+                with open(storage_path, "rb") as f:
+                    media_bytes = f.read()
+                
+                b64_data = base64.b64encode(media_bytes).decode("utf-8")
+                # Determine the MIME type for the data URL
+                detected_mime = mimetypes.guess_type(filename)[0]
+                if is_image:
+                    media_mime = mime_type if mime_type and mime_type.startswith("image/") else (detected_mime or "image/png")
+                else:
+                    media_mime = mime_type if mime_type and mime_type.startswith("video/") else (detected_mime or "video/mp4")
+                
+                return ToolResult(
+                    success=True,
+                    result={
+                        "metadata": artifact,
+                        "media_base64": b64_data,
+                        "media_type": media_type,
+                        "mime_type": media_mime,
+                        "content": f"[{media_type.title()} loaded: {filename} ({file_size} bytes)]"
+                    },
+                    summary=f"Successfully loaded {media_type} {filename} ({artifact_id}). The {media_type} data has been sent to the model for analysis.",
+                    artifact_ids=[artifact.get("id", "")]
+                )
+            
+            # Non-viewable binary (audio, pdf, zip, etc.) — truly cannot be analyzed
             return ToolResult(
                 success=True,
-                result={"metadata": artifact, "content": f"[Binary {kind} file - content omitted]"},
-                summary=f"Successfully read metadata of binary artifact {filename} ({artifact_id}). Content omitted.",
+                result={"metadata": artifact, "content": f"[Binary {kind} file - content cannot be displayed]"},
+                summary=f"Binary {kind} file {filename} ({artifact_id}) cannot be analyzed. Only images, videos, and text files can be examined.",
                 artifact_ids=[artifact.get("id", "")]
             )
             

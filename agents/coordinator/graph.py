@@ -24,7 +24,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "read_artifact",
-            "description": "Read the content of a specific text-based artifact file (e.g., code, markdown, txt, json, yaml). Do not use this tool for binary files like images, videos, PDFs, zip, or audio files, as they cannot be represented as text.",
+            "description": "Read and examine the content of an artifact file. Supports text files (code, markdown, json, etc.), image files (png, jpg, gif, webp), and video files (mp4, webm, mov). For images and videos, the file is loaded and sent to the model for visual analysis. Cannot be used for audio, PDF, or archive files.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -78,8 +78,20 @@ TOOL_SCHEMAS = [
     }
 ]
 
+SYSTEM_PROMPT = (
+    "You are Mango, a helpful assistant. Follow these rules strictly:\n"
+    "1. NEVER fabricate, invent, or hallucinate information about files you have not actually read. "
+    "If a tool returns 'content omitted' or 'cannot be displayed', say so honestly.\n"
+    "2. When you receive image data from a tool result, describe what you actually see in the image.\n"
+    "3. Do NOT call the same tool with the same arguments more than once per turn. "
+    "If a tool fails or returns 'content omitted', do NOT retry it.\n"
+    "4. Only call tools that are directly relevant to the user's request. "
+    "Do NOT speculatively call list_artifacts, inspect_skills, or read_artifact unless the user asked about artifacts, files, or skills.\n"
+)
+
 def format_messages_for_llm(messages: List[AgentMessage], observations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    llm_messages = []
+    llm_messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    
     for msg in messages:
         role = "assistant" if msg.role == "agent" else msg.role
         content = msg.content
@@ -103,16 +115,63 @@ def format_messages_for_llm(messages: List[AgentMessage], observations: List[Dic
                 
         llm_messages.append({"role": role, "content": content})
         
-    # Append observations to help the model reason in context
+    # Append observations, converting any media results into multimodal vision blocks
     if observations:
-        obs_summary = "\n".join([
-            f"Observation from tool '{obs.get('tool')}': {obs.get('summary')}\nResult: {json.dumps(obs.get('result'))}"
-            for obs in observations
-        ])
-        llm_messages.append({
-            "role": "system",
-            "content": f"You previously executed tools. Here are the observations:\n{obs_summary}\nPlease reason on these and provide your final response or call further tools."
-        })
+        # Build content blocks: text summaries + image_url/video entries for vision
+        content_parts = []
+        has_media = False
+        
+        for obs in observations:
+            result = obs.get("result", {})
+            summary_text = f"Tool '{obs.get('tool')}': {obs.get('summary')}"
+            
+            # Check if this observation contains media (image or video)
+            if result.get("media_base64"):
+                has_media = True
+                media_mime = result.get("mime_type", "image/png")
+                media_type = result.get("media_type", "image")
+                b64 = result["media_base64"]
+                filename = result.get("metadata", {}).get("filename", "unknown")
+                
+                # Add a text label for the media
+                content_parts.append({
+                    "type": "text",
+                    "text": f"{summary_text}\n{media_type.title()} file: {filename}"
+                })
+                # Add the actual media as a vision content block
+                # OpenAI-compatible APIs use image_url for both images and inline video
+                content_parts.append({
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:{media_mime};base64,{b64}"
+                    }
+                })
+            else:
+                # Regular text observation — omit the full result dict to save tokens
+                result_text = json.dumps(result.get("content", result), default=str)
+                # Truncate very large results
+                if len(result_text) > 4000:
+                    result_text = result_text[:4000] + "... [truncated]"
+                content_parts.append({
+                    "type": "text",
+                    "text": f"{summary_text}\nResult: {result_text}"
+                })
+        
+        if has_media:
+            # Use multimodal content format (list of content parts)
+            llm_messages.append({
+                "role": "user",
+                "content": content_parts
+            })
+        else:
+            # Use plain text format for non-media observations
+            obs_text = "\n\n".join(
+                part["text"] for part in content_parts
+            )
+            llm_messages.append({
+                "role": "system",
+                "content": f"You previously executed tools. Here are the observations:\n{obs_text}\nPlease reason on these and provide your final response or call further tools."
+            })
     return llm_messages
 
 def reason_node(state: AgentState) -> Dict[str, Any]:
@@ -268,6 +327,33 @@ def observe_node(state: AgentState) -> Dict[str, Any]:
     new_observations = list(state.get("observations", []))
     
     for action in pending_actions:
+        # Create a content-based signature for dedup
+        args_key = json.dumps(action.arguments, sort_keys=True, default=str)
+        call_signature = f"{action.name}:{args_key}"
+        
+        # Check if this exact tool+args combination was already executed
+        already_executed = any(
+            obs.get("tool") == action.name and 
+            json.dumps(obs.get("_arguments", {}), sort_keys=True, default=str) == args_key
+            for obs in new_observations
+        )
+        
+        if already_executed:
+            # Skip duplicate — report it to the frontend but don't re-execute
+            skip_item = {
+                "tool": action.name,
+                "call_id": action.id,
+                "success": False,
+                "result": {},
+                "summary": f"Skipped duplicate call to '{action.name}' — already executed with same arguments this turn.",
+                "artifact_ids": [],
+                "_arguments": action.arguments
+            }
+            new_observations.append(skip_item)
+            if callback:
+                callback("tool_result", skip_item)
+            continue
+        
         # Inject context for inspect_chat_context tool
         if action.name == "inspect_chat_context":
             messages_raw = [m.model_dump() for m in state["messages"]]
@@ -281,7 +367,8 @@ def observe_node(state: AgentState) -> Dict[str, Any]:
             "success": tool_result.success,
             "result": tool_result.result,
             "summary": tool_result.summary,
-            "artifact_ids": tool_result.artifact_ids
+            "artifact_ids": tool_result.artifact_ids,
+            "_arguments": action.arguments  # Store for future dedup
         }
         new_observations.append(obs_item)
         
