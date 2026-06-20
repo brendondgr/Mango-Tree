@@ -109,9 +109,28 @@ Artifact kinds: `image`, `video`, `pdf`, `markdown`, `latex`, `text`, `unknown`.
 
 ### Exercise
 
-Workout/routine/equipment/history tracking with Strava import, migrated from the standalone WorkoutTracker app. See `utils/apps/exercise/README.md`. Data lives in the legacy SQLite store at `data/exercise/workouttracker.db` (bound read/write, schema unchanged).
+Workout/routine/equipment/history tracking with Strava import, migrated from the standalone WorkoutTracker app. See `utils/apps/exercise/README.md`. Data lives in the legacy SQLite store at `data/exercise/workouttracker.db` (bound read/write, schema unchanged). DRF routes: `utils/api/routes/exercise.py`; views call `backend/services/` only.
 
-Endpoints are registered in Stage 5 of the migration. Base prefix: `/api/exercise/`.
+| Method | Endpoint | Service | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/exercise/workouts/` | `workouts.list_workouts` | List workout templates |
+| `POST` | `/api/exercise/workouts/` | `workouts.save_workout` | Create/update a workout (upsert on `id`) |
+| `DELETE` | `/api/exercise/workouts/{id}/` | `workouts.delete_workout` | Delete a workout |
+| `GET` | `/api/exercise/routines/` | `routines.list_routines` | List weekly routines |
+| `POST` | `/api/exercise/routines/` | `routines.save_routine` | Create/update a routine (upsert on `id`) |
+| `DELETE` | `/api/exercise/routines/{id}/` | `routines.delete_routine` | Delete a routine |
+| `GET` | `/api/exercise/equipment/` | `equipment.list_equipment` | List equipment |
+| `POST` | `/api/exercise/equipment/` | `equipment.add_equipment` | Create equipment (409 on duplicate `id`) |
+| `PUT` | `/api/exercise/equipment/{id}/` | `equipment.update_equipment` | Update equipment |
+| `DELETE` | `/api/exercise/equipment/{id}/` | `equipment.delete_equipment` | Delete equipment |
+| `GET` | `/api/exercise/history/` | `history.list_history` | List logged sessions |
+| `POST` | `/api/exercise/history/` | `history.add_log` | Add a logged session (409 on duplicate `id`) |
+| `PUT` | `/api/exercise/history/{id}/` | `history.update_log` | Update a logged session |
+| `DELETE` | `/api/exercise/history/{id}/` | `history.delete_log` | Delete a logged session |
+
+List endpoints return the standard envelope `{count, next, previous, results}` (default `page_size` 25, max 2000 via `?page_size=`). `POST`/`PUT` echo the saved object; `DELETE` returns `204`. Errors use the platform schema with codes `validation_error` (400), `not_found` (404), `conflict` (409).
+
+IDs are the legacy string keys (`wk_…`, `rt_…`, `eq_…`, `hist_…`, `strava_…`). `history.workout_id` may be `run`/`walk` (cardio/Strava) and is not constrained to an existing workout. Strava sync endpoint: added in Stage 7.
 
 ### Reserved (TBD)
 
