@@ -113,7 +113,10 @@ Goal: understand the source app well enough to map it, without changing anything
      message queues. These become permission scopes in stage 6.
    - **HTTP surface** — every route, its method, inputs, and outputs.
    - **Utilities** — shared helpers, validators, serialization.
-   - **UI / templates / static** — to be discarded or rebuilt, not ported.
+   - **UI / templates / static** — read it as a *behavioral reference*: capture the
+     user-facing flows, screens, and interactions (what the app lets a user do and in
+     what order) so the rebuilt tab can reproduce that behavior. The UI **code itself
+     is discarded, not ported** — only the understanding of how it worked carries over.
    - **Auth** — how the app currently identifies and authorizes callers.
 
 3. **Identify entanglement.** Flag any place where business logic is fused with the
@@ -158,9 +161,14 @@ Goal: decide where every inventoried item lands, and in what order, before writi
    Record the choice and why. This is the single most important decision for "keep the
    data the same," so make it explicit.
 
-4. **Decide the parity surface.** For each capability, decide whether it is exposed
-   via API, via agent tool, or both. Default to both. Note any API-only or agent-only
-   exceptions with a one-line justification.
+4. **Decide the parity surface, and confirm the agent surface is relevant.** For each
+   capability, decide whether it is exposed via API, via agent tool, or both. Default
+   to both, but treat the agent-tool list as a deliberate choice, not a dump: list the
+   exact capabilities the agent should be able to call and why each one is worth
+   exposing, and drop any that the agent has no realistic reason to use. The Migration
+   Plan presents this list for confirmation **before** stage 6 builds the tools — the
+   agent's API surface is approved as relevant, not assumed. Note any API-only or
+   agent-only exceptions with a one-line justification.
 
 5. **Emit the Migration Plan** using the template in `templates.md`. It follows the
    shape required by `docs/skills/plan/SKILL.md` (summary, layers affected, steps by
@@ -305,11 +313,17 @@ I/O), and **deny** out-of-scope access and missing-confirmation deletes.
 
 ### Stage 7 — Wire the frontend tab (commit)
 
-Rebuild the surface as a tab in the shell rather than porting old templates.
+The old frontend was studied in stage 0 and is **fully discarded**, not ported. Rebuild
+the surface from scratch as a tab in the shell, reproducing the behaviors captured in
+stage 0 but designed entirely per the platform's current UI plans — the authority for
+this rebuild is `docs/skills/website-architecture/SKILL.md` (routes, data flow,
+frontend/backend contract) and `docs/skills/ui-frontend/SKILL.md` (components, theme,
+layout, accessibility). Do not imitate the legacy app's look or markup.
 
 1. Build UI fragments under `utils/apps/{name}/frontend/{components,pages,hooks}/`
-   using the platform stack (React/Vite, TanStack Query, shadcn/Tailwind), with an
-   API client in `web/src/services/{name}Client.ts` (request/response only, no logic).
+   using the platform stack (React/Vite, TanStack Query, shadcn/Tailwind) as specified
+   by the two frontend skills above, with an API client in
+   `web/src/services/{name}Client.ts` (request/response only, no logic).
 2. Import the fragments into the shell via a Vite alias (e.g. `@{name}` →
    `utils/apps/{name}/frontend/`), following how `@media-viewer` is wired.
 3. Surface the app as a tab. Either a pinned route in TanStack Router (like `/notes`,
