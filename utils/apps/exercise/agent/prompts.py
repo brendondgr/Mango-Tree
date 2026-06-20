@@ -17,6 +17,10 @@ Write:
 - exercise_save_workout / exercise_save_routine — create or update a template
   (upsert on `id`).
 - exercise_add_equipment / exercise_update_equipment.
+- exercise_sync_strava — import recent ("week") or all run/walk activities from
+  Strava into history. Additive and de-duplicated; safe to re-run. Returns a
+  {fetched, imported, skipped} summary. Fails with permission_denied if Strava
+  credentials are not configured.
 
 Destructive (require confirm: true after the user explicitly approves):
 - exercise_delete_workout, exercise_delete_routine, exercise_delete_equipment,

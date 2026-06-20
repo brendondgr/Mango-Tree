@@ -28,6 +28,11 @@ def list_history() -> list[HistoryDTO]:
     return [_to_dto(row) for row in History.objects.all()]
 
 
+def existing_ids() -> set[str]:
+    """Return all history IDs (used for cheap dedup, e.g. Strava import)."""
+    return set(History.objects.values_list("id", flat=True))
+
+
 def get_log(log_id: str) -> HistoryDTO:
     row = History.objects.filter(id=log_id).first()
     if row is None:

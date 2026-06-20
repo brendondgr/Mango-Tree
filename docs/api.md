@@ -127,6 +127,7 @@ Workout/routine/equipment/history tracking with Strava import, migrated from the
 | `POST` | `/api/exercise/history/` | `history.add_log` | Add a logged session (409 on duplicate `id`) |
 | `PUT` | `/api/exercise/history/{id}/` | `history.update_log` | Update a logged session |
 | `DELETE` | `/api/exercise/history/{id}/` | `history.delete_log` | Delete a logged session |
+| `POST` | `/api/exercise/strava/sync/` | `strava.sync_strava` | Import Strava run/walk activities into history (body `{"period": "week"\|"all"}`) |
 
 List endpoints return the standard envelope `{count, next, previous, results}` (default `page_size` 25, max 2000 via `?page_size=`). `POST`/`PUT` echo the saved object; `DELETE` returns `204`. Errors use the platform schema with codes `validation_error` (400), `not_found` (404), `conflict` (409).
 

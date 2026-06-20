@@ -84,7 +84,7 @@ def test_tools_yaml_entries_resolve():
         for name, meta in config["tools"].items()
         if meta.get("app") == "exercise"
     }
-    assert len(exercise_tools) == 14
+    assert len(exercise_tools) == 15
     for meta in exercise_tools.values():
         module = importlib.import_module(meta["module"])
         assert callable(getattr(module, meta["function"]))

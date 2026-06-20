@@ -14,5 +14,12 @@ network:
     allow_schemes:
       - http
       - https
+  exercise_strava:
+    description: Outbound HTTPS to the Strava API for activity import
+    allow_schemes:
+      - https
+    allow_hosts:
+      - www.strava.com
+      - api.strava.com
 
 artifacts_root: data/artifacts

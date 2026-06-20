@@ -14,6 +14,7 @@ from typing import Any
 from utils.apps.exercise.backend.services import equipment as _equipment
 from utils.apps.exercise.backend.services import history as _history
 from utils.apps.exercise.backend.services import routines as _routines
+from utils.apps.exercise.backend.services import strava as _strava
 from utils.apps.exercise.backend.services import workouts as _workouts
 from utils.apps.exercise.shared.errors import ExerciseError
 from utils.apps.exercise.shared.schemas import (
@@ -199,3 +200,15 @@ def delete_log(*, log_id: str, confirm: bool = False, service=None) -> dict[str,
     except ExerciseError as exc:
         return _error(exc)
     return {"deleted": True}
+
+
+# --- strava -------------------------------------------------------------------
+
+def sync_strava(*, period: str = "week", service=None) -> dict[str, Any]:
+    """Import Strava Run/Walk activities into history (additive, dedups)."""
+    svc = service or _strava
+    try:
+        summary = svc.sync_strava(period)
+    except ExerciseError as exc:
+        return _error(exc)
+    return {"strava_sync": summary}

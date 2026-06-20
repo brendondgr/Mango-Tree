@@ -89,3 +89,8 @@ tools:
     module: utils.apps.exercise.agent.tools
     function: delete_log
     description: Delete a logged workout session after explicit user confirmation.
+  exercise_sync_strava:
+    app: exercise
+    module: utils.apps.exercise.agent.tools
+    function: sync_strava
+    description: Import Strava run/walk activities into history (additive, dedups). Requires Strava credentials.

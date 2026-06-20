@@ -15,6 +15,7 @@ from utils.apps.exercise.backend.api.serializers import paginate, parse_object
 from utils.apps.exercise.backend.services import equipment as equipment_service
 from utils.apps.exercise.backend.services import history as history_service
 from utils.apps.exercise.backend.services import routines as routine_service
+from utils.apps.exercise.backend.services import strava as strava_service
 from utils.apps.exercise.backend.services import workouts as workout_service
 from utils.apps.exercise.shared.errors import ExerciseError
 from utils.apps.exercise.shared.schemas import (
@@ -153,3 +154,15 @@ class HistoryDetailView(APIView):
         except ExerciseError as exc:
             return _error_response(exc)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# --- strava -------------------------------------------------------------------
+
+class StravaSyncView(APIView):
+    def post(self, request: Request) -> Response:
+        period = request.data.get("period", "week") if isinstance(request.data, dict) else "week"
+        try:
+            summary = strava_service.sync_strava(period)
+        except ExerciseError as exc:
+            return _error_response(exc)
+        return Response(summary, status=status.HTTP_200_OK)

@@ -10,6 +10,7 @@ from utils.apps.exercise.backend.api.views import (
     HistoryListCreateView,
     RoutineDetailView,
     RoutineListCreateView,
+    StravaSyncView,
     WorkoutDetailView,
     WorkoutListCreateView,
 )
@@ -23,4 +24,5 @@ urlpatterns = [
     path("equipment/<str:equip_id>/", EquipmentDetailView.as_view(), name="exercise-equipment-detail"),
     path("history/", HistoryListCreateView.as_view(), name="exercise-history"),
     path("history/<str:log_id>/", HistoryDetailView.as_view(), name="exercise-history-detail"),
+    path("strava/sync/", StravaSyncView.as_view(), name="exercise-strava-sync"),
 ]
