@@ -27,18 +27,19 @@ export default defineConfig({
     },
   },
   server: {
+    host: true,
     port: 5173,
     proxy: {
       "/v1": {
-        target: "http://localhost:9090",
+        target: "http://127.0.0.1:9090",
         changeOrigin: true,
       },
       "/tokenize": {
-        target: "http://localhost:9090",
+        target: "http://127.0.0.1:9090",
         changeOrigin: true,
       },
       "/api": {
-        target: "http://localhost:32553",
+        target: "http://127.0.0.1:32553",
         changeOrigin: true,
       },
     },
@@ -46,15 +47,15 @@ export default defineConfig({
   preview: {
     proxy: {
       "/v1": {
-        target: "http://localhost:9090",
+        target: "http://127.0.0.1:9090",
         changeOrigin: true,
       },
       "/tokenize": {
-        target: "http://localhost:9090",
+        target: "http://127.0.0.1:9090",
         changeOrigin: true,
       },
       "/api": {
-        target: "http://localhost:32553",
+        target: "http://127.0.0.1:32553",
         changeOrigin: true,
       },
     },

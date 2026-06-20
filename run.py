@@ -43,8 +43,17 @@ def main():
         )
         processes.append(node_proc)
 
-        print("\nBoth servers started successfully! Press Ctrl+C to terminate both servers.\n")
-        
+        print("\n" + "=" * 60)
+        print("Both servers started successfully!")
+        print("")
+        print("  >> Open the app in your browser at:")
+        print("        http://localhost:5173/")
+        print("")
+        print("  (Django API backend runs on http://localhost:32553/ —")
+        print("   that port serves /api only and returns 404 at the root.)")
+        print("=" * 60)
+        print("\nPress Ctrl+C to terminate both servers.\n")
+
         # Monitor the processes
         while True:
             for p in processes:

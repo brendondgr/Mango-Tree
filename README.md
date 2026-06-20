@@ -121,7 +121,7 @@ npm install
 cd ..
 ```
 
-The frontend proxies `/api` to Django on port 8000 and `/v1` to the LLM server on port 9090 during development.
+The frontend proxies `/api` to Django on port 32553 and `/v1` to the LLM server on port 9090 during development.
 
 ### 4. Artifact storage (media viewer)
 
@@ -175,7 +175,7 @@ uv run celery -A config.django worker --loglevel=info
 
 | Service | URL |
 | --- | --- |
-| Django / DRF | `http://localhost:8000` |
+| Django / DRF | `http://localhost:32553` |
 | Vite dev server | `http://localhost:5173` |
 | LLM (OpenAI-compatible) | `http://localhost:9090` |
 | PostgreSQL (future) | `localhost:5432` |
