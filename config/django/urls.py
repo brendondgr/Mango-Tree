@@ -7,5 +7,6 @@ urlpatterns = [
     path("favicon.ico", favicon, name="favicon"),
     path("api/health/", health, name="health"),
     path("api/media-viewer/", include("utils.api.routes.media_viewer")),
+    path("api/exercise/", include("utils.api.routes.exercise")),
     path("api/agent/", include("utils.api.routes.agent")),
 ]

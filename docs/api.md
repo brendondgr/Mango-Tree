@@ -107,9 +107,15 @@ Local artifact storage and streaming for the `/chat` workspace. See `utils/apps/
 
 Artifact kinds: `image`, `video`, `pdf`, `markdown`, `latex`, `text`, `unknown`.
 
+### Exercise
+
+Workout/routine/equipment/history tracking with Strava import, migrated from the standalone WorkoutTracker app. See `utils/apps/exercise/README.md`. Data lives in the legacy SQLite store at `data/exercise/workouttracker.db` (bound read/write, schema unchanged).
+
+Endpoints are registered in Stage 5 of the migration. Base prefix: `/api/exercise/`.
+
 ### Reserved (TBD)
 
-`/api/recipes/`, `/api/imdbspy/`, `/api/exercise/`, `/api/timekeeper/`
+`/api/recipes/`, `/api/imdbspy/`, `/api/timekeeper/`
 
 ## Rules
 

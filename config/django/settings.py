@@ -14,6 +14,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "rest_framework",
     "utils.apps.media_viewer.backend.apps.MediaViewerBackendConfig",
+    "utils.apps.exercise.backend.apps.ExerciseBackendConfig",
 ]
 
 MIDDLEWARE = [
