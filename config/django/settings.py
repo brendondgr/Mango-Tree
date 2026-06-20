@@ -29,7 +29,19 @@ DATABASES = {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / ".django-test.sqlite3",
     },
+    # Legacy WorkoutTracker SQLite store, bound read/write with managed=False
+    # models. Schema and rows are preserved unchanged (Strategy A). Override the
+    # path with MANGO_EXERCISE_DB for tests or alternate deployments.
+    "exercise": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.environ.get(
+            "MANGO_EXERCISE_DB",
+            str(BASE_DIR / "data" / "exercise" / "workouttracker.db"),
+        ),
+    },
 }
+
+DATABASE_ROUTERS = ["utils.apps.exercise.backend.db_router.ExerciseRouter"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
