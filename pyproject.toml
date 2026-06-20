@@ -23,5 +23,5 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["tests"]
+testpaths = ["utils/tests"]
 DJANGO_SETTINGS_MODULE = "config.django.settings"
