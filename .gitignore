@@ -1,6 +1,10 @@
 # Project specific
 conversations/
 
+# Legacy app staging drop-zone (raw apps awaiting/post migration; holds original
+# databases kept as backups). Not part of the running platform — never imported.
+NewApps/
+
 # Local runtime data (artifacts, future datasets)
 data/
 
