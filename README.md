@@ -81,13 +81,13 @@ cd Mango-Tree
 On Windows, if skill symlinks under `.cursor/`, `.claude/`, or `.codex/` appear as plain text files after clone, recreate them:
 
 ```powershell
-./scripts/link-skills.ps1
+./utils/scripts/link-skills.ps1
 ```
 
 On macOS/Linux:
 
 ```bash
-./scripts/link-skills.sh
+./utils/scripts/link-skills.sh
 ```
 
 ### 2. Python backend

@@ -25,8 +25,8 @@ docs/skills/app-migration/
 
 ## Wiring into skill discovery
 
-Add `app-migration` to the `skills` array in `scripts/link-skills.sh` (and
-`scripts/link-skills.ps1` on Windows) so Cursor, Claude Code, and Codex link it
+Add `app-migration` to the `skills` array in `utils/scripts/link-skills.sh` (and
+`utils/scripts/link-skills.ps1` on Windows) so Cursor, Claude Code, and Codex link it
 alongside the other skills:
 
 ```bash
@@ -42,7 +42,7 @@ skills=(
 )
 ```
 
-Then re-run `./scripts/link-skills.sh` (or `./scripts/link-skills.ps1`).
+Then re-run `./utils/scripts/link-skills.sh` (or `./utils/scripts/link-skills.ps1`).
 
 ## Relationship to existing skills
 

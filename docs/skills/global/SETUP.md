@@ -17,13 +17,13 @@ Cursor also applies the short always-on rule in `.cursor/rules/global.mdc`.
 Git may check out skill links as plain text files when `core.symlinks=false` (the Windows default). Run:
 
 ```powershell
-./scripts/link-skills.ps1
+./utils/scripts/link-skills.ps1
 ```
 
 On macOS or Linux:
 
 ```bash
-./scripts/link-skills.sh
+./utils/scripts/link-skills.sh
 ```
 
 These scripts recreate directory links so agents can read each `SKILL.md`.

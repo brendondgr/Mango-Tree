@@ -1,6 +1,6 @@
 # Start Mango Tree frontend and Django API together.
 $ErrorActionPreference = "Stop"
-$root = Split-Path -Parent $PSScriptRoot
+$root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
 Write-Host "Starting Django API on http://localhost:8000 ..."
 Start-Process powershell -ArgumentList @(

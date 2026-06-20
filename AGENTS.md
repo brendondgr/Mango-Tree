@@ -62,4 +62,4 @@ Read `docs/platform.md` for architecture, structure, routes, deployment, and tes
 
 Canonical skill documents live under `docs/skills/`. Symlinks in `.cursor/skills/`, `.claude/skills/`, and `.codex/skills/` point to those sources.
 
-**Always apply** the global skill (`docs/skills/global/SKILL.md`) for any session that may change repository files. On Windows after clone, run `./scripts/link-skills.ps1` if skill links are plain text files.
+**Always apply** the global skill (`docs/skills/global/SKILL.md`) for any session that may change repository files. On Windows after clone, run `./utils/scripts/link-skills.ps1` if skill links are plain text files.

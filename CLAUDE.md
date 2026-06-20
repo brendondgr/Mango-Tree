@@ -2,7 +2,7 @@
 
 Use the project skills in `.claude/skills/` when working in this repository.
 
-**Always read** `docs/skills/global/SKILL.md` at the start of any session that may edit files. On Windows after clone, run `./scripts/link-skills.ps1` if skill links are plain text files.
+**Always read** `docs/skills/global/SKILL.md` at the start of any session that may edit files. On Windows after clone, run `./utils/scripts/link-skills.ps1` if skill links are plain text files.
 
 Mango Tree is a local agent platform with strong boundaries:
 

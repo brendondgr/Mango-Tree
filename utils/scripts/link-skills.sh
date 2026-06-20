@@ -2,7 +2,7 @@
 # Creates skill directory symlinks for Cursor, Claude Code, and Codex.
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "$0")/.." && pwd)"
+repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$repo_root"
 
 skills=(

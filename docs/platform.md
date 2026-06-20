@@ -204,7 +204,7 @@ Detailed conventions live in `docs/skills/` (symlinked from `.cursor/skills/`, `
 - **global** — always-on step-and-commit workflow for every implementation session
 - **repo-structure**, **django-backend**, **app-modules**, **website-architecture**, **ui-frontend**, **plan** — domain-specific guidance
 
-On Windows after clone, run `./scripts/link-skills.ps1` if skill links check out as plain text files.
+On Windows after clone, run `./utils/scripts/link-skills.ps1` if skill links check out as plain text files.
 
 ## Migration Note
 
