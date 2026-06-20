@@ -285,7 +285,8 @@ def reason_node(state: AgentState) -> Dict[str, Any]:
     messages = state["messages"]
     observations = state["observations"]
     web_search_mode = state.get("web_search_mode", "auto")
-    
+    llm_config = state.get("llm_config")
+
     llm_msgs = format_messages_for_llm(messages, observations, web_search_mode)
     
     pending_actions = []
@@ -297,7 +298,7 @@ def reason_node(state: AgentState) -> Dict[str, Any]:
             callback("thinking_start", {})
         
         # We do a streaming tool-call check
-        response_stream = chat_complete(llm_msgs, tools=TOOL_SCHEMAS, stream=True)
+        response_stream = chat_complete(llm_msgs, tools=TOOL_SCHEMAS, stream=True, config=llm_config)
         
         content_accum = ""
         tool_calls_accum = {}

@@ -10,5 +10,8 @@ class AgentState(TypedDict):
     final_answer: Optional[str]
     error: Optional[str]
     web_search_mode: Literal["auto", "forced"]
+    # Per-request LLM overrides forwarded from the frontend settings
+    # ({base_url, model, api_key}); falls back to env defaults when absent.
+    llm_config: Optional[Dict[str, Any]]
     # For SSE streaming callback communication
     callback: Optional[Any]

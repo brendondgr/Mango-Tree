@@ -16,6 +16,23 @@ def _parse_web_search_mode(value) -> str:
     return "auto"
 
 
+def _parse_llm_config(value):
+    """
+    Accept an optional per-request LLM override forwarded from the frontend
+    settings. Returns a sanitized dict with only the recognized string fields,
+    or ``None`` when nothing usable was provided (the agent then falls back to
+    the ``LLM_*`` environment defaults).
+    """
+    if not isinstance(value, dict):
+        return None
+    cleaned = {}
+    for key in ("base_url", "model", "api_key"):
+        raw = value.get(key)
+        if isinstance(raw, str) and raw.strip():
+            cleaned[key] = raw.strip()
+    return cleaned or None
+
+
 def _coerce_agent_message(raw: dict) -> AgentMessage:
     content = raw.get("content")
     if content is None:
@@ -68,6 +85,7 @@ def run_agent_turn(request, session_id):
         "final_answer": None,
         "error": None,
         "web_search_mode": _parse_web_search_mode(data.get("web_search_mode", "auto")),
+        "llm_config": _parse_llm_config(data.get("llm_config")),
         "callback": None,
     }
     
