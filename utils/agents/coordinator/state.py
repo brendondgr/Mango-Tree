@@ -1,5 +1,5 @@
 from typing import TypedDict, List, Dict, Any, Optional, Literal
-from agents.schemas.agent import ToolCall, AgentMessage
+from utils.agents.schemas.agent import ToolCall, AgentMessage
 
 class AgentState(TypedDict):
     messages: List[AgentMessage]

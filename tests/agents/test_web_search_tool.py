@@ -1,11 +1,11 @@
 from unittest.mock import patch
 
-from agents.schemas.agent import ToolResult
-from agents.tools.registry import registry
+from utils.agents.schemas.agent import ToolResult
+from utils.agents.tools.registry import registry
 from utils.shared.search.research import ResearchResult, ResearchSource
 
 
-@patch("agents.tools.web_search.run_research")
+@patch("utils.agents.tools.web_search.run_research")
 def test_search_web_tool_returns_numbered_sources(mock_run_research):
     mock_run_research.return_value = ResearchResult(
         query="python asyncio",
@@ -34,7 +34,7 @@ def test_search_web_tool_returns_numbered_sources(mock_run_research):
     )
 
 
-@patch("agents.tools.web_search.run_research")
+@patch("utils.agents.tools.web_search.run_research")
 def test_search_web_tool_applies_citation_offset(mock_run_research):
     mock_run_research.return_value = ResearchResult(
         query="test",

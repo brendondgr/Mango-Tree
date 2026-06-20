@@ -2,13 +2,13 @@ import json
 import pytest
 from unittest.mock import MagicMock, patch
 import requests
-from agents.coordinator.graph import (
+from utils.agents.coordinator.graph import (
     agent_graph,
     collect_references,
     reason_node,
 )
-from agents.schemas.agent import AgentMessage
-from agents.tools.registry import registry
+from utils.agents.schemas.agent import AgentMessage
+from utils.agents.tools.registry import registry
 
 @patch("requests.post")
 def test_coordinator_graph_flow(mock_post):
@@ -70,7 +70,7 @@ def test_read_artifact_by_filename():
 
 
 def test_format_messages_with_attachments():
-    from agents.coordinator.graph import format_messages_for_llm
+    from utils.agents.coordinator.graph import format_messages_for_llm
     
     # 1. Text attachment — system prompt is at [0], user message at [1]
     msg_text = AgentMessage(
@@ -110,7 +110,7 @@ def test_format_messages_with_attachments():
 
 
 def test_format_messages_with_media_observations():
-    from agents.coordinator.graph import format_messages_for_llm
+    from utils.agents.coordinator.graph import format_messages_for_llm
     
     msg = AgentMessage(role="user", content="Examine this image")
     observations = [{
@@ -177,8 +177,8 @@ def test_missing_arguments_graceful_error():
 
 
 def test_observe_node_deduplicates_tool_calls():
-    from agents.coordinator.graph import observe_node
-    from agents.schemas.agent import ToolCall
+    from utils.agents.coordinator.graph import observe_node
+    from utils.agents.schemas.agent import ToolCall
     
     # Simulate a state where read_artifact was already called with a specific ID
     state = {
@@ -244,7 +244,7 @@ def test_collect_references_dedupes_urls():
     assert refs[1]["index"] == 2
 
 
-@patch("agents.coordinator.graph.chat_complete")
+@patch("utils.agents.coordinator.graph.chat_complete")
 def test_forced_web_search_injects_search_web(mock_chat_complete):
     stream = MagicMock()
     stream.iter_lines.return_value = [

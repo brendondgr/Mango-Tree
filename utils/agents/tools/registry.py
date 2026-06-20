@@ -3,7 +3,7 @@ import json
 import base64
 import mimetypes
 from typing import Dict, Any, Callable, List, Optional
-from agents.schemas.agent import ToolResult
+from utils.agents.schemas.agent import ToolResult
 
 class ToolRegistry:
     def __init__(self):
@@ -37,9 +37,9 @@ class ToolRegistry:
 registry = ToolRegistry()
 
 # Define project-relative paths
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 ARTIFACTS_DIR = os.path.join(BASE_DIR, "data", "artifacts")
-SKILLS_DIR = os.path.join(BASE_DIR, "agents", "skills")
+SKILLS_DIR = os.path.join(BASE_DIR, "utils", "agents", "skills")
 
 @registry.register("list_artifacts")
 def list_artifacts() -> ToolResult:
@@ -361,4 +361,4 @@ def read_skill(skill_name: Optional[str] = None) -> ToolResult:
             artifact_ids=[]
         )
 
-import agents.tools.web_search  # noqa: F401, E402 — register search_web tool
+import utils.agents.tools.web_search  # noqa: F401, E402 — register search_web tool

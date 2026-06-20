@@ -1,5 +1,5 @@
-from agents.schemas.agent import ToolResult
-from agents.tools.registry import registry
+from utils.agents.schemas.agent import ToolResult
+from utils.agents.tools.registry import registry
 from utils.shared.search.research import run_research
 
 

@@ -6,8 +6,8 @@ from django.urls import path
 from pydantic import ValidationError
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from agents.coordinator.graph import agent_graph
-from agents.schemas.agent import AgentMessage
+from utils.agents.coordinator.graph import agent_graph
+from utils.agents.schemas.agent import AgentMessage
 
 
 def _parse_web_search_mode(value) -> str:
