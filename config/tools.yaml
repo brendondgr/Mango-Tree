@@ -19,3 +19,73 @@ tools:
     module: utils.apps.media_viewer.agent.tools
     function: delete_artifact
     description: Delete an artifact after explicit user confirmation.
+  exercise_list_workouts:
+    app: exercise
+    module: utils.apps.exercise.agent.tools
+    function: list_workouts
+    description: List workout templates and their exercises.
+  exercise_save_workout:
+    app: exercise
+    module: utils.apps.exercise.agent.tools
+    function: save_workout
+    description: Create or update a workout template (upsert on id).
+  exercise_delete_workout:
+    app: exercise
+    module: utils.apps.exercise.agent.tools
+    function: delete_workout
+    description: Delete a workout template after explicit user confirmation.
+  exercise_list_routines:
+    app: exercise
+    module: utils.apps.exercise.agent.tools
+    function: list_routines
+    description: List weekly routines (weekday -> workout IDs).
+  exercise_save_routine:
+    app: exercise
+    module: utils.apps.exercise.agent.tools
+    function: save_routine
+    description: Create or update a weekly routine (upsert on id).
+  exercise_delete_routine:
+    app: exercise
+    module: utils.apps.exercise.agent.tools
+    function: delete_routine
+    description: Delete a routine after explicit user confirmation.
+  exercise_list_equipment:
+    app: exercise
+    module: utils.apps.exercise.agent.tools
+    function: list_equipment
+    description: List equipment items.
+  exercise_add_equipment:
+    app: exercise
+    module: utils.apps.exercise.agent.tools
+    function: add_equipment
+    description: Add a new equipment item (conflict if id exists).
+  exercise_update_equipment:
+    app: exercise
+    module: utils.apps.exercise.agent.tools
+    function: update_equipment
+    description: Update an existing equipment item.
+  exercise_delete_equipment:
+    app: exercise
+    module: utils.apps.exercise.agent.tools
+    function: delete_equipment
+    description: Delete an equipment item after explicit user confirmation.
+  exercise_list_history:
+    app: exercise
+    module: utils.apps.exercise.agent.tools
+    function: list_history
+    description: List logged workout sessions (date, duration, volume, exercises).
+  exercise_log_workout:
+    app: exercise
+    module: utils.apps.exercise.agent.tools
+    function: log_workout
+    description: Record a completed workout session into history.
+  exercise_update_log:
+    app: exercise
+    module: utils.apps.exercise.agent.tools
+    function: update_log
+    description: Update a logged workout session.
+  exercise_delete_log:
+    app: exercise
+    module: utils.apps.exercise.agent.tools
+    function: delete_log
+    description: Delete a logged workout session after explicit user confirmation.
