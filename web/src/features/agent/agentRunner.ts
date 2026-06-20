@@ -1,3 +1,5 @@
+import type { LlmConfig } from "@/services/llmTypes";
+
 import { useAgentStore } from "./agentState";
 import type { AgentEvent, ChatReference } from "./types";
 
@@ -11,10 +13,24 @@ export async function runAgentTurn(
   history: { role: "user" | "agent"; content: string; thinking?: string; attachments?: any[] }[],
   attachments?: any[],
   webSearchMode: "auto" | "forced" = "auto",
+  llmConfig?: LlmConfig,
 ): Promise<void> {
   const store = useAgentStore.getState();
   store.reset();
   store.setStatus("running");
+
+  // Forward the user's saved LLM settings so the backend agent uses the same
+  // base URL / model / key the rest of the app does. Send the raw (absolute)
+  // base URL, not the proxy-relative path, since the agent runs server-side.
+  const llmConfigPayload = llmConfig
+    ? {
+        base_url: llmConfig.baseUrl.trim(),
+        model: llmConfig.model.trim(),
+        ...(llmConfig.apiKey.trim()
+          ? { api_key: llmConfig.apiKey.trim() }
+          : {}),
+      }
+    : undefined;
 
   try {
     const response = await fetch(`/api/agent/${chatSessionId}/agent_turn/`, {
@@ -27,6 +43,7 @@ export async function runAgentTurn(
         history,
         attachments,
         web_search_mode: webSearchMode,
+        ...(llmConfigPayload ? { llm_config: llmConfigPayload } : {}),
       }),
     });
 

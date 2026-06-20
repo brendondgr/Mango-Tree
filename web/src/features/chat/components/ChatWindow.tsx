@@ -30,6 +30,7 @@ import { formatLlmError } from "@/features/chat/utils/buildLlmMessageContent";
 import { groupMessagesIntoTurns } from "@/features/chat/utils/groupMessagesIntoTurns";
 import { persistChatAttachments } from "@/features/chat/utils/persistChatAttachments";
 
+import { useLlmConfigStore } from "@/app/stores/llmConfigStore";
 import { runAgentTurn } from "@/features/agent/agentRunner";
 import { useAgentStore } from "@/features/agent/agentState";
 import { useTheme } from "@/hooks/useTheme";
@@ -178,6 +179,7 @@ export function ChatWindow() {
         historyPayload,
         attachments,
         options?.webSearchMode ?? "auto",
+        useLlmConfigStore.getState().config,
       );
       
       unsubscribe();

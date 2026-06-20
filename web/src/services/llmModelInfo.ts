@@ -20,37 +20,56 @@ function buildHeaders(config: LlmConfig): Record<string, string> {
   return headers;
 }
 
+async function fetchModelCards(
+  config: LlmConfig,
+  signal?: AbortSignal,
+): Promise<ModelCard[]> {
+  const url = resolveModelsUrl(config.baseUrl);
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: buildHeaders(config),
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Model list request failed (${response.status} ${response.statusText})`,
+    );
+  }
+
+  const data = (await response.json()) as ModelsListResponse;
+  return data.data ?? [];
+}
+
+/**
+ * List the model ids advertised by the server's GET /v1/models endpoint.
+ * Throws when the server is unreachable or responds with an error, so callers
+ * (e.g. the settings test-connection flow) can surface the reason.
+ */
+export async function fetchModelList(
+  config: LlmConfig,
+  signal?: AbortSignal,
+): Promise<string[]> {
+  const cards = await fetchModelCards(config, signal);
+  return cards
+    .map((card) => card.id)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+}
+
 /** Fetch max context length for the configured model from GET /v1/models. */
 export async function fetchModelMaxContext(
   config: LlmConfig,
   signal?: AbortSignal,
 ): Promise<number | null> {
-  const url = resolveModelsUrl(config.baseUrl);
-
-  let response: Response;
+  let cards: ModelCard[];
   try {
-    response = await fetch(url, {
-      method: "GET",
-      headers: buildHeaders(config),
-      signal,
-    });
-  } catch {
-    return null;
-  }
-
-  if (!response.ok) {
-    return null;
-  }
-
-  let data: ModelsListResponse;
-  try {
-    data = (await response.json()) as ModelsListResponse;
+    cards = await fetchModelCards(config, signal);
   } catch {
     return null;
   }
 
   const modelId = config.model.trim();
-  const cards = data.data ?? [];
 
   if (modelId) {
     const match = cards.find((card) => card.id === modelId);
