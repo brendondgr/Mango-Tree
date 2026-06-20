@@ -11,6 +11,7 @@ skills=(
   repo-structure
   django-backend
   app-modules
+  app-migration
   website-architecture
   ui-frontend
 )
