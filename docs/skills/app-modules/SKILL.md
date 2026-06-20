@@ -81,9 +81,9 @@ When migrating a Flask app into `utils/apps/{name}/`:
 - calendar
 - recipes
 - imdbspy
-- exercise
+- exercise (implemented — workouts/routines/equipment/history + Strava import)
 - timekeeper
-- media_viewer
+- media_viewer (implemented)
 
 Each app directory includes a README describing its subfolder responsibilities.
 

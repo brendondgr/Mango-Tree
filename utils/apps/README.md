@@ -10,7 +10,7 @@ Domain app modules. Each app follows the standard layout documented in `docs/ski
 - `calendar/` — Calendar events
 - `recipes/` — Recipe management
 - `imdbspy/` — IMDB lookup and tracking
-- `exercise/` — Exercise tracking
+- `exercise/` — Exercise tracking (implemented; workouts, routines, equipment, history, Strava import — migrated from the standalone WorkoutTracker app)
 - `timekeeper/` — Time tracking
 
 Each app contains `backend/`, `frontend/`, `agent/`, and `shared/` subdirectories.

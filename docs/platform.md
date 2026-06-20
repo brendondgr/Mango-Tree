@@ -47,7 +47,7 @@ utils/apps/{app_name}/
 `-- shared/
 ```
 
-Registered apps: projects, notes, jobs, calendar, recipes, imdbspy, exercise, timekeeper, **media_viewer** (first fully implemented app module — local artifacts and media viewer).
+Registered apps: projects, notes, jobs, calendar, recipes, imdbspy, timekeeper, **media_viewer** (local artifacts and media viewer), **exercise** (workout/routine/equipment/history tracking with Strava import; migrated from the standalone WorkoutTracker app). media_viewer and exercise are fully implemented app modules.
 
 **Code placement:** business logic in `backend/services/` or `shared/`; agent tools call services; UI in `web/src/` or `utils/apps/{app}/frontend/`; no business logic in `web/src/services/` beyond API clients.
 
@@ -90,6 +90,7 @@ Target: React/Vite SPA with swappable shadcn/Tailwind themes (Canva-inspired def
 | `/notes`, `/notes/:id` | `/api/notes/` |
 | `/jobs` | `/api/jobs/` |
 | `/calendar` | `/api/calendar/events/` |
+| `/exercise` | `/api/exercise/` (workouts, routines, equipment, history, strava) |
 | `/agents` | `/api/agents/` |
 | `/workflows` | `/api/workflows/` |
 | `/tools` | `/api/tools/` |
@@ -97,7 +98,7 @@ Target: React/Vite SPA with swappable shadcn/Tailwind themes (Canva-inspired def
 | `/traces/:taskId` | `/api/traces/{task_id}/` |
 | `/settings` | TBD |
 
-Future: `/recipes`, `/imdbspy`, `/exercise`, `/timekeeper`. Do not implement a route until its endpoint exists in `docs/api.md`.
+Future: `/recipes`, `/imdbspy`, `/timekeeper`. Do not implement a route until its endpoint exists in `docs/api.md`.
 
 ### Component Map
 
@@ -150,6 +151,8 @@ data/artifacts/
 ```
 
 Configure via `config/artifacts.yaml` and optional `MANGO_ARTIFACTS_ROOT`. See `utils/apps/media_viewer/README.md` and `docs/api.md` for endpoints and permission boundaries (read/write scoped to `{artifacts.root}/**` only).
+
+The **exercise** app preserves the legacy WorkoutTracker SQLite database at `data/exercise/workouttracker.db` (gitignored). It is bound through a dedicated `exercise` Django connection with `managed = False` models (schema unchanged); override the path with `MANGO_EXERCISE_DB`. See `utils/apps/exercise/README.md`.
 
 ## Build Sequence
 
