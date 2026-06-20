@@ -15,7 +15,7 @@ same problem as Flask.
 | Pydantic schemas | `schemas.py` request/response models | `shared/schemas.py` DTOs + DRF serializers |
 | Business logic | `crud.py`, service modules, or inline in path ops | `backend/services/` (move/extract) |
 | Dependencies (`Depends`) | `dependencies.py` | split: data access → services; auth → `utils/shared/auth` |
-| HTTP routes | `APIRouter` path operations | `backend/api/` + `api/routes/{name}.py` |
+| HTTP routes | `APIRouter` path operations | `backend/api/` + `utils/api/routes/{name}.py` |
 | Background jobs | `BackgroundTasks`, Celery, ARQ | `backend/tasks/` (Celery) |
 | DB config | `database.py` engine/session | platform DB config (see DB preservation) |
 | Migrations | Alembic `versions/` | basis for DB preservation |

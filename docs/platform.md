@@ -9,7 +9,7 @@ Mango Tree is a local-first, permissioned agent platform. It routes requests thr
 | Frontend | React, TypeScript, Vite, TanStack Router/Query, Zustand, Tailwind, shadcn/ui |
 | API | Django REST Framework |
 | Backend | Django, ASGI/Uvicorn, Celery, Redis |
-| Agents | LangGraph under `agents/` |
+| Agents | LangGraph under `utils/agents/` |
 | Database | PostgreSQL, pgvector |
 | Models | Llama-CPP, cloud provider abstraction |
 | Storage | S3-compatible object storage |
@@ -19,18 +19,21 @@ Mango Tree is a local-first, permissioned agent platform. It routes requests thr
 
 ```text
 .
-|-- agents/                 # coordinator, planner, memory, tools, providers
-|-- api/                    # DRF routes, serializers, middleware, schemas
-|-- config/                 # Django settings and runtime YAML
+|-- config/                 # Django project (settings, urls, asgi, wsgi) + runtime YAML
+|-- data/                   # runtime artifacts, storage, thumbnails
 |-- docs/
 |   |-- platform.md         # this file
 |   |-- api.md              # HTTP API contract
 |   `-- skills/             # agent instruction packs (symlinked from .cursor/, .claude/, and .codex/)
-|-- utils/
-|   |-- apps/{name}/        # backend, frontend, agent, shared per app
-|   `-- shared/             # auth, permissions, storage, search, embeddings, events
-|-- tests/
 |-- web/                    # React/Vite SPA
+|-- NewApps/                # staging drop-zone for apps awaiting migration
+|-- utils/                  # backend container
+|   |-- agents/             # coordinator, planner, memory, tools, providers
+|   |-- api/                # DRF routes, serializers, middleware, schemas
+|   |-- apps/{name}/        # backend, frontend, agent, shared per app
+|   |-- shared/             # auth, permissions, storage, search, embeddings, events
+|   |-- scripts/            # dev + link-skills scripts
+|   `-- tests/              # grouped by subsystem
 `-- pyproject.toml
 ```
 
@@ -51,15 +54,15 @@ Registered apps: projects, notes, jobs, calendar, recipes, imdbspy, exercise, ti
 ## Architecture
 
 ```text
-User -> web/ -> api/ -> utils/apps/{app}/backend/services/
-User -> agents/coordinator -> agents/planner OR utils/apps/{app}/agent/tools -> same services
+User -> web/ -> utils/api/ -> utils/apps/{app}/backend/services/
+User -> utils/agents/coordinator -> utils/agents/planner OR utils/apps/{app}/agent/tools -> same services
 ```
 
 | Layer | Path | Role |
 | --- | --- | --- |
 | Frontend | `web/` | Dashboard, chat, command palette; API clients only |
-| API | `api/` | DRF surface for the UI |
-| Agents | `agents/` | LangGraph orchestration |
+| API | `utils/api/` | DRF surface for the UI |
+| Agents | `utils/agents/` | LangGraph orchestration |
 | Apps | `utils/apps/{name}/` | Domain logic, UI fragments, agent tools |
 | Shared | `utils/shared/` | Auth, permissions, storage, search, embeddings, events |
 
@@ -67,9 +70,9 @@ The coordinator routes and validates. The planner reasons and delegates. Special
 
 ## Data Flow
 
-**UI:** `web/src/services/` → `api/routes/` → app services → PostgreSQL/S3/Redis → TanStack Query → React.
+**UI:** `web/src/services/` → `utils/api/routes/` → app services → PostgreSQL/S3/Redis → TanStack Query → React.
 
-**Agents:** coordinator → planner or app workflow → `agents/tools/` → `utils/apps/{app}/agent/tools.py` → app services → events/artifacts.
+**Agents:** coordinator → planner or app workflow → `utils/agents/tools/` → `utils/apps/{app}/agent/tools.py` → app services → events/artifacts.
 
 **Background:** API or agent trigger → Celery task → app services → `utils/shared/events/`.
 
@@ -186,7 +189,7 @@ Config lives in `config/` (Django settings, models/agents/tools/permissions/work
 Tests prove routing, permissions, schemas, and boundaries — not just happy paths.
 
 ```text
-tests/{agents,api,utils/apps,utils/shared,web}/
+utils/tests/{agents,api,utils/apps,utils/shared,web}/
 ```
 
 Core rules:
@@ -208,4 +211,4 @@ On Windows after clone, run `./utils/scripts/link-skills.ps1` if skill links che
 
 ## Migration Note
 
-The retired `src/agent_runtime/` layout maps to: orchestration → `agents/coordinator/`, general agent → `agents/planner/`, memory → `agents/memory/`, tools → `agents/tools/`, inference → `agents/providers/`, specialists → `utils/apps/{app}/agent/`.
+The retired `src/agent_runtime/` layout maps to: orchestration → `utils/agents/coordinator/`, general agent → `utils/agents/planner/`, memory → `utils/agents/memory/`, tools → `utils/agents/tools/`, inference → `utils/agents/providers/`, specialists → `utils/apps/{app}/agent/`.

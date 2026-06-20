@@ -74,10 +74,10 @@ into commit-sized steps and is the contract the implementation is checked agains
 | utils/apps/{name}/ | new app module |
 | config/ | Django app registration, tools.yaml, permissions.yaml |
 | api/ | route registration |
-| agents/ | tool registration |
+| utils/agents/ | tool registration |
 | web/ | frontend fragments + tab (optional/deferred) |
 | docs/ | api.md, platform.md, app README |
-| tests/ | service, API, tool, DB denial/success tests |
+| utils/tests/ | service, API, tool, DB denial/success tests |
 
 ## Database strategy
 - Chosen: A (bind) | B (inspect) | C (migrate)
@@ -135,14 +135,14 @@ Tick every box before calling the app migrated.
 ## Structure & registration
 - [ ] Directory matches the standard app layout
 - [ ] Registered as a Django app in config/django/settings
-- [ ] api/routes/{name}.py included in root URLconf
+- [ ] utils/api/routes/{name}.py included in root URLconf
 - [ ] README lists purpose, layout, endpoints, and tools
 
 ## Data preservation
 - [ ] Database strategy implemented (A/B/C)
 - [ ] Existing rows read back unchanged through new models
 - [ ] (If migrated) counts and checksums match source
-- [ ] Verification script lives in tests/utils/apps/{name}/
+- [ ] Verification script lives in utils/tests/utils/apps/{name}/
 
 ## Architecture
 - [ ] All business logic in services/ or shared/

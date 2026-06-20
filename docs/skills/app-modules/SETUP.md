@@ -5,12 +5,12 @@
 - App root: `utils/apps/{app_name}/`.
 - Standard subfolders: `backend/`, `frontend/`, `agent/`, `shared/`.
 - Shared cross-app code: `utils/shared/`.
-- API aggregation: `api/routes/`.
+- API aggregation: `utils/api/routes/`.
 
 ## Validation
 
 ```bash
-uv run pytest tests/utils/apps/{app_name}/
+uv run pytest utils/tests/utils/apps/{app_name}/
 uv run manage.py test
 ```
 

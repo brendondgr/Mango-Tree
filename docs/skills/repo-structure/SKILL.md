@@ -11,53 +11,53 @@ Mango Tree is a local personal agent platform. It routes user requests through a
 
 ```text
 .
-|-- agents/
-|   |-- coordinator/
-|   |-- planner/
-|   |-- memory/
-|   |-- tools/
-|   `-- providers/
-|-- api/
-|   |-- routes/
-|   |-- serializers/
-|   |-- middleware/
-|   `-- schemas/
-|-- config/
-|   |-- django/
+|-- config/                    # Django project + YAML config
+|   |-- django/                # settings, urls, asgi, wsgi, views
 |   |-- models.yaml
-|   |-- agents.yaml
 |   |-- tools.yaml
 |   |-- permissions.yaml
-|   `-- workflows.yaml
+|   `-- search.yaml
+|-- data/                      # runtime artifacts, storage, thumbnails
 |-- docs/
-|-- utils/
-|   |-- apps/
-|   |   |-- projects/
-|   |   |-- notes/
-|   |   |-- jobs/
-|   |   |-- calendar/
-|   |   |-- recipes/
-|   |   |-- imdbspy/
-|   |   |-- exercise/
-|   |   `-- timekeeper/
-|   `-- shared/
-|       |-- auth/
-|       |-- permissions/
-|       |-- storage/
-|       |-- search/
-|       |-- embeddings/
-|       `-- events/
-|-- tests/
-|-- scripts/
-|-- requirements/
-`-- web/
+|-- web/                       # React/Vite SPA
+|-- NewApps/                   # staging drop-zone for apps awaiting migration
+`-- utils/                     # backend container
+    |-- agents/                # LangGraph orchestration
+    |   |-- coordinator/
+    |   |-- planner/
+    |   |-- memory/
+    |   |-- tools/
+    |   `-- providers/
+    |-- api/                   # DRF HTTP surface
+    |   |-- routes/
+    |   |-- serializers/
+    |   |-- middleware/
+    |   `-- schemas/
+    |-- apps/                  # per-app domain modules
+    |   |-- projects/
+    |   |-- notes/
+    |   |-- jobs/
+    |   |-- calendar/
+    |   |-- recipes/
+    |   |-- imdbspy/
+    |   |-- exercise/
+    |   `-- timekeeper/
+    |-- shared/                # cross-app foundations
+    |   |-- auth/
+    |   |-- permissions/
+    |   |-- storage/
+    |   |-- search/
+    |   |-- embeddings/
+    |   `-- events/
+    |-- scripts/               # dev + link-skills scripts
+    `-- tests/                 # grouped by subsystem
 ```
 
 ## Structural Rules
 
 - Use `uv` for Python commands and dependencies.
-- Keep agent orchestration in `agents/`.
-- Keep HTTP API surface in `api/`.
+- Keep agent orchestration in `utils/agents/`.
+- Keep HTTP API surface in `utils/api/`.
 - Keep app domain code in `utils/apps/{app_name}/`.
 - Keep cross-app foundations in `utils/shared/`.
 - Keep static instruction packs in `docs/skills/`; skills are not executable tools.
@@ -71,11 +71,11 @@ Mango Tree is a local personal agent platform. It routes user requests through a
 
 Dashboard shell, app navigation, AI chat workspace, command palette, settings panels, and app rendering. Consumes DRF APIs only.
 
-### `api/`
+### `utils/api/`
 
 Route definitions, serializers, request validation, middleware, and app-facing endpoints. Thin layer over app services.
 
-### `agents/`
+### `utils/agents/`
 
 LangGraph orchestration: coordinator routing, planner reasoning, memory access, tool routing, and model provider selection.
 
@@ -125,7 +125,7 @@ For apps currently implemented with Flask:
 ## Test Layout
 
 ```text
-tests/
+utils/tests/
 |-- agents/
 |-- api/
 |-- utils/
@@ -142,11 +142,11 @@ The previous `src/agent_runtime/` layout is retired. Map old concepts as follows
 
 | Retired path | New location |
 | --- | --- |
-| `src/agent_runtime/orchestration/` | `agents/coordinator/` |
-| `src/agent_runtime/agents/general/` | `agents/planner/` |
-| `src/agent_runtime/memory/` | `agents/memory/` |
-| `src/agent_runtime/tools/` | `agents/tools/` |
-| `src/agent_runtime/inference/` | `agents/providers/` |
+| `src/agent_runtime/orchestration/` | `utils/agents/coordinator/` |
+| `src/agent_runtime/agents/general/` | `utils/agents/planner/` |
+| `src/agent_runtime/memory/` | `utils/agents/memory/` |
+| `src/agent_runtime/tools/` | `utils/agents/tools/` |
+| `src/agent_runtime/inference/` | `utils/agents/providers/` |
 | Specialist workflows | `utils/apps/{app}/agent/` |
 | Permissions, sandbox, storage | `utils/shared/` |
 

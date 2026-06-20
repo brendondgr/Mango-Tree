@@ -14,7 +14,7 @@ This is the easiest source because the target is also Django/DRF. The work is mo
 | Migrations | `*/migrations/` | `utils/apps/{name}/backend/models/migrations/` |
 | Business logic | often inside `views.py` / `viewsets` / `forms.py` | `backend/services/` (extract) |
 | Existing service layer | `*/services.py`, `*/selectors.py` | `backend/services/` (move) |
-| HTTP routes | `urls.py` + views/DRF viewsets | `backend/api/` + `api/routes/{name}.py` |
+| HTTP routes | `urls.py` + views/DRF viewsets | `backend/api/` + `utils/api/routes/{name}.py` |
 | Serializers | `serializers.py` | `backend/api/serializers.py` |
 | Background jobs | Celery `tasks.py`, management commands | `backend/tasks/` |
 | Validators / utils | `validators.py`, `utils.py` | `shared/` |

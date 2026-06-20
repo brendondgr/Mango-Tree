@@ -13,7 +13,7 @@ effort and more tests. The data, however, can still be preserved unchanged.
 | --- | --- | --- |
 | Data models / schema | Prisma `schema.prisma`, Sequelize/TypeORM models, Knex migrations | source of truth for the existing schema |
 | Business logic | inline in route handlers, `controllers/`, `services/` | `backend/services/` (re-implement in Python) |
-| HTTP routes | `express.Router()`, `app.use()` | `backend/api/` + `api/routes/{name}.py` |
+| HTTP routes | `express.Router()`, `app.use()` | `backend/api/` + `utils/api/routes/{name}.py` |
 | Validation | Joi/Zod/express-validator | `shared/schemas.py` + DRF serializers |
 | Background jobs | BullMQ, Agenda, node-cron | `backend/tasks/` (Celery) |
 | DB config | `DATABASE_URL` / ORM config | platform DB config (see DB preservation) |
@@ -35,7 +35,7 @@ You cannot relocate JS files into a Python module. Instead:
 3. **Translate validation schemas** (Zod/Joi) into DRF serializers + `shared/schemas.py`
    DTOs.
 4. **Map middleware to platform equivalents** — auth middleware → `utils/shared/auth`;
-   rate limiting/logging → platform middleware in `api/middleware/`.
+   rate limiting/logging → platform middleware in `utils/api/middleware/`.
 
 ## Cross-language gotchas
 

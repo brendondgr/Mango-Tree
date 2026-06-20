@@ -24,9 +24,9 @@ Mango Tree plans should be decision complete and practical for another coding ag
 
 Use validation that matches the affected layer:
 
-- Backend: `uv run manage.py test` or `uv run pytest tests/utils/apps/{name}/`.
-- Agents: `uv run pytest tests/agents/`.
-- API: `uv run pytest tests/api/`.
+- Backend: `uv run manage.py test` or `uv run pytest utils/tests/utils/apps/{name}/`.
+- Agents: `uv run pytest utils/tests/agents/`.
+- API: `uv run pytest utils/tests/api/`.
 - Frontend: `cd web && npm install`, `npm run build` when the React/Vite scaffold exists.
 - Documentation: confirm docs mention routing, scoped tools, structured outputs, and permission boundaries when relevant.
 

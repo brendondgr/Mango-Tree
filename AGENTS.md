@@ -15,8 +15,8 @@ Mango Tree is a local-first, permissioned agent platform. Build it as a system o
 | Layer | Path | Role |
 | --- | --- | --- |
 | Frontend | `web/` | React SPA shell; consumes APIs only |
-| API | `api/` | DRF routes, serializers, middleware, schemas |
-| Agents | `agents/` | LangGraph orchestration: coordinator, planner, memory, tools, providers |
+| API | `utils/api/` | DRF routes, serializers, middleware, schemas |
+| Agents | `utils/agents/` | LangGraph orchestration: coordinator, planner, memory, tools, providers |
 | Apps | `utils/apps/{name}/` | Domain logic, backend, frontend fragments, agent tools |
 | Shared | `utils/shared/` | Auth, permissions, storage, search, embeddings, events |
 | Config | `config/` | Django settings and runtime YAML configuration |
@@ -28,7 +28,7 @@ App services are the single source of truth for domain behavior.
 ## Backend Stack
 
 - Django and Django REST Framework for the HTTP API.
-- LangGraph for coordinator and specialist workflows under `agents/`.
+- LangGraph for coordinator and specialist workflows under `utils/agents/`.
 - Celery and Redis for background tasks and queued agent actions.
 - PostgreSQL with pgvector for relational data and embeddings.
 - Llama-CPP and provider abstraction for local and cloud model inference.
@@ -37,10 +37,10 @@ App services are the single source of truth for domain behavior.
 ## Coding Rules
 
 - Use `uv` for Python commands and dependencies.
-- Keep agent orchestration under `agents/`.
+- Keep agent orchestration under `utils/agents/`.
 - Keep app domain code under `utils/apps/{app_name}/`.
 - Keep shared foundations under `utils/shared/`.
-- Keep API surface under `api/`.
+- Keep API surface under `utils/api/`.
 - Keep frontend code under `web/`.
 - Keep docs under `docs/`.
 - Add denial tests for permission, filesystem, shell, memory, dataset, and schema boundaries.

@@ -14,7 +14,7 @@ changing the data.
 | Data models | SQLAlchemy `db.Model` classes, often `models.py` | `utils/apps/{name}/backend/models/` (translate) |
 | Schema migrations | Alembic `migrations/versions/` | basis for DB preservation (see below) |
 | Business logic | inline in `@app.route` / blueprint handlers | `backend/services/` (extract) |
-| HTTP routes | `@app.route`, `Blueprint` | `backend/api/` + `api/routes/{name}.py` |
+| HTTP routes | `@app.route`, `Blueprint` | `backend/api/` + `utils/api/routes/{name}.py` |
 | Request/response schemas | Marshmallow / Pydantic / manual dicts | `shared/schemas.py` + DRF serializers |
 | Background jobs | Celery, RQ, APScheduler | `backend/tasks/` |
 | Validators / utils | `utils.py`, helpers | `shared/` |
@@ -51,7 +51,7 @@ Preserve nullability, defaults, uniqueness, and indexes exactly.
 - **`g`, `current_app`, `session` globals.** Replace request-context globals with
   explicit function arguments so services have no Flask dependency.
 - **Blueprints** map naturally to the app's route module; one blueprint usually becomes
-  one `api/routes/{name}.py`.
+  one `utils/api/routes/{name}.py`.
 - **Marshmallow schemas** become DRF serializers (API) and/or `shared/schemas.py` DTOs
   (services + tools).
 

@@ -120,6 +120,6 @@ same," and you can move to B or C later as a separate, verified milestone.
   chosen Strategy C and verified the move.
 - Preserve types exactly for money (`Decimal`), timestamps/timezones, JSON, arrays, and
   enums — these are the usual sources of silent corruption.
-- Keep the verification script in the test suite (`tests/utils/apps/{name}/`) so the
+- Keep the verification script in the test suite (`utils/tests/utils/apps/{name}/`) so the
   data binding is re-checked on every run.
 - Back up the legacy database before any write path is enabled against it.

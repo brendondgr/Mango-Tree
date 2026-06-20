@@ -13,8 +13,8 @@ This planning skill is configured for agentic coding workflows in the Mango Tree
 
 Plans should protect these core ideas:
 
-- Coordinator routes and validates under `agents/coordinator/`.
-- Planner reasons and delegates under `agents/planner/`.
+- Coordinator routes and validates under `utils/agents/coordinator/`.
+- Planner reasons and delegates under `utils/agents/planner/`.
 - Specialist LangGraph workflows and app tools execute narrow tasks.
 - Tools enforce permissions through execution context.
 - Memory, datasets, filesystem, shell, and network access are scoped by policy.

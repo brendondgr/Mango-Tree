@@ -16,8 +16,8 @@
 uv run manage.py migrate
 uv run manage.py test
 uv run manage.py runserver
-uv run pytest tests/api/
-uv run pytest tests/utils/
+uv run pytest utils/tests/api/
+uv run pytest utils/tests/utils/
 ```
 
 ## Required Docs

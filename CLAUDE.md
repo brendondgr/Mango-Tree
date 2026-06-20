@@ -6,18 +6,18 @@ Use the project skills in `.claude/skills/` when working in this repository.
 
 Mango Tree is a local agent platform with strong boundaries:
 
-- Coordinator routes and validates under `agents/coordinator/`.
-- Planner reasons and delegates under `agents/planner/`.
+- Coordinator routes and validates under `utils/agents/coordinator/`.
+- Planner reasons and delegates under `utils/agents/planner/`.
 - Specialist LangGraph workflows execute constrained work via app tools in `utils/apps/{name}/agent/`.
-- Tools enforce permissions through execution context in `agents/tools/`.
-- Memory and datasets are namespaced under `agents/memory/` and `utils/shared/`.
+- Tools enforce permissions through execution context in `utils/agents/tools/`.
+- Memory and datasets are namespaced under `utils/agents/memory/` and `utils/shared/`.
 - Shell, filesystem, and network access must be policy checked via `utils/shared/permissions/`.
 
 ## Layer Boundaries
 
 - `web/` — React/Vite SPA; API clients only, no business logic.
-- `api/` — DRF surface consumed by the frontend.
-- `agents/` — LangGraph orchestration layer.
+- `utils/api/` — DRF surface consumed by the frontend.
+- `utils/agents/` — LangGraph orchestration layer.
 - `utils/apps/{name}/` — app domain logic, services, and agent tools.
 - `utils/shared/` — cross-app auth, permissions, storage, search, embeddings, events.
 

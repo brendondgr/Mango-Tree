@@ -1,11 +1,11 @@
 # LangGraph Runtime Structure
 
-Use LangGraph for explicit workflow state machines under `agents/`, not as a place to hide unrestricted agent behavior.
+Use LangGraph for explicit workflow state machines under `utils/agents/`, not as a place to hide unrestricted agent behavior.
 
 ## Recommended Package Shape
 
 ```text
-agents/
+utils/agents/
 |-- coordinator/
 |   |-- graph.py
 |   |-- router.py
@@ -51,7 +51,7 @@ utils/apps/{app_name}/agent/
 - The coordinator graph maps global task state into specialist or app-tool input schemas.
 - Specialist subgraphs return structured results that the coordinator validates.
 - Nodes should perform one clear responsibility: route selection, context loading, tool execution, or result validation.
-- Tool calls must go through the registry in `agents/tools/` and execution context.
+- Tool calls must go through the registry in `utils/agents/tools/` and execution context.
 - App agent tools in `utils/apps/{app}/agent/tools.py` delegate to app services; do not duplicate business logic.
 - Do not pass full conversation history, all tools, all memory, or unrestricted shell access into a specialist by default.
 
@@ -59,9 +59,9 @@ utils/apps/{app_name}/agent/
 
 ```text
 User request
-  -> agents/coordinator (route decision)
-  -> agents/planner (broad reasoning) OR app specialist workflow
-  -> agents/tools (registry + execution context)
+  -> utils/agents/coordinator (route decision)
+  -> utils/agents/planner (broad reasoning) OR app specialist workflow
+  -> utils/agents/tools (registry + execution context)
   -> utils/apps/{app}/backend/services (domain logic)
   -> Event, artifact, and result records
   -> Structured response

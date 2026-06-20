@@ -30,7 +30,7 @@ utils/apps/{app_name}/
 
 - Business logic → `backend/services/` or `shared/`.
 - Data models → `backend/models/`.
-- DRF views → `backend/api/` (registered through `api/routes/`).
+- DRF views → `backend/api/` (registered through `utils/api/routes/`).
 - Celery tasks → `backend/tasks/`.
 - Agent tools → `agent/tools.py` (call services, never duplicate logic).
 - App UI fragments → `frontend/` (imported by `web/` shell).

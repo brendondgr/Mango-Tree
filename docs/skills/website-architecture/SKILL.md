@@ -51,7 +51,7 @@ Maintain `docs/platform.md` (routes, components, data flow, deployment) and `doc
 ## Data Flow
 
 ```text
-web/src/services/  ->  api/routes/  ->  utils/apps/{app}/backend/services/
+web/src/services/  ->  utils/api/routes/  ->  utils/apps/{app}/backend/services/
 ```
 
 No business logic in the frontend beyond API client calls. App-specific UI may live in `utils/apps/{app}/frontend/` and be imported into the shell.

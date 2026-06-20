@@ -6,7 +6,7 @@ This repository is configured as a local-first Django/DRF platform with LangGrap
 
 - Primary runtime: Python with `uv`.
 - Backend: Django, DRF, Celery, PostgreSQL.
-- Agent layer: LangGraph under `agents/`.
+- Agent layer: LangGraph under `utils/agents/`.
 - Frontend runtime: Node with `npm`, under `web/`.
 - Repository shape: monorepo with modular apps under `utils/apps/`.
 - Shared code: app services in `utils/apps/{name}/`; cross-app utilities in `utils/shared/`.

@@ -122,9 +122,9 @@ Artifact kinds: `image`, `video`, `pdf`, `markdown`, `latex`, `text`, `unknown`.
 
 | Concern | Location |
 | --- | --- |
-| Routes | `api/routes/` |
-| Serializers | `api/serializers/`, `utils/apps/{app}/backend/api/` |
-| Schemas | `api/schemas/` |
-| Middleware | `api/middleware/` |
+| Routes | `utils/api/routes/` |
+| Serializers | `utils/api/serializers/`, `utils/apps/{app}/backend/api/` |
+| Schemas | `utils/api/schemas/` |
+| Middleware | `utils/api/middleware/` |
 
 Platform overview: `docs/platform.md`.

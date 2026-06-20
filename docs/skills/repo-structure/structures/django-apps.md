@@ -38,7 +38,7 @@ utils/apps/{app_name}/backend/
 - Business logic belongs in `utils/apps/{name}/backend/services/`, not in views or serializers.
 - Celery tasks belong in `utils/apps/{name}/backend/tasks/`.
 - Shared auth, permissions, and storage utilities belong in `utils/shared/`.
-- API routes in `api/routes/` aggregate app endpoints; avoid duplicating URL patterns per app in multiple places.
+- API routes in `utils/api/routes/` aggregate app endpoints; avoid duplicating URL patterns per app in multiple places.
 - Use PostgreSQL with pgvector for relational and embedding data.
 - Use S3-compatible storage via `utils/shared/storage/` for file uploads and attachments.
 

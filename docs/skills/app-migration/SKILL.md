@@ -25,6 +25,12 @@ It is **framework-agnostic on the way in** (the source can be Django, Flask,
 FastAPI, Express, or something else) and **opinionated on the way out** (the target
 is always the standard layout in `docs/skills/app-modules/SKILL.md`).
 
+**Where the source lands.** Raw standalone apps are dropped into `NewApps/{SourceName}/`
+at the repo root — the staging drop-zone for apps awaiting migration. `NewApps/` is not
+part of the running platform; nothing imports from it. Diagnose and migrate the source
+out of `NewApps/` into `utils/apps/{name}/`, then remove the staging copy once the
+migration is verified.
+
 Read this file end to end before touching the source app. Then read the reference
 files as each stage calls for them:
 
@@ -149,7 +155,7 @@ Goal: decide where every inventoried item lands, and in what order, before writi
    | Business rules / services | `utils/apps/{name}/backend/services/` |
    | Cross-layer domain helpers | `utils/apps/{name}/shared/` |
    | Background jobs | `utils/apps/{name}/backend/tasks/` (Celery) |
-   | HTTP routes (the *behavior*) | `utils/apps/{name}/backend/api/` (DRF views) → `api/routes/{name}.py` |
+   | HTTP routes (the *behavior*) | `utils/apps/{name}/backend/api/` (DRF views) → `utils/api/routes/{name}.py` |
    | Each agent-exposable capability | `utils/apps/{name}/agent/tools.py` + `config/tools.yaml` |
    | External I/O scopes | `config/permissions.yaml` |
    | DTOs / schemas | `utils/apps/{name}/shared/schemas.py` |
@@ -199,7 +205,7 @@ Create the standard skeleton and register the app so the rest can hang off it.
 
 3. Register `utils.apps.{name}.backend` as a Django app in `config/django/settings`.
 
-4. Reserve the route module `api/routes/{name}.py` (can be empty/stub) and reserve the
+4. Reserve the route module `utils/api/routes/{name}.py` (can be empty/stub) and reserve the
    endpoint block in `docs/api.md` under the app's heading. No real endpoints yet.
 
 **Validate:** `uv run manage.py check` passes; the app imports.
@@ -249,7 +255,7 @@ web framework as you go.
 5. Do **not** duplicate logic between layers. A service is the single source of truth
    for one operation.
 
-**Validate:** `uv run pytest tests/utils/apps/{name}/` — service tests cover the
+**Validate:** `uv run pytest utils/tests/utils/apps/{name}/` — service tests cover the
 ported behavior including at least one denial/validation case per service.
 **Commit:** one commit per cohesive service group (e.g. `feat({name}): port invoice
 calculation service`).
@@ -262,13 +268,13 @@ Wrap services in a thin HTTP layer.
 
 1. Write serializers and DRF views in `backend/api/` that validate input, call a
    service, and serialize the result. No domain logic in views.
-2. Register routes in `api/routes/{name}.py` and include them in the root URLconf.
+2. Register routes in `utils/api/routes/{name}.py` and include them in the root URLconf.
 3. Map service errors to stable JSON error codes with a consistent envelope.
 4. Use platform defaults (pagination page size 25, etc.).
 5. Fill in the reserved `docs/api.md` block with the real endpoints, methods, inputs,
    and response shapes — this is now the contract.
 
-**Validate:** `uv run pytest tests/api/test_{name}.py` plus a manual `curl` round-trip
+**Validate:** `uv run pytest utils/tests/api/test_{name}.py` plus a manual `curl` round-trip
 for each endpoint; errors return stable codes.
 **Commit:** `feat({name}): add DRF API over services`.
 
@@ -300,7 +306,7 @@ app. Model it on `utils/apps/media_viewer/agent/tools.py`.
    (path traversal, `.env`, `config/`, other apps' data).
 5. Emit trace events on state-changing tool calls via `utils/shared/events/`.
 
-**Validate:** `uv run pytest tests/utils/apps/{name}/test_agent_tools.py` — assert
+**Validate:** `uv run pytest utils/tests/utils/apps/{name}/test_agent_tools.py` — assert
 tools produce structured output, call the service layer (mock the service, not the
 I/O), and **deny** out-of-scope access and missing-confirmation deletes.
 **Commit:** `feat({name}): add agent tools, registration, and permission scopes`.
@@ -354,7 +360,7 @@ Required test groups (see `templates.md` for the checklist):
 - **Database tests** — existing rows read back unchanged; if migrated, counts and
   checksums match.
 
-**Validate:** `uv run pytest tests/utils/apps/{name}/ tests/api/test_{name}.py`,
+**Validate:** `uv run pytest utils/tests/utils/apps/{name}/ utils/tests/api/test_{name}.py`,
 `uv run manage.py test`, then the full suite before merge: `uv run pytest` and
 `cd web && npm run build`.
 **Commit:** `test({name}): cover services, API, tools, and permission denials`.
