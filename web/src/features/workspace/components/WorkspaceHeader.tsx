@@ -1,7 +1,9 @@
-import { ChevronDown, FileText, Menu, X } from "lucide-react";
+import { ChevronDown, Dumbbell, FileText, Menu, X } from "lucide-react";
 
 import {
   EPHEMERAL_ARTIFACT_TAB_LABEL,
+  EXERCISE_TAB_LABEL,
+  EXERCISE_WORKSPACE_TAB,
   ephemeralTabValue,
   isEphemeralWorkspaceTab,
   selectSidebarCollapsed,
@@ -36,6 +38,9 @@ function getActiveLabel(
   activeTab: WorkspaceTabId,
   hasEphemeralTab: boolean,
 ): string {
+  if (activeWorkspaceTab === EXERCISE_WORKSPACE_TAB) {
+    return EXERCISE_TAB_LABEL;
+  }
   if (isEphemeralWorkspaceTab(activeWorkspaceTab) && hasEphemeralTab) {
     return EPHEMERAL_ARTIFACT_TAB_LABEL;
   }
@@ -47,6 +52,8 @@ export function WorkspaceHeader() {
   const activeTab = useWorkspaceStore((s) => s.activeTab);
   const activeWorkspaceTab = useWorkspaceStore((s) => s.activeWorkspaceTab);
   const ephemeralTab = useWorkspaceStore((s) => s.ephemeralTab);
+  const exerciseTabOpen = useWorkspaceStore((s) => s.exerciseTabOpen);
+  const closeExerciseTab = useWorkspaceStore((s) => s.closeExerciseTab);
   const setActiveWorkspaceTab = useWorkspaceStore((s) => s.setActiveWorkspaceTab);
   const sidebarWidth = useWorkspaceStore((s) => s.sidebarWidth);
   const mobileDrawerOpen = useWorkspaceStore((s) => s.mobileDrawerOpen);
@@ -64,8 +71,8 @@ export function WorkspaceHeader() {
   );
 
   const onTabChange = (value: string) => {
-    if (isEphemeralWorkspaceTab(value)) {
-      setActiveWorkspaceTab(value);
+    if (isEphemeralWorkspaceTab(value) || value === EXERCISE_WORKSPACE_TAB) {
+      setActiveWorkspaceTab(value as WorkspaceTabId);
       return;
     }
     setActiveWorkspaceTab(value as WorkspaceTabId);
@@ -124,6 +131,40 @@ export function WorkspaceHeader() {
                 {ephemeralTab.tabLabel}
               </TabsTrigger>
             )}
+            {exerciseTabOpen && (
+              <TabsTrigger
+                value={EXERCISE_WORKSPACE_TAB}
+                role="tab"
+                className={cn(workspaceTabTriggerClass, "pr-2")}
+              >
+                <Dumbbell className="h-4 w-4 shrink-0" />
+                {EXERCISE_TAB_LABEL}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Close Exercise tab"
+                  className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-[var(--radius-sm)] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
+                    event.preventDefault();
+                  }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    closeExerciseTab();
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.stopPropagation();
+                      event.preventDefault();
+                      closeExerciseTab();
+                    }
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </span>
+              </TabsTrigger>
+            )}
           </TabsList>
         </Tabs>
 
@@ -169,6 +210,33 @@ export function WorkspaceHeader() {
                   >
                     <FileText className="h-4 w-4" />
                     <span className="italic">{ephemeralTab.tabLabel}</span>
+                  </DropdownMenuItem>
+                </>
+              )}
+              {exerciseTabOpen && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className={cn(
+                      activeWorkspaceTab === EXERCISE_WORKSPACE_TAB &&
+                        "bg-primary/5 text-primary",
+                    )}
+                    onSelect={() => setActiveWorkspaceTab(EXERCISE_WORKSPACE_TAB)}
+                  >
+                    <Dumbbell className="h-4 w-4" />
+                    <span className="flex-1">{EXERCISE_TAB_LABEL}</span>
+                    <span
+                      role="button"
+                      aria-label="Close Exercise tab"
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] text-muted-foreground hover:bg-muted hover:text-foreground"
+                      onPointerDown={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        closeExerciseTab();
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </span>
                   </DropdownMenuItem>
                 </>
               )}

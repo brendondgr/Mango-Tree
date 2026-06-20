@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ConfirmDeleteButton } from "@exercise/components/ConfirmDeleteButton";
 import {
   useDeleteLog,
@@ -39,33 +38,31 @@ export function HistoryView() {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-muted-foreground">{sorted.length} sessions</p>
-      <ScrollArea className="h-[60vh] rounded-[var(--radius-lg)] border border-border">
-        <ul className="divide-y divide-border">
-          {sorted.map((log) => (
-            <li key={log.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-foreground">
-                  {label(log.workout_id)}
-                  {log.notes ? (
-                    <span className="font-normal text-muted-foreground"> · {log.notes}</span>
-                  ) : null}
-                </p>
-                <p className="text-xs text-muted-foreground">{formatDate(log.date)}</p>
-              </div>
-              <div className="flex shrink-0 items-center gap-4 text-xs text-muted-foreground">
-                <span>{formatDuration(log.duration)}</span>
-                <span>vol {formatNumber(log.volume)}</span>
-                <ConfirmDeleteButton
-                  title="Delete session?"
-                  description="This logged session will be removed."
-                  onConfirm={() => deleteLog.mutate(log.id)}
-                  disabled={deleteLog.isPending}
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
-      </ScrollArea>
+      <ul className="divide-y divide-border rounded-[var(--radius-lg)] border border-border bg-card">
+        {sorted.map((log) => (
+          <li key={log.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-foreground">
+                {label(log.workout_id)}
+                {log.notes ? (
+                  <span className="font-normal text-muted-foreground"> · {log.notes}</span>
+                ) : null}
+              </p>
+              <p className="text-xs text-muted-foreground">{formatDate(log.date)}</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-4 text-xs text-muted-foreground">
+              <span>{formatDuration(log.duration)}</span>
+              <span>vol {formatNumber(log.volume)}</span>
+              <ConfirmDeleteButton
+                title="Delete session?"
+                description="This logged session will be removed."
+                onConfirm={() => deleteLog.mutate(log.id)}
+                disabled={deleteLog.isPending}
+              />
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

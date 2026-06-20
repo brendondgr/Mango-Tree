@@ -58,7 +58,20 @@ export type EphemeralTab = {
   tabLabel: typeof EPHEMERAL_ARTIFACT_TAB_LABEL;
 };
 
-export type WorkspaceTabValue = WorkspaceTabId | `ephemeral:${string}`;
+export const EXERCISE_WORKSPACE_TAB = "app:exercise";
+export const EXERCISE_TAB_LABEL = "Exercise";
+
+export type ExerciseView =
+  | "dashboard"
+  | "workouts"
+  | "routines"
+  | "equipment"
+  | "history";
+
+export type WorkspaceTabValue =
+  | WorkspaceTabId
+  | `ephemeral:${string}`
+  | typeof EXERCISE_WORKSPACE_TAB;
 
 export const VIEWER_MEDIA_FRACTION_DEFAULT = 0.5;
 export const VIEWER_MEDIA_FRACTION_MIN = 0.2;
@@ -90,6 +103,8 @@ interface WorkspaceState {
   activeTab: WorkspaceTabId;
   activeWorkspaceTab: WorkspaceTabValue;
   ephemeralTab: EphemeralTab | null;
+  exerciseTabOpen: boolean;
+  exerciseView: ExerciseView;
   sidebarMode: SidebarMode;
   artifactGridColumns: number;
   viewerMediaFraction: number;
@@ -106,6 +121,9 @@ interface WorkspaceState {
   setActiveWorkspaceTab: (tab: WorkspaceTabValue) => void;
   openArtifactTab: (artifactId: string) => void;
   closeEphemeralTab: () => void;
+  openExerciseTab: () => void;
+  closeExerciseTab: () => void;
+  setExerciseView: (view: ExerciseView) => void;
   setSidebarMode: (mode: SidebarMode) => void;
   setArtifactGridColumns: (columns: number) => void;
   setViewerMediaFraction: (fraction: number) => void;
@@ -148,6 +166,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       activeTab: "overview",
       activeWorkspaceTab: "overview",
       ephemeralTab: null,
+      exerciseTabOpen: false,
+      exerciseView: "dashboard",
       sidebarMode: "chat",
       artifactGridColumns: ARTIFACT_GRID_COLUMNS_DEFAULT,
       viewerMediaFraction: VIEWER_MEDIA_FRACTION_DEFAULT,
@@ -181,7 +201,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       setActiveTab: (tab) => get().setPinnedTab(tab),
 
       setActiveWorkspaceTab: (tab) => {
-        if (isEphemeralWorkspaceTab(tab)) {
+        if (isEphemeralWorkspaceTab(tab) || tab === EXERCISE_WORKSPACE_TAB) {
           set({ activeWorkspaceTab: tab });
           return;
         }
@@ -208,6 +228,25 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           activeWorkspaceTab: activeTab,
         });
       },
+
+      openExerciseTab: () =>
+        set({
+          exerciseTabOpen: true,
+          activeWorkspaceTab: EXERCISE_WORKSPACE_TAB,
+        }),
+
+      closeExerciseTab: () => {
+        const { activeWorkspaceTab, activeTab } = get();
+        set({
+          exerciseTabOpen: false,
+          activeWorkspaceTab:
+            activeWorkspaceTab === EXERCISE_WORKSPACE_TAB
+              ? activeTab
+              : activeWorkspaceTab,
+        });
+      },
+
+      setExerciseView: (view) => set({ exerciseView: view }),
 
       setSidebarMode: (mode) => set({ sidebarMode: mode }),
 
@@ -308,11 +347,13 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         sidebarMode: state.sidebarMode,
         artifactGridColumns: state.artifactGridColumns,
         viewerMediaFraction: state.viewerMediaFraction,
+        exerciseView: state.exerciseView,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.sidebarWidth = state.lastWidth || SIDEBAR_DEFAULT;
           state.ephemeralTab = null;
+          state.exerciseTabOpen = false;
           state.activeWorkspaceTab = state.activeTab;
         }
       },

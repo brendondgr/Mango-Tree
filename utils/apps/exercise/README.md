@@ -41,6 +41,19 @@ Registered in `config/tools.yaml` (Stage 6). Each tool calls the same service
 as its matching DRF endpoint. Destructive tools require `confirm: true`. Strava
 network access is scoped in `config/permissions.yaml`.
 
+## Frontend
+
+Imported by `web/` via the `@exercise` Vite alias. The API client is
+`web/src/services/exerciseClient.ts` (request/response only); data fetching uses
+TanStack Query hooks in `frontend/hooks/useExercise.ts`.
+
+The UI opens as a **persistent workspace tab** (the dumbbell icon on the chat
+nav rail), appearing next to Overview/Assets/History in `WorkspaceHeader` and
+rendering inside `WorkspaceMainBody` via `frontend/pages/ExerciseWorkspace.tsx`.
+Unlike the artifacts ephemeral tab, it survives pinned-tab switches and only
+closes via its tab's ✕ button. The active sub-view (dashboard/workouts/routines/
+equipment/history) is persisted in the workspace store.
+
 ## Rules
 
 - Business logic lives in `backend/services/` or `shared/`.

@@ -1,7 +1,10 @@
-import { Link } from "@tanstack/react-router";
 import { Dumbbell, MessageSquare, FolderOpen } from "lucide-react";
 
-import { useWorkspaceStore, type SidebarMode } from "@/app/stores/workspaceStore";
+import {
+  EXERCISE_WORKSPACE_TAB,
+  useWorkspaceStore,
+  type SidebarMode,
+} from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
 import { MOBILE_BREAKPOINT, useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
@@ -20,11 +23,15 @@ export function ChatNavRail() {
   const sidebarMode = useWorkspaceStore((s) => s.sidebarMode);
   const setSidebarMode = useWorkspaceStore((s) => s.setSidebarMode);
   const expandSidebar = useWorkspaceStore((s) => s.expandSidebar);
+  const openExerciseTab = useWorkspaceStore((s) => s.openExerciseTab);
+  const activeWorkspaceTab = useWorkspaceStore((s) => s.activeWorkspaceTab);
 
   const handleSelect = (mode: SidebarMode) => {
     setSidebarMode(mode);
     expandSidebar();
   };
+
+  const exerciseActive = activeWorkspaceTab === EXERCISE_WORKSPACE_TAB;
 
   return (
     <nav
@@ -58,16 +65,19 @@ export function ChatNavRail() {
         );
       })}
       <Button
-        asChild
         type="button"
-        variant="ghost"
+        variant={exerciseActive ? "secondary" : "ghost"}
         size="icon"
-        className="h-10 w-10 rounded-[var(--radius-md)]"
+        className={cn(
+          "h-10 w-10 rounded-[var(--radius-md)]",
+          exerciseActive && "bg-secondary text-foreground",
+        )}
+        aria-label="Exercise"
+        aria-current={exerciseActive ? "page" : undefined}
         title="Exercise"
+        onClick={() => openExerciseTab()}
       >
-        <Link to="/exercise" aria-label="Exercise">
-          <Dumbbell className="h-5 w-5" />
-        </Link>
+        <Dumbbell className="h-5 w-5" />
       </Button>
     </nav>
   );

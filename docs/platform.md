@@ -85,12 +85,11 @@ Target: React/Vite SPA with swappable shadcn/Tailwind themes (Canva-inspired def
 | Route | Data Source |
 | --- | --- |
 | `/dashboard` | `/api/tasks/`, app summaries |
-| `/chat` | `/api/tasks/`, agent endpoints, `/api/media-viewer/artifacts/` |
+| `/chat` | `/api/tasks/`, agent endpoints, `/api/media-viewer/artifacts/`, `/api/exercise/` (Exercise opens as a persistent workspace tab) |
 | `/projects`, `/projects/:id` | `/api/projects/` |
 | `/notes`, `/notes/:id` | `/api/notes/` |
 | `/jobs` | `/api/jobs/` |
 | `/calendar` | `/api/calendar/events/` |
-| `/exercise` | `/api/exercise/` (workouts, routines, equipment, history, strava) |
 | `/agents` | `/api/agents/` |
 | `/workflows` | `/api/workflows/` |
 | `/tools` | `/api/tools/` |
