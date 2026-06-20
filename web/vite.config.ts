@@ -38,7 +38,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       "/api": {
-        target: "http://localhost:8000",
+        target: "http://localhost:32553",
         changeOrigin: true,
       },
     },
@@ -54,7 +54,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       "/api": {
-        target: "http://localhost:8000",
+        target: "http://localhost:32553",
         changeOrigin: true,
       },
     },

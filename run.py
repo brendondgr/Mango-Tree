@@ -12,16 +12,16 @@ def main():
     # Determine command formats based on OS
     if sys.platform == "win32":
         # On Windows, use cmd.exe to launch commands so it respects paths and execution policies
-        django_cmd = ["uv", "run", "manage.py", "runserver"]
+        django_cmd = ["uv", "run", "manage.py", "runserver", "32553"]
         node_cmd = ["cmd.exe", "/c", "npm", "run", "dev"]
     else:
-        django_cmd = ["uv", "run", "manage.py", "runserver"]
+        django_cmd = ["uv", "run", "manage.py", "runserver", "32553"]
         node_cmd = ["npm", "run", "dev"]
 
     processes = []
     try:
         # 1. Start Django backend
-        print(f"Starting Django backend on port 8000...")
+        print(f"Starting Django backend on port 32553...")
         django_proc = subprocess.Popen(
             django_cmd,
             cwd=root_dir,
