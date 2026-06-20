@@ -19,14 +19,20 @@
     "paths": {
       "@/*": ["./src/*"],
       "@media-viewer/*": ["../utils/apps/media_viewer/frontend/*"],
+      "@exercise/*": ["../utils/apps/exercise/frontend/*"],
       "lucide-react": ["./node_modules/lucide-react"],
       "react": ["./node_modules/@types/react"],
       "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
       "react-dom": ["./node_modules/@types/react-dom"],
       "@tanstack/react-query": ["./node_modules/@tanstack/react-query"],
+      "@tanstack/react-router": ["./node_modules/@tanstack/react-router"],
       "pdfjs-dist": ["./node_modules/pdfjs-dist"]
     }
   },
-  "include": ["src", "../utils/apps/media_viewer/frontend"],
+  "include": [
+    "src",
+    "../utils/apps/media_viewer/frontend",
+    "../utils/apps/exercise/frontend"
+  ],
   "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }

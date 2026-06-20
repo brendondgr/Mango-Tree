@@ -16,12 +16,17 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@media-viewer": path.resolve(__dirname, "../utils/apps/media_viewer/frontend"),
+      "@exercise": path.resolve(__dirname, "../utils/apps/exercise/frontend"),
       react: path.resolve(__dirname, "./node_modules/react"),
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
       "lucide-react": path.resolve(__dirname, "./node_modules/lucide-react"),
       "@tanstack/react-query": path.resolve(
         __dirname,
         "./node_modules/@tanstack/react-query",
+      ),
+      "@tanstack/react-router": path.resolve(
+        __dirname,
+        "./node_modules/@tanstack/react-router",
       ),
       "pdfjs-dist": path.resolve(__dirname, "./node_modules/pdfjs-dist"),
     },

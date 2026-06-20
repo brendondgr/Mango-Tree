@@ -8,6 +8,7 @@ import {
 
 import { AppProviders } from "@/app/providers";
 import { ChatPage } from "@/pages/chat/ChatPage";
+import { ExercisePage } from "@exercise/pages/ExercisePage";
 
 function RootLayout() {
   return (
@@ -33,7 +34,13 @@ const chatRoute = createRoute({
   component: ChatPage,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, chatRoute]);
+const exerciseRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/exercise",
+  component: ExercisePage,
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, chatRoute, exerciseRoute]);
 
 export const router = createRouter({ routeTree });
 

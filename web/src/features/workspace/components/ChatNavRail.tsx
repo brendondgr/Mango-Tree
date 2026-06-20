@@ -1,4 +1,5 @@
-import { MessageSquare, FolderOpen } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Dumbbell, MessageSquare, FolderOpen } from "lucide-react";
 
 import { useWorkspaceStore, type SidebarMode } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,18 @@ export function ChatNavRail() {
           </Button>
         );
       })}
+      <Button
+        asChild
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="h-10 w-10 rounded-[var(--radius-md)]"
+        title="Exercise"
+      >
+        <Link to="/exercise" aria-label="Exercise">
+          <Dumbbell className="h-5 w-5" />
+        </Link>
+      </Button>
     </nav>
   );
 }
