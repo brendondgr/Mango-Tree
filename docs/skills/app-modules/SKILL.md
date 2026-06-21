@@ -36,6 +36,27 @@ utils/apps/{app_name}/
 - App UI fragments → `frontend/` (imported by `web/` shell).
 - No business logic in `web/src/services/` beyond API client calls.
 
+## Frontend Integration (web/ shell)
+
+App UI in `utils/apps/{name}/frontend/` is imported by the `web/` SPA but lives
+**outside** `web/`. Three wiring steps are mandatory or the module silently
+renders wrong:
+
+1. **Path alias** — add `@{name}` to both `web/vite.config.ts`
+   (`resolve.alias`) and `web/tsconfig.json` (`compilerOptions.paths`), pointing
+   at `../utils/apps/{name}/frontend`.
+2. **Tailwind content source** — register the frontend in
+   `web/src/styles/globals.css` with
+   `@source "../../../utils/apps/{name}/frontend";`. Tailwind v4 auto-detects
+   classes from the Vite root (`web/`) only; without this every utility class
+   used solely in the module is dropped at build time and the UI loads unstyled
+   (collapsed grids, no surfaces). Theme tokens still resolve, so the failure
+   looks like "the CSS half-applied" rather than an obvious error.
+3. **Scoped CSS naming** — prefix all app-owned CSS classes with the app name
+   (`.{name}-card`, `.{name}-glass`) and wrap the root element in `.{name}-app`.
+   Build the visual identity on theme tokens (`hsl(var(--primary))`, `--card`,
+   category tokens), never raw hex, so it tracks the theme chosen in Settings.
+
 ## Agent Tool Registration
 
 Tools in `agent/tools.py` must:
