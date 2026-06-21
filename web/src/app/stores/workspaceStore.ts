@@ -77,6 +77,7 @@ export interface SessionExercise {
   done: boolean;
   actualReps: number;
   weight: number;
+  equipmentIds: string[];
   note: string;
 }
 

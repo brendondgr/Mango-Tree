@@ -1,7 +1,18 @@
 // Helpers for the live workout session player.
 
 import type { ExerciseSession } from "@/app/stores/workspaceStore";
-import type { HistoryLog, Workout } from "@/types/exercise";
+import type { Equipment, HistoryLog, Workout } from "@/types/exercise";
+
+/** Summed load of the selected equipment; bands contribute their max weight. */
+export function equipmentWeight(ids: string[], equipment: Equipment[]): number {
+  let total = 0;
+  for (const id of ids) {
+    const eq = equipment.find((e) => e.id === id);
+    if (!eq) continue;
+    total += eq.type === "band" ? (eq.max_weight ?? 0) : (eq.weight ?? eq.max_weight ?? 0);
+  }
+  return total;
+}
 
 /** Seed a live session from a workout template. Runs client-side (Date.now ok). */
 export function buildSession(workout: Workout): ExerciseSession {
@@ -18,6 +29,7 @@ export function buildSession(workout: Workout): ExerciseSession {
       done: false,
       actualReps: ex.reps,
       weight: ex.weight ?? 0,
+      equipmentIds: [],
       note: "",
     })),
   };
@@ -48,6 +60,7 @@ export function sessionToLog(session: ExerciseSession): HistoryLog {
       reps: ex.plannedReps,
       actualReps: ex.actualReps,
       weight: ex.weight,
+      equipmentIds: ex.equipmentIds,
       note: ex.note,
       done: ex.done,
     })),

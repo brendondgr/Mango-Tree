@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Minus, Plus } from "lucide-react";
+import { Check, ChevronDown, Minus, Plus } from "lucide-react";
 
 import {
   AlertDialog,
@@ -13,12 +13,19 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { cn } from "@/lib/utils";
-import { useAddLog } from "@exercise/hooks/useExercise";
-import { sessionToLog, sessionVolume } from "@exercise/utils/session";
+import { useAddLog, useEquipment } from "@exercise/hooks/useExercise";
+import { equipmentWeight, sessionToLog, sessionVolume } from "@exercise/utils/session";
 
 function clock(seconds: number): string {
   const m = String(Math.floor(seconds / 60)).padStart(2, "0");
@@ -32,6 +39,7 @@ export function SessionView() {
   const endSession = useWorkspaceStore((s) => s.endExerciseSession);
   const setView = useWorkspaceStore((s) => s.setExerciseView);
   const addLog = useAddLog();
+  const equipment = useEquipment().data ?? [];
 
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -43,6 +51,16 @@ export function SessionView() {
 
   const elapsed = Math.max(0, Math.floor((now - session.startedAt) / 1000));
   const doneCount = session.exercises.filter((e) => e.done).length;
+
+  const toggleEquipment = (index: number, ids: string[], id: string) => {
+    const next = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
+    update(index, { equipmentIds: next, weight: equipmentWeight(next, equipment) });
+  };
+  const equipmentLabel = (ids: string[]) =>
+    equipment
+      .filter((e) => ids.includes(e.id))
+      .map((e) => e.name)
+      .join(", ") || "None";
 
   const finish = () => {
     addLog.mutate(sessionToLog(session), {
@@ -107,7 +125,7 @@ export function SessionView() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Reps</Label>
                 <div className="flex h-9 items-center rounded-[var(--radius-sm)] border border-border">
@@ -119,7 +137,17 @@ export function SessionView() {
                   >
                     <Minus className="h-3.5 w-3.5" />
                   </button>
-                  <span className="flex-1 text-center text-sm font-semibold tabular-nums">{ex.actualReps}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    aria-label="Reps"
+                    value={ex.actualReps}
+                    onChange={(e) =>
+                      update(i, { actualReps: Math.max(0, Math.floor(Number(e.target.value) || 0)) })
+                    }
+                    className="w-full min-w-0 flex-1 bg-transparent text-center text-sm font-semibold tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
                   <button
                     type="button"
                     aria-label="More reps"
@@ -139,6 +167,49 @@ export function SessionView() {
                   value={ex.weight}
                   onChange={(e) => update(i, { weight: Number(e.target.value) || 0 })}
                 />
+              </div>
+              <div className="col-span-2 space-y-1 sm:col-span-1">
+                <Label className="text-xs text-muted-foreground">Equipment</Label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex h-9 w-full items-center gap-1.5 rounded-[var(--radius-sm)] border border-border bg-transparent px-2.5 text-sm"
+                    >
+                      <span
+                        className={cn(
+                          "flex-1 truncate text-left",
+                          ex.equipmentIds.length ? "text-foreground" : "text-muted-foreground",
+                        )}
+                      >
+                        {equipmentLabel(ex.equipmentIds)}
+                      </span>
+                      <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="max-h-64 w-56 overflow-y-auto">
+                    {equipment.length === 0 ? (
+                      <DropdownMenuItem disabled>No equipment added yet</DropdownMenuItem>
+                    ) : (
+                      equipment.map((eq) => (
+                        <DropdownMenuCheckboxItem
+                          key={eq.id}
+                          checked={ex.equipmentIds.includes(eq.id)}
+                          onSelect={(e) => e.preventDefault()}
+                          onCheckedChange={() => toggleEquipment(i, ex.equipmentIds, eq.id)}
+                        >
+                          <span className="flex-1">{eq.name}</span>
+                          <span className="ml-3 text-xs text-muted-foreground">
+                            {eq.type === "band"
+                              ? `${eq.min_weight ?? 0}–${eq.max_weight ?? 0}`
+                              : (eq.weight ?? eq.max_weight ?? 0)}{" "}
+                            {eq.unit ?? "lb"}
+                          </span>
+                        </DropdownMenuCheckboxItem>
+                      ))
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               <div className="col-span-2 space-y-1 sm:col-span-1">
                 <Label htmlFor={`n-${ex.id}`} className="text-xs text-muted-foreground">Note</Label>
