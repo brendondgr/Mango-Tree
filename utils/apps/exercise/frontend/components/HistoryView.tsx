@@ -38,7 +38,7 @@ export function HistoryView() {
     <div className="exercise-fade-in flex flex-col gap-4">
       <header className="flex items-end justify-between">
         <div>
-          <h2 className="exercise-gradient-text text-2xl font-bold tracking-tight">History</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">History</h2>
           <p className="text-sm text-muted-foreground">{sorted.length} logged sessions</p>
         </div>
       </header>

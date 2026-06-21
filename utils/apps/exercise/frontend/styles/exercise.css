@@ -1,11 +1,13 @@
 /**
- * Exercise app design system — a scoped visual identity layered on the Mango
- * theme. All colors come from theme tokens (semantic + category + brand
- * gradient); no raw hex lives in components. Scope: `.exercise-app`.
+ * Exercise app design system — a scoped visual layer on the Mango theme.
  *
- * Identity: glassmorphism surfaces, brand-gradient focal states, and the
- * category palette for activity data (strength = primary, run = sky,
- * walk = mint). Recreates the original WorkoutTracker feel on-theme.
+ * Chrome (titles, tabs, buttons, controls, surfaces) uses the app's own theme
+ * tokens (primary / card / muted / border / foreground), so it tracks whatever
+ * theme the user picks in Settings — no bespoke palette, no gradients.
+ *
+ * Distinct colors are reserved ONLY for data that must be told apart:
+ * workout-type labels, run/walk activity series, and equipment types. Those
+ * bind a --c via the .exercise-c-* classes. Scope: `.exercise-app`.
  */
 
 .exercise-app {
@@ -15,10 +17,10 @@
 /* --- surfaces --------------------------------------------------------------- */
 
 .exercise-glass {
-  background: color-mix(in srgb, hsl(var(--card)) 80%, transparent);
+  background: color-mix(in srgb, hsl(var(--card)) 82%, transparent);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
-  border: 1px solid color-mix(in srgb, hsl(var(--foreground)) 8%, transparent);
+  border: 1px solid hsl(var(--border));
   box-shadow: var(--shadow-raised);
 }
 
@@ -28,14 +30,13 @@
     box-shadow var(--motion-base) var(--ease-standard),
     border-color var(--motion-base) var(--ease-standard);
 }
-
 .exercise-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
   box-shadow: var(--shadow-card-hover);
-  border-color: color-mix(in srgb, hsl(var(--primary)) 38%, transparent);
+  border-color: color-mix(in srgb, hsl(var(--primary)) 40%, transparent);
 }
 
-/* Accent rail down the left edge of a card, tinted by --c */
+/* Accent rail down the left edge, tinted by the bound --c (workout color). */
 .exercise-railed {
   position: relative;
   overflow: hidden;
@@ -46,28 +47,9 @@
   inset: 0 auto 0 0;
   width: 4px;
   background: hsl(var(--c, var(--primary)));
-  opacity: 0.9;
 }
 
-/* --- brand gradient --------------------------------------------------------- */
-
-.exercise-gradient {
-  background: var(--brand-gradient);
-  color: #fff;
-}
-
-.exercise-gradient-text {
-  background: var(--brand-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.exercise-glow {
-  box-shadow: 0 10px 28px -10px color-mix(in srgb, hsl(var(--primary)) 55%, transparent);
-}
-
-/* --- category color binding (set --c via .exercise-c-*) --------------------------- */
+/* --- workout-type / activity color binding (set --c via .exercise-c-*) ------ */
 
 .exercise-c-blue { --c: var(--category-sky); }
 .exercise-c-indigo { --c: var(--primary); }
@@ -76,7 +58,7 @@
 .exercise-c-emerald { --c: var(--category-mint); }
 .exercise-c-amber { --c: var(--category-tangerine); }
 
-/* activity semantics */
+/* activity semantics (dashboard + history) */
 .exercise-c-exercise { --c: var(--primary); }
 .exercise-c-run { --c: var(--category-sky); }
 .exercise-c-walk { --c: var(--category-mint); }
@@ -84,21 +66,23 @@
 .exercise-fg { color: hsl(var(--c, var(--primary))); }
 .exercise-bg { background: hsl(var(--c, var(--primary))); }
 
-/* svg chart bar — fill from the bound --c */
+.exercise-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  background: hsl(var(--c, var(--primary)));
+}
+
+/* svg chart */
 .exercise-bar {
   fill: hsl(var(--c, var(--primary)));
   transition: opacity var(--motion-fast) var(--ease-standard);
 }
 .exercise-grid { stroke: color-mix(in srgb, hsl(var(--foreground)) 10%, transparent); }
 .exercise-axis-text { fill: hsl(var(--muted-foreground)); font-size: 11px; }
-.exercise-dot {
-  width: 0.6rem;
-  height: 0.6rem;
-  border-radius: var(--radius-pill);
-  background: hsl(var(--c, var(--primary)));
-}
 
-/* --- badges / pills --------------------------------------------------------- */
+/* --- badges / pills (tinted by --c) ----------------------------------------- */
 
 .exercise-badge {
   display: inline-flex;
@@ -115,7 +99,7 @@
   border: 1px solid color-mix(in srgb, hsl(var(--c, var(--primary))) 30%, transparent);
 }
 
-/* --- segmented control (aggregation / metric toggles) ----------------------- */
+/* --- segmented control (theme primary, not a gradient) ---------------------- */
 
 .exercise-seg {
   display: inline-flex;
@@ -123,9 +107,8 @@
   padding: 3px;
   border-radius: var(--radius-md);
   background: color-mix(in srgb, hsl(var(--foreground)) 6%, transparent);
-  border: 1px solid color-mix(in srgb, hsl(var(--foreground)) 6%, transparent);
+  border: 1px solid hsl(var(--border));
 }
-
 .exercise-seg-btn {
   padding: 0.4rem 0.9rem;
   border-radius: var(--radius-sm);
@@ -135,16 +118,14 @@
   transition: all var(--motion-fast) var(--ease-standard);
   white-space: nowrap;
 }
-.exercise-seg-btn:hover {
-  color: hsl(var(--foreground));
-}
+.exercise-seg-btn:hover { color: hsl(var(--foreground)); }
 .exercise-seg-btn[data-active="true"] {
-  background: var(--brand-gradient);
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   box-shadow: var(--shadow-raised);
 }
 
-/* --- top tab navigation (Dashboard / Workouts / ...) ------------------------ */
+/* --- top tab navigation (theme primary) ------------------------------------- */
 
 .exercise-tab {
   position: relative;
@@ -163,21 +144,23 @@
   background: color-mix(in srgb, hsl(var(--foreground)) 5%, transparent);
 }
 .exercise-tab[data-active="true"] {
-  color: #fff;
-  background: var(--brand-gradient);
-  box-shadow: var(--shadow-card-hover);
+  color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary));
+  box-shadow: var(--shadow-raised);
 }
 
 /* --- inputs ----------------------------------------------------------------- */
 
 .exercise-input {
+  width: 100%;
   background: color-mix(in srgb, hsl(var(--muted)) 45%, transparent);
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.75rem;
   font-size: 0.85rem;
   color: hsl(var(--foreground));
-  transition: border-color var(--motion-fast) var(--ease-standard),
+  transition:
+    border-color var(--motion-fast) var(--ease-standard),
     box-shadow var(--motion-fast) var(--ease-standard);
 }
 .exercise-input:focus {
@@ -185,6 +168,23 @@
   border-color: hsl(var(--primary));
   box-shadow: var(--focus-ring);
 }
+.exercise-input::placeholder { color: hsl(var(--muted-foreground)); }
+
+/* --- drag & drop (routines builder) ----------------------------------------- */
+
+.exercise-dropzone {
+  border: 1px dashed color-mix(in srgb, hsl(var(--foreground)) 14%, transparent);
+  border-radius: var(--radius-md);
+  transition:
+    background var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard);
+}
+.exercise-dropzone[data-over="true"] {
+  background: color-mix(in srgb, hsl(var(--primary)) 12%, transparent);
+  border-color: hsl(var(--primary));
+}
+.exercise-grab { cursor: grab; }
+.exercise-grab:active { cursor: grabbing; }
 
 /* --- motion ----------------------------------------------------------------- */
 
@@ -195,7 +195,8 @@
 .exercise-fade-in { animation: exercise-fade-in var(--motion-base) var(--ease-standard) both; }
 
 @media (prefers-reduced-motion: reduce) {
-  .exercise-card, .exercise-card:hover { transform: none; transition: none; }
+  .exercise-card,
+  .exercise-card:hover { transform: none; transition: none; }
   .exercise-fade-in { animation: none; }
 }
 

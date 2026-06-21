@@ -89,7 +89,7 @@ export function DashboardView() {
     <div className="exercise-fade-in flex flex-col gap-6">
       <header className="flex items-center justify-between">
         <div>
-          <h2 className="exercise-gradient-text text-2xl font-bold tracking-tight">Dashboard</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h2>
           <p className="text-sm text-muted-foreground">Workouts / Runs / Walks at a glance</p>
         </div>
       </header>
