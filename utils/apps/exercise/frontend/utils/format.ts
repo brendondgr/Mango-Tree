@@ -26,3 +26,17 @@ export function dayKey(value: string): string {
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value);
 }
+
+const WORKOUT_COLOR_CLASS: Record<string, string> = {
+  blue: "ex-c-blue",
+  indigo: "ex-c-indigo",
+  violet: "ex-c-violet",
+  rose: "ex-c-rose",
+  emerald: "ex-c-emerald",
+  amber: "ex-c-amber",
+};
+
+export function workoutColorClass(color: string | null | undefined): string {
+  return (color && WORKOUT_COLOR_CLASS[color]) || "ex-c-indigo";
+}
+

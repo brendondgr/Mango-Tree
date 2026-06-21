@@ -1,29 +1,31 @@
 import { useMemo } from "react";
+import { History as HistoryIcon } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import { ConfirmDeleteButton } from "@exercise/components/ConfirmDeleteButton";
 import {
   useDeleteLog,
   useHistory,
   useWorkouts,
 } from "@exercise/hooks/useExercise";
-import { formatDate, formatDuration, formatNumber } from "@exercise/utils/format";
+import { formatDate, formatDuration, formatNumber, workoutColorClass } from "@exercise/utils/format";
 
 export function HistoryView() {
   const history = useHistory();
   const workouts = useWorkouts();
   const deleteLog = useDeleteLog();
 
-  const label = (workoutId: string) => {
-    if (workoutId === "run") return "Run";
-    if (workoutId === "walk") return "Walk";
-    return workouts.data?.find((w) => w.id === workoutId)?.name ?? "Workout";
+  const meta = (workoutId: string) => {
+    if (workoutId === "run") return { label: "Run", colorClass: "ex-c-run" };
+    if (workoutId === "walk") return { label: "Walk", colorClass: "ex-c-walk" };
+    const w = workouts.data?.find((x) => x.id === workoutId);
+    return { label: w?.name ?? "Workout", colorClass: workoutColorClass(w?.color) };
   };
 
-  const sorted = useMemo(() => {
-    return [...(history.data ?? [])].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
-  }, [history.data]);
+  const sorted = useMemo(
+    () => [...(history.data ?? [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [history.data],
+  );
 
   if (history.isLoading) {
     return <p className="text-sm text-muted-foreground">Loading history…</p>;
@@ -31,38 +33,52 @@ export function HistoryView() {
   if (history.isError) {
     return <p className="text-sm text-destructive">{(history.error as Error).message}</p>;
   }
-  if (sorted.length === 0) {
-    return <p className="text-sm text-muted-foreground">No sessions logged yet.</p>;
-  }
 
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-xs text-muted-foreground">{sorted.length} sessions</p>
-      <ul className="divide-y divide-border rounded-[var(--radius-lg)] border border-border bg-card">
-        {sorted.map((log) => (
-          <li key={log.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">
-                {label(log.workout_id)}
-                {log.notes ? (
-                  <span className="font-normal text-muted-foreground"> · {log.notes}</span>
-                ) : null}
-              </p>
-              <p className="text-xs text-muted-foreground">{formatDate(log.date)}</p>
-            </div>
-            <div className="flex shrink-0 items-center gap-4 text-xs text-muted-foreground">
-              <span>{formatDuration(log.duration)}</span>
-              <span>vol {formatNumber(log.volume)}</span>
-              <ConfirmDeleteButton
-                title="Delete session?"
-                description="This logged session will be removed."
-                onConfirm={() => deleteLog.mutate(log.id)}
-                disabled={deleteLog.isPending}
-              />
-            </div>
-          </li>
-        ))}
-      </ul>
+    <div className="ex-fade-in flex flex-col gap-4">
+      <header className="flex items-end justify-between">
+        <div>
+          <h2 className="ex-gradient-text text-2xl font-bold tracking-tight">History</h2>
+          <p className="text-sm text-muted-foreground">{sorted.length} logged sessions</p>
+        </div>
+      </header>
+
+      {sorted.length === 0 ? (
+        <div className="ex-glass flex flex-col items-center gap-2 rounded-[var(--radius-lg)] p-10 text-center">
+          <HistoryIcon className="h-8 w-8 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">No sessions logged yet.</p>
+        </div>
+      ) : (
+        <ul className="ex-glass ex-scroll max-h-[calc(100vh-16rem)] divide-y divide-border overflow-y-auto rounded-[var(--radius-lg)]">
+          {sorted.map((log) => {
+            const m = meta(log.workout_id);
+            return (
+              <li key={log.id} className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-[color-mix(in_srgb,hsl(var(--foreground))_4%,transparent)]">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className={cn("ex-dot shrink-0", m.colorClass)} />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {m.label}
+                      {log.notes ? <span className="font-normal text-muted-foreground"> · {log.notes}</span> : null}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{formatDate(log.date)}</p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-4 text-xs">
+                  <span className="text-muted-foreground">{formatDuration(log.duration)}</span>
+                  <span className="font-medium text-foreground">{formatNumber(log.volume)}</span>
+                  <ConfirmDeleteButton
+                    title="Delete session?"
+                    description="This logged session will be removed."
+                    onConfirm={() => deleteLog.mutate(log.id)}
+                    disabled={deleteLog.isPending}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

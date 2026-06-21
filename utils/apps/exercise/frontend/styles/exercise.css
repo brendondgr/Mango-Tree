@@ -1,0 +1,209 @@
+/**
+ * Exercise app design system — a scoped visual identity layered on the Mango
+ * theme. All colors come from theme tokens (semantic + category + brand
+ * gradient); no raw hex lives in components. Scope: `.exercise-app`.
+ *
+ * Identity: glassmorphism surfaces, brand-gradient focal states, and the
+ * category palette for activity data (strength = primary, run = sky,
+ * walk = mint). Recreates the original WorkoutTracker feel on-theme.
+ */
+
+.exercise-app {
+  color: hsl(var(--foreground));
+}
+
+/* --- surfaces --------------------------------------------------------------- */
+
+.ex-glass {
+  background: color-mix(in srgb, hsl(var(--card)) 80%, transparent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid color-mix(in srgb, hsl(var(--foreground)) 8%, transparent);
+  box-shadow: var(--shadow-raised);
+}
+
+.ex-card {
+  transition:
+    transform var(--motion-base) var(--ease-standard),
+    box-shadow var(--motion-base) var(--ease-standard),
+    border-color var(--motion-base) var(--ease-standard);
+}
+
+.ex-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card-hover);
+  border-color: color-mix(in srgb, hsl(var(--primary)) 38%, transparent);
+}
+
+/* Accent rail down the left edge of a card, tinted by --c */
+.ex-railed {
+  position: relative;
+  overflow: hidden;
+}
+.ex-railed::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: hsl(var(--c, var(--primary)));
+  opacity: 0.9;
+}
+
+/* --- brand gradient --------------------------------------------------------- */
+
+.ex-gradient {
+  background: var(--brand-gradient);
+  color: #fff;
+}
+
+.ex-gradient-text {
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.ex-glow {
+  box-shadow: 0 10px 28px -10px color-mix(in srgb, hsl(var(--primary)) 55%, transparent);
+}
+
+/* --- category color binding (set --c via .ex-c-*) --------------------------- */
+
+.ex-c-blue { --c: var(--category-sky); }
+.ex-c-indigo { --c: var(--primary); }
+.ex-c-violet { --c: var(--category-lavender); }
+.ex-c-rose { --c: var(--category-coral); }
+.ex-c-emerald { --c: var(--category-mint); }
+.ex-c-amber { --c: var(--category-tangerine); }
+
+/* activity semantics */
+.ex-c-exercise { --c: var(--primary); }
+.ex-c-run { --c: var(--category-sky); }
+.ex-c-walk { --c: var(--category-mint); }
+
+.ex-fg { color: hsl(var(--c, var(--primary))); }
+.ex-bg { background: hsl(var(--c, var(--primary))); }
+
+/* svg chart bar — fill from the bound --c */
+.ex-bar {
+  fill: hsl(var(--c, var(--primary)));
+  transition: opacity var(--motion-fast) var(--ease-standard);
+}
+.ex-grid { stroke: color-mix(in srgb, hsl(var(--foreground)) 10%, transparent); }
+.ex-axis-text { fill: hsl(var(--muted-foreground)); font-size: 11px; }
+.ex-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: var(--radius-pill);
+  background: hsl(var(--c, var(--primary)));
+}
+
+/* --- badges / pills --------------------------------------------------------- */
+
+.ex-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: hsl(var(--c, var(--primary)));
+  background: color-mix(in srgb, hsl(var(--c, var(--primary))) 14%, transparent);
+  border: 1px solid color-mix(in srgb, hsl(var(--c, var(--primary))) 30%, transparent);
+}
+
+/* --- segmented control (aggregation / metric toggles) ----------------------- */
+
+.ex-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, hsl(var(--foreground)) 6%, transparent);
+  border: 1px solid color-mix(in srgb, hsl(var(--foreground)) 6%, transparent);
+}
+
+.ex-seg-btn {
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  transition: all var(--motion-fast) var(--ease-standard);
+  white-space: nowrap;
+}
+.ex-seg-btn:hover {
+  color: hsl(var(--foreground));
+}
+.ex-seg-btn[data-active="true"] {
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: var(--shadow-raised);
+}
+
+/* --- top tab navigation (Dashboard / Workouts / ...) ------------------------ */
+
+.ex-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: hsl(var(--muted-foreground));
+  transition: all var(--motion-fast) var(--ease-standard);
+}
+.ex-tab:hover {
+  color: hsl(var(--foreground));
+  background: color-mix(in srgb, hsl(var(--foreground)) 5%, transparent);
+}
+.ex-tab[data-active="true"] {
+  color: #fff;
+  background: var(--brand-gradient);
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* --- inputs ----------------------------------------------------------------- */
+
+.ex-input {
+  background: color-mix(in srgb, hsl(var(--muted)) 45%, transparent);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  color: hsl(var(--foreground));
+  transition: border-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
+}
+.ex-input:focus {
+  outline: none;
+  border-color: hsl(var(--primary));
+  box-shadow: var(--focus-ring);
+}
+
+/* --- motion ----------------------------------------------------------------- */
+
+@keyframes ex-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.ex-fade-in { animation: ex-fade-in var(--motion-base) var(--ease-standard) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ex-card, .ex-card:hover { transform: none; transition: none; }
+  .ex-fade-in { animation: none; }
+}
+
+/* --- scrollbar -------------------------------------------------------------- */
+
+.ex-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.ex-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, hsl(var(--foreground)) 18%, transparent);
+  border-radius: var(--radius-pill);
+}
+.ex-scroll::-webkit-scrollbar-track { background: transparent; }

@@ -1,5 +1,9 @@
+import { Dumbbell } from "lucide-react";
+
+import { cn } from "@/lib/utils";
 import { ConfirmDeleteButton } from "@exercise/components/ConfirmDeleteButton";
 import { useDeleteWorkout, useWorkouts } from "@exercise/hooks/useExercise";
+import { workoutColorClass } from "@exercise/utils/format";
 
 export function WorkoutsView() {
   const workouts = useWorkouts();
@@ -12,49 +16,53 @@ export function WorkoutsView() {
     return <p className="text-sm text-destructive">{(workouts.error as Error).message}</p>;
   }
   const items = workouts.data ?? [];
-  if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">No workout templates yet.</p>;
-  }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {items.map((workout) => (
-        <article
-          key={workout.id}
-          className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-border bg-card p-4"
-        >
-          <header className="flex items-start justify-between gap-2">
-            <div>
-              <h3 className="font-semibold text-foreground">{workout.name}</h3>
-              <p className="text-xs text-muted-foreground">
-                {workout.exercises.length} exercise{workout.exercises.length === 1 ? "" : "s"}
-              </p>
-            </div>
-            <ConfirmDeleteButton
-              title="Delete workout?"
-              description={`"${workout.name}" will be removed. This cannot be undone.`}
-              onConfirm={() => deleteWorkout.mutate(workout.id)}
-              disabled={deleteWorkout.isPending}
-            />
-          </header>
-          <ul className="flex flex-col gap-1 text-sm text-foreground/80">
-            {workout.exercises.slice(0, 6).map((exercise) => (
-              <li key={exercise.id} className="flex justify-between gap-2">
-                <span className="truncate">{exercise.name}</span>
-                <span className="shrink-0 text-muted-foreground">
-                  {exercise.sets}×{exercise.reps}
-                  {exercise.weight ? ` @ ${exercise.weight}` : ""}
-                </span>
-              </li>
-            ))}
-            {workout.exercises.length > 6 ? (
-              <li className="text-xs text-muted-foreground">
-                +{workout.exercises.length - 6} more
-              </li>
-            ) : null}
-          </ul>
-        </article>
-      ))}
+    <div className="ex-fade-in flex flex-col gap-6">
+      <header>
+        <h2 className="ex-gradient-text text-2xl font-bold tracking-tight">Your Workouts</h2>
+        <p className="text-sm text-muted-foreground">Your custom workout programs</p>
+      </header>
+
+      {items.length === 0 ? (
+        <div className="ex-glass flex flex-col items-center gap-2 rounded-[var(--radius-lg)] p-10 text-center">
+          <Dumbbell className="h-8 w-8 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">No workout templates yet.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {items.map((workout) => {
+            const colorClass = workoutColorClass(workout.color);
+            return (
+              <article
+                key={workout.id}
+                className={cn(
+                  "ex-glass ex-card ex-railed flex flex-col gap-4 rounded-[var(--radius-lg)] p-5 pl-6",
+                  colorClass,
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className={cn("ex-badge", colorClass)}>
+                    {workout.exercises.length} Exercise{workout.exercises.length === 1 ? "" : "s"}
+                  </span>
+                  <ConfirmDeleteButton
+                    title="Delete workout?"
+                    description={`"${workout.name}" will be removed. This cannot be undone.`}
+                    onConfirm={() => deleteWorkout.mutate(workout.id)}
+                    disabled={deleteWorkout.isPending}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">{workout.name}</h3>
+                  <p className="mt-1 truncate text-sm text-muted-foreground">
+                    {workout.exercises.map((e) => e.name).join(", ") || "No exercises"}
+                  </p>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

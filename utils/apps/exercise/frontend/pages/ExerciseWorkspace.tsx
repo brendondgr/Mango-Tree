@@ -1,4 +1,12 @@
-import { RefreshCw } from "lucide-react";
+import {
+  Activity,
+  CalendarDays,
+  Dumbbell,
+  History as HistoryIcon,
+  LayoutDashboard,
+  RefreshCw,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import {
   type ExerciseView,
@@ -13,12 +21,14 @@ import { RoutinesView } from "@exercise/components/RoutinesView";
 import { WorkoutsView } from "@exercise/components/WorkoutsView";
 import { useSyncStrava } from "@exercise/hooks/useExercise";
 
-const NAV: Array<{ id: ExerciseView; label: string }> = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "workouts", label: "Workouts" },
-  { id: "routines", label: "Routines" },
-  { id: "equipment", label: "Equipment" },
-  { id: "history", label: "History" },
+import "@exercise/styles/exercise.css";
+
+const NAV: Array<{ id: ExerciseView; label: string; icon: LucideIcon }> = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "workouts", label: "Workouts", icon: Dumbbell },
+  { id: "routines", label: "Routines", icon: CalendarDays },
+  { id: "equipment", label: "Equipment", icon: Activity },
+  { id: "history", label: "History", icon: HistoryIcon },
 ];
 
 function StravaSyncButton() {
@@ -33,12 +43,7 @@ function StravaSyncButton() {
           +{summary.imported} imported · {summary.skipped} skipped
         </span>
       ) : null}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => sync.mutate("week")}
-        disabled={sync.isPending}
-      >
+      <Button variant="outline" size="sm" onClick={() => sync.mutate("week")} disabled={sync.isPending}>
         <RefreshCw className={cn("h-4 w-4", sync.isPending && "animate-spin")} />
         Sync Strava
       </Button>
@@ -66,28 +71,33 @@ export function ExerciseWorkspace() {
   const setView = useWorkspaceStore((s) => s.setExerciseView);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-background">
-      <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-border px-3 py-2">
-        <nav className="flex items-center gap-1" aria-label="Exercise sections">
-          {NAV.map((item) => (
-            <Button
-              key={item.id}
-              type="button"
-              variant={view === item.id ? "secondary" : "ghost"}
-              size="sm"
-              aria-current={view === item.id ? "page" : undefined}
-              onClick={() => setView(item.id)}
-            >
-              {item.label}
-            </Button>
-          ))}
+    <div className="exercise-app flex min-h-0 flex-1 flex-col bg-background">
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-4 py-3">
+        <nav className="flex flex-wrap items-center gap-1.5" aria-label="Exercise sections">
+          {NAV.map((item) => {
+            const Icon = item.icon;
+            const active = view === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className="ex-tab"
+                data-active={active}
+                aria-current={active ? "page" : undefined}
+                onClick={() => setView(item.id)}
+              >
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </button>
+            );
+          })}
         </nav>
         <div className="ml-auto">
           <StravaSyncButton />
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="ex-scroll min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-6xl p-4 lg:p-6">
           <ActiveView view={view} />
         </div>
