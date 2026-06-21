@@ -1,141 +1,104 @@
-import { useState, type FormEvent } from "react";
-import { Dumbbell, Plus } from "lucide-react";
+import { useState } from "react";
+import { Dumbbell, Pencil, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ConfirmDeleteButton } from "@exercise/components/ConfirmDeleteButton";
-import {
-  useAddEquipment,
-  useDeleteEquipment,
-  useEquipment,
-} from "@exercise/hooks/useExercise";
-
-const TYPE_COLOR: Record<string, string> = {
-  barbell: "exercise-c-blue",
-  dumbbell: "exercise-c-indigo",
-  machine: "exercise-c-emerald",
-  cable: "exercise-c-amber",
-  band: "exercise-c-violet",
-  bodyweight: "exercise-c-rose",
-};
-
-function typeColor(type: string): string {
-  return TYPE_COLOR[type.toLowerCase()] ?? "exercise-c-indigo";
-}
+import { EquipmentEditorDialog } from "@exercise/components/EquipmentEditorDialog";
+import { useDeleteEquipment, useEquipment } from "@exercise/hooks/useExercise";
+import { equipmentDetail, equipmentType } from "@exercise/utils/equipment";
+import type { Equipment } from "@/types/exercise";
 
 export function EquipmentView() {
   const equipment = useEquipment();
-  const addEquipment = useAddEquipment();
   const deleteEquipment = useDeleteEquipment();
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editing, setEditing] = useState<Equipment | null>(null);
 
-  const [name, setName] = useState("");
-  const [type, setType] = useState("weight");
-  const [weight, setWeight] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  const handleAdd = (event: FormEvent) => {
-    event.preventDefault();
-    setError(null);
-    if (!name.trim()) {
-      setError("Name is required");
-      return;
-    }
-    addEquipment.mutate(
-      {
-        id: `eq_${Date.now()}`,
-        name: name.trim(),
-        type: type.trim() || "weight",
-        weight: weight ? Number(weight) : null,
-        min_weight: null,
-        max_weight: null,
-        unit: "lbs",
-        is_bodyweight: type.trim().toLowerCase() === "bodyweight",
-        color: null,
-      },
-      {
-        onSuccess: () => {
-          setName("");
-          setWeight("");
-        },
-        onError: (err) => setError((err as Error).message),
-      },
-    );
+  const openNew = () => {
+    setEditing(null);
+    setEditorOpen(true);
   };
+  const openEdit = (item: Equipment) => {
+    setEditing(item);
+    setEditorOpen(true);
+  };
+
+  const items = equipment.data ?? [];
 
   return (
     <div className="exercise-fade-in flex flex-col gap-6">
-      <header>
-        <h2 className="exercise-gradient-text text-2xl font-bold tracking-tight">Equipment Manager</h2>
-        <p className="text-sm text-muted-foreground">Manage your available gear</p>
-      </header>
-
-      <form onSubmit={handleAdd} className="exercise-glass flex flex-wrap items-end gap-3 rounded-[var(--radius-lg)] p-5">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="eq-name" className="text-xs font-semibold text-muted-foreground">Name</label>
-          <input id="eq-name" className="exercise-input w-44" value={name} onChange={(e) => setName(e.target.value)} placeholder="Dumbbell" />
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">Equipment Manager</h2>
+          <p className="text-sm text-muted-foreground">Manage your available gear</p>
         </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="eq-type" className="text-xs font-semibold text-muted-foreground">Type</label>
-          <input id="eq-type" className="exercise-input w-36" value={type} onChange={(e) => setType(e.target.value)} placeholder="dumbbell" />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="eq-weight" className="text-xs font-semibold text-muted-foreground">Weight</label>
-          <input id="eq-weight" type="number" className="exercise-input w-28" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="optional" />
-        </div>
-        <Button type="submit" className="exercise-gradient exercise-glow border-0" disabled={addEquipment.isPending}>
-          <Plus className="h-4 w-4" /> Add Item
+        <Button onClick={openNew}>
+          <Plus className="h-4 w-4" /> New Equipment
         </Button>
-        {error ? <p className="w-full text-xs text-destructive">{error}</p> : null}
-      </form>
+      </header>
 
       {equipment.isLoading ? (
         <p className="text-sm text-muted-foreground">Loading equipment…</p>
       ) : equipment.isError ? (
         <p className="text-sm text-destructive">{(equipment.error as Error).message}</p>
-      ) : (equipment.data?.length ?? 0) === 0 ? (
-        <div className="exercise-glass flex flex-col items-center gap-2 rounded-[var(--radius-lg)] p-10 text-center">
+      ) : items.length === 0 ? (
+        <div className="exercise-glass flex flex-col items-center gap-3 rounded-[var(--radius-lg)] p-10 text-center">
           <Dumbbell className="h-8 w-8 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">No equipment yet.</p>
+          <p className="text-sm text-muted-foreground">No equipment yet. Add the gear you train with.</p>
+          <Button onClick={openNew} variant="outline" size="sm">
+            <Plus className="h-4 w-4" /> New Equipment
+          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {equipment.data?.map((item) => {
-            const colorClass = typeColor(item.type);
+          {items.map((item) => {
+            const info = equipmentType(item.type);
+            const Icon = info.icon;
+            const useBandColor = item.type === "band" && item.color;
             return (
               <article
                 key={item.id}
                 className={cn(
                   "exercise-glass exercise-card exercise-railed flex items-center justify-between gap-2 rounded-[var(--radius-lg)] p-4 pl-5",
-                  colorClass,
+                  info.colorClass,
                 )}
               >
-                <div className="flex items-center gap-3">
-                  <span className={cn("exercise-bg flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] text-white", colorClass)}>
-                    <Dumbbell className="h-4 w-4" />
+                <div className="flex min-w-0 items-center gap-3">
+                  <span
+                    className={cn(
+                      "exercise-bg flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-white",
+                      info.colorClass,
+                    )}
+                    style={useBandColor ? { background: item.color as string } : undefined}
+                  >
+                    <Icon className="h-4 w-4" />
                   </span>
-                  <div>
-                    <p className="font-semibold text-foreground">{item.name}</p>
-                    <p className="text-xs capitalize text-muted-foreground">
-                      {item.type}
-                      {item.is_bodyweight
-                        ? " · bodyweight"
-                        : item.weight
-                          ? ` · ${item.weight} ${item.unit ?? "lbs"}`
-                          : ""}
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-foreground">{item.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {equipmentDetail(item)} · {info.label}
                     </p>
                   </div>
                 </div>
-                <ConfirmDeleteButton
-                  title="Delete equipment?"
-                  description={`"${item.name}" will be removed.`}
-                  onConfirm={() => deleteEquipment.mutate(item.id)}
-                  disabled={deleteEquipment.isPending}
-                />
+                <div className="flex shrink-0 items-center">
+                  <Button variant="ghost" size="icon" aria-label="Edit equipment" onClick={() => openEdit(item)}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <ConfirmDeleteButton
+                    title="Delete equipment?"
+                    description={`"${item.name}" will be removed.`}
+                    onConfirm={() => deleteEquipment.mutate(item.id)}
+                    disabled={deleteEquipment.isPending}
+                  />
+                </div>
               </article>
             );
           })}
         </div>
       )}
+
+      <EquipmentEditorDialog open={editorOpen} onOpenChange={setEditorOpen} equipment={editing} />
     </div>
   );
 }
