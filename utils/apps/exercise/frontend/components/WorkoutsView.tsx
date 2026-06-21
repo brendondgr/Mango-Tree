@@ -1,17 +1,20 @@
 import { useState } from "react";
-import { Dumbbell, Pencil, Plus } from "lucide-react";
+import { Dumbbell, Pencil, Play, Plus } from "lucide-react";
 
+import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ConfirmDeleteButton } from "@exercise/components/ConfirmDeleteButton";
 import { WorkoutEditorDialog } from "@exercise/components/WorkoutEditorDialog";
 import { useDeleteWorkout, useWorkouts } from "@exercise/hooks/useExercise";
+import { buildSession } from "@exercise/utils/session";
 import { workoutColorClass } from "@exercise/utils/format";
 import type { Workout } from "@/types/exercise";
 
 export function WorkoutsView() {
   const workouts = useWorkouts();
   const deleteWorkout = useDeleteWorkout();
+  const startSession = useWorkspaceStore((s) => s.startExerciseSession);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<Workout | null>(null);
 
@@ -89,6 +92,14 @@ export function WorkoutsView() {
                     {workout.exercises.map((e) => e.name).join(", ") || "No exercises"}
                   </p>
                 </button>
+                <Button
+                  size="sm"
+                  className="mt-auto w-full"
+                  disabled={workout.exercises.length === 0}
+                  onClick={() => startSession(buildSession(workout))}
+                >
+                  <Play className="h-4 w-4" /> Start
+                </Button>
               </article>
             );
           })}

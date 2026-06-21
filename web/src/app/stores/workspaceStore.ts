@@ -68,6 +68,25 @@ export type ExerciseView =
   | "equipment"
   | "history";
 
+export interface SessionExercise {
+  id: string;
+  name: string;
+  plannedSets: number;
+  plannedReps: number;
+  plannedWeight: number | null;
+  done: boolean;
+  actualReps: number;
+  weight: number;
+  note: string;
+}
+
+export interface ExerciseSession {
+  workoutId: string;
+  workoutName: string;
+  startedAt: number;
+  exercises: SessionExercise[];
+}
+
 export type WorkspaceTabValue =
   | WorkspaceTabId
   | `ephemeral:${string}`
@@ -105,6 +124,7 @@ interface WorkspaceState {
   ephemeralTab: EphemeralTab | null;
   exerciseTabOpen: boolean;
   exerciseView: ExerciseView;
+  exerciseSession: ExerciseSession | null;
   sidebarMode: SidebarMode;
   artifactGridColumns: number;
   viewerMediaFraction: number;
@@ -124,6 +144,9 @@ interface WorkspaceState {
   openExerciseTab: () => void;
   closeExerciseTab: () => void;
   setExerciseView: (view: ExerciseView) => void;
+  startExerciseSession: (session: ExerciseSession) => void;
+  updateSessionExercise: (index: number, changes: Partial<SessionExercise>) => void;
+  endExerciseSession: () => void;
   setSidebarMode: (mode: SidebarMode) => void;
   setArtifactGridColumns: (columns: number) => void;
   setViewerMediaFraction: (fraction: number) => void;
@@ -168,6 +191,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       ephemeralTab: null,
       exerciseTabOpen: false,
       exerciseView: "dashboard",
+      exerciseSession: null,
       sidebarMode: "chat",
       artifactGridColumns: ARTIFACT_GRID_COLUMNS_DEFAULT,
       viewerMediaFraction: VIEWER_MEDIA_FRACTION_DEFAULT,
@@ -247,6 +271,23 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       },
 
       setExerciseView: (view) => set({ exerciseView: view }),
+
+      startExerciseSession: (session) => set({ exerciseSession: session }),
+
+      updateSessionExercise: (index, changes) =>
+        set((state) => {
+          if (!state.exerciseSession) return {};
+          return {
+            exerciseSession: {
+              ...state.exerciseSession,
+              exercises: state.exerciseSession.exercises.map((ex, i) =>
+                i === index ? { ...ex, ...changes } : ex,
+              ),
+            },
+          };
+        }),
+
+      endExerciseSession: () => set({ exerciseSession: null }),
 
       setSidebarMode: (mode) => set({ sidebarMode: mode }),
 

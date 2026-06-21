@@ -18,6 +18,7 @@ import { DashboardView } from "@exercise/components/DashboardView";
 import { EquipmentView } from "@exercise/components/EquipmentView";
 import { HistoryView } from "@exercise/components/HistoryView";
 import { RoutinesView } from "@exercise/components/RoutinesView";
+import { SessionView } from "@exercise/components/SessionView";
 import { WorkoutsView } from "@exercise/components/WorkoutsView";
 import { useSyncStrava } from "@exercise/hooks/useExercise";
 
@@ -69,6 +70,17 @@ function ActiveView({ view }: { view: ExerciseView }) {
 export function ExerciseWorkspace() {
   const view = useWorkspaceStore((s) => s.exerciseView);
   const setView = useWorkspaceStore((s) => s.setExerciseView);
+  const session = useWorkspaceStore((s) => s.exerciseSession);
+
+  if (session) {
+    return (
+      <div className="exercise-app flex min-h-0 flex-1 flex-col bg-background">
+        <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col p-4 lg:p-6">
+          <SessionView />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="exercise-app flex min-h-0 flex-1 flex-col bg-background">
