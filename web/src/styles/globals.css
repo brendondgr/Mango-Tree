@@ -1,4 +1,15 @@
 @import "tailwindcss";
+
+/*
+ * App modules live outside web/ (utils/apps/<name>/frontend), so Tailwind v4's
+ * automatic content detection — which scans from the Vite root (web/) — never
+ * sees them. Without these @source directives every utility class used ONLY in
+ * an app module is dropped at build time and the module renders unstyled.
+ * Any new utils/apps/<name>/frontend MUST be registered here.
+ */
+@source "../../../utils/apps/exercise/frontend";
+@source "../../../utils/apps/media_viewer/frontend";
+
 @import "./themes/default.css";
 @import "./themes/dark.css";
 @import "./themes/blue-light.css";
