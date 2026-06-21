@@ -81,7 +81,7 @@ export function ExerciseWorkspace() {
               <button
                 key={item.id}
                 type="button"
-                className="ex-tab"
+                className="exercise-tab"
                 data-active={active}
                 aria-current={active ? "page" : undefined}
                 onClick={() => setView(item.id)}
@@ -97,7 +97,7 @@ export function ExerciseWorkspace() {
         </div>
       </div>
 
-      <div className="ex-scroll min-h-0 flex-1 overflow-y-auto">
+      <div className="exercise-scroll min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-6xl p-4 lg:p-6">
           <ActiveView view={view} />
         </div>

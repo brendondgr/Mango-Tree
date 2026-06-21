@@ -28,15 +28,15 @@ export function formatNumber(value: number): string {
 }
 
 const WORKOUT_COLOR_CLASS: Record<string, string> = {
-  blue: "ex-c-blue",
-  indigo: "ex-c-indigo",
-  violet: "ex-c-violet",
-  rose: "ex-c-rose",
-  emerald: "ex-c-emerald",
-  amber: "ex-c-amber",
+  blue: "exercise-c-blue",
+  indigo: "exercise-c-indigo",
+  violet: "exercise-c-violet",
+  rose: "exercise-c-rose",
+  emerald: "exercise-c-emerald",
+  amber: "exercise-c-amber",
 };
 
 export function workoutColorClass(color: string | null | undefined): string {
-  return (color && WORKOUT_COLOR_CLASS[color]) || "ex-c-indigo";
+  return (color && WORKOUT_COLOR_CLASS[color]) || "exercise-c-indigo";
 }
 

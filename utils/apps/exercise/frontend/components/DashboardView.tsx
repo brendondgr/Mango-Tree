@@ -33,9 +33,9 @@ function Triplet({ total, run, walk, dim }: { total: string; run: string; walk: 
     <div className="flex items-baseline gap-1 text-xl font-bold">
       <span className={cn(dim ? "text-muted-foreground" : "text-foreground")}>{total}</span>
       <span className="text-sm text-muted-foreground">/</span>
-      <span className="ex-fg ex-c-run">{run}</span>
+      <span className="exercise-fg exercise-c-run">{run}</span>
       <span className="text-sm text-muted-foreground">/</span>
-      <span className="ex-fg ex-c-walk">{walk}</span>
+      <span className="exercise-fg exercise-c-walk">{walk}</span>
     </div>
   );
 }
@@ -86,23 +86,23 @@ export function DashboardView() {
   const fmt = (v: number) => (Math.abs(v) >= 1000 ? v.toLocaleString(undefined, { maximumFractionDigits: 0 }) : v.toFixed(1));
 
   return (
-    <div className="ex-fade-in flex flex-col gap-6">
+    <div className="exercise-fade-in flex flex-col gap-6">
       <header className="flex items-center justify-between">
         <div>
-          <h2 className="ex-gradient-text text-2xl font-bold tracking-tight">Dashboard</h2>
+          <h2 className="exercise-gradient-text text-2xl font-bold tracking-tight">Dashboard</h2>
           <p className="text-sm text-muted-foreground">Workouts / Runs / Walks at a glance</p>
         </div>
       </header>
 
       {/* Overview matrix */}
-      <section className="ex-glass rounded-[var(--radius-lg)] p-5">
+      <section className="exercise-glass rounded-[var(--radius-lg)] p-5">
         <div className="grid grid-cols-[5.5rem_repeat(4,minmax(0,1fr))] items-end gap-x-4 gap-y-3">
           <div />
           {SCOPES.map((s) => (
             <p key={s.key} className="text-xs font-semibold text-muted-foreground">{s.label}</p>
           ))}
 
-          <p className="ex-fg ex-c-exercise text-[0.65rem] font-bold uppercase tracking-wider">Activities</p>
+          <p className="exercise-fg exercise-c-exercise text-[0.65rem] font-bold uppercase tracking-wider">Activities</p>
           {SCOPES.map((s) => (
             <Triplet
               key={s.key}
@@ -112,7 +112,7 @@ export function DashboardView() {
             />
           ))}
 
-          <p className="ex-fg ex-c-exercise text-[0.65rem] font-bold uppercase tracking-wider">Time (hrs)</p>
+          <p className="exercise-fg exercise-c-exercise text-[0.65rem] font-bold uppercase tracking-wider">Time (hrs)</p>
           {SCOPES.map((s) => (
             <Triplet
               key={s.key}
@@ -122,7 +122,7 @@ export function DashboardView() {
             />
           ))}
 
-          <p className="ex-fg ex-c-exercise text-[0.65rem] font-bold uppercase tracking-wider">Distance ({distUnit})</p>
+          <p className="exercise-fg exercise-c-exercise text-[0.65rem] font-bold uppercase tracking-wider">Distance ({distUnit})</p>
           {SCOPES.map((s) => {
             const run = displayDistance(distanceByTypeScope(logs, "run", s.key), useMetric);
             const walk = displayDistance(distanceByTypeScope(logs, "walk", s.key), useMetric);
@@ -134,19 +134,19 @@ export function DashboardView() {
       </section>
 
       {/* Controls */}
-      <section className="ex-glass grid grid-cols-1 gap-5 rounded-[var(--radius-lg)] p-5 md:grid-cols-3">
+      <section className="exercise-glass grid grid-cols-1 gap-5 rounded-[var(--radius-lg)] p-5 md:grid-cols-3">
         <div>
           <label className="mb-2 block text-sm font-semibold text-foreground">Date Range</label>
           <div className="flex gap-2">
             <input
               type="date"
-              className="ex-input min-w-0 flex-1"
+              className="exercise-input min-w-0 flex-1"
               value={toInput(range.start)}
               onChange={(e) => setRange((r) => ({ ...r, start: new Date(`${e.target.value}T12:00:00`) }))}
             />
             <input
               type="date"
-              className="ex-input min-w-0 flex-1"
+              className="exercise-input min-w-0 flex-1"
               value={toInput(range.end)}
               onChange={(e) => setRange((r) => ({ ...r, end: new Date(`${e.target.value}T12:00:00`) }))}
             />
@@ -155,9 +155,9 @@ export function DashboardView() {
 
         <div>
           <label className="mb-2 block text-sm font-semibold text-foreground">Aggregation</label>
-          <div className="ex-seg">
+          <div className="exercise-seg">
             {(["weekly", "monthly"] as Aggregation[]).map((a) => (
-              <button key={a} type="button" className="ex-seg-btn capitalize" data-active={aggregation === a} onClick={() => onAggregation(a)}>
+              <button key={a} type="button" className="exercise-seg-btn capitalize" data-active={aggregation === a} onClick={() => onAggregation(a)}>
                 {a}
               </button>
             ))}
@@ -166,9 +166,9 @@ export function DashboardView() {
 
         <div>
           <label className="mb-2 block text-sm font-semibold text-foreground">Metric</label>
-          <div className="ex-seg">
+          <div className="exercise-seg">
             {(["time", "volume", "distance"] as GraphType[]).map((g) => (
-              <button key={g} type="button" className="ex-seg-btn capitalize" data-active={graphType === g} onClick={() => setGraphType(g)}>
+              <button key={g} type="button" className="exercise-seg-btn capitalize" data-active={graphType === g} onClick={() => setGraphType(g)}>
                 {g}
               </button>
             ))}
@@ -178,7 +178,7 @@ export function DashboardView() {
 
       {/* Chart + stats */}
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        <div className="ex-glass rounded-[var(--radius-lg)] p-5 lg:col-span-3">
+        <div className="exercise-glass rounded-[var(--radius-lg)] p-5 lg:col-span-3">
           {filtered.length === 0 || buckets.length === 0 ? (
             <div className="flex h-72 items-center justify-center text-sm text-muted-foreground">
               No data available for this range
@@ -188,7 +188,7 @@ export function DashboardView() {
           )}
         </div>
 
-        <div className="ex-glass h-fit rounded-[var(--radius-lg)] p-5">
+        <div className="exercise-glass h-fit rounded-[var(--radius-lg)] p-5">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-foreground">Statistics</h3>
             <button
@@ -219,9 +219,9 @@ export function DashboardView() {
                   {series.map((s, i) => (
                     <div key={s.key}>
                       <p className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <span className={cn("ex-dot", s.colorClass)} /> {s.label}
+                        <span className={cn("exercise-dot", s.colorClass)} /> {s.label}
                       </p>
-                      <p className={cn("ex-fg text-lg font-bold", s.colorClass)}>
+                      <p className={cn("exercise-fg text-lg font-bold", s.colorClass)}>
                         {fmt(summary.totals[i])}
                         <span className="ml-1 text-sm font-medium text-muted-foreground">{chartUnit}</span>
                       </p>

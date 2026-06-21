@@ -11,16 +11,16 @@ import {
 } from "@exercise/hooks/useExercise";
 
 const TYPE_COLOR: Record<string, string> = {
-  barbell: "ex-c-blue",
-  dumbbell: "ex-c-indigo",
-  machine: "ex-c-emerald",
-  cable: "ex-c-amber",
-  band: "ex-c-violet",
-  bodyweight: "ex-c-rose",
+  barbell: "exercise-c-blue",
+  dumbbell: "exercise-c-indigo",
+  machine: "exercise-c-emerald",
+  cable: "exercise-c-amber",
+  band: "exercise-c-violet",
+  bodyweight: "exercise-c-rose",
 };
 
 function typeColor(type: string): string {
-  return TYPE_COLOR[type.toLowerCase()] ?? "ex-c-indigo";
+  return TYPE_COLOR[type.toLowerCase()] ?? "exercise-c-indigo";
 }
 
 export function EquipmentView() {
@@ -63,26 +63,26 @@ export function EquipmentView() {
   };
 
   return (
-    <div className="ex-fade-in flex flex-col gap-6">
+    <div className="exercise-fade-in flex flex-col gap-6">
       <header>
-        <h2 className="ex-gradient-text text-2xl font-bold tracking-tight">Equipment Manager</h2>
+        <h2 className="exercise-gradient-text text-2xl font-bold tracking-tight">Equipment Manager</h2>
         <p className="text-sm text-muted-foreground">Manage your available gear</p>
       </header>
 
-      <form onSubmit={handleAdd} className="ex-glass flex flex-wrap items-end gap-3 rounded-[var(--radius-lg)] p-5">
+      <form onSubmit={handleAdd} className="exercise-glass flex flex-wrap items-end gap-3 rounded-[var(--radius-lg)] p-5">
         <div className="flex flex-col gap-1">
           <label htmlFor="eq-name" className="text-xs font-semibold text-muted-foreground">Name</label>
-          <input id="eq-name" className="ex-input w-44" value={name} onChange={(e) => setName(e.target.value)} placeholder="Dumbbell" />
+          <input id="eq-name" className="exercise-input w-44" value={name} onChange={(e) => setName(e.target.value)} placeholder="Dumbbell" />
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor="eq-type" className="text-xs font-semibold text-muted-foreground">Type</label>
-          <input id="eq-type" className="ex-input w-36" value={type} onChange={(e) => setType(e.target.value)} placeholder="dumbbell" />
+          <input id="eq-type" className="exercise-input w-36" value={type} onChange={(e) => setType(e.target.value)} placeholder="dumbbell" />
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor="eq-weight" className="text-xs font-semibold text-muted-foreground">Weight</label>
-          <input id="eq-weight" type="number" className="ex-input w-28" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="optional" />
+          <input id="eq-weight" type="number" className="exercise-input w-28" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="optional" />
         </div>
-        <Button type="submit" className="ex-gradient ex-glow border-0" disabled={addEquipment.isPending}>
+        <Button type="submit" className="exercise-gradient exercise-glow border-0" disabled={addEquipment.isPending}>
           <Plus className="h-4 w-4" /> Add Item
         </Button>
         {error ? <p className="w-full text-xs text-destructive">{error}</p> : null}
@@ -93,7 +93,7 @@ export function EquipmentView() {
       ) : equipment.isError ? (
         <p className="text-sm text-destructive">{(equipment.error as Error).message}</p>
       ) : (equipment.data?.length ?? 0) === 0 ? (
-        <div className="ex-glass flex flex-col items-center gap-2 rounded-[var(--radius-lg)] p-10 text-center">
+        <div className="exercise-glass flex flex-col items-center gap-2 rounded-[var(--radius-lg)] p-10 text-center">
           <Dumbbell className="h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">No equipment yet.</p>
         </div>
@@ -105,12 +105,12 @@ export function EquipmentView() {
               <article
                 key={item.id}
                 className={cn(
-                  "ex-glass ex-card ex-railed flex items-center justify-between gap-2 rounded-[var(--radius-lg)] p-4 pl-5",
+                  "exercise-glass exercise-card exercise-railed flex items-center justify-between gap-2 rounded-[var(--radius-lg)] p-4 pl-5",
                   colorClass,
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <span className={cn("ex-bg flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] text-white", colorClass)}>
+                  <span className={cn("exercise-bg flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] text-white", colorClass)}>
                     <Dumbbell className="h-4 w-4" />
                   </span>
                   <div>

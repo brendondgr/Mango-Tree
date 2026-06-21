@@ -16,8 +16,8 @@ export function HistoryView() {
   const deleteLog = useDeleteLog();
 
   const meta = (workoutId: string) => {
-    if (workoutId === "run") return { label: "Run", colorClass: "ex-c-run" };
-    if (workoutId === "walk") return { label: "Walk", colorClass: "ex-c-walk" };
+    if (workoutId === "run") return { label: "Run", colorClass: "exercise-c-run" };
+    if (workoutId === "walk") return { label: "Walk", colorClass: "exercise-c-walk" };
     const w = workouts.data?.find((x) => x.id === workoutId);
     return { label: w?.name ?? "Workout", colorClass: workoutColorClass(w?.color) };
   };
@@ -35,27 +35,27 @@ export function HistoryView() {
   }
 
   return (
-    <div className="ex-fade-in flex flex-col gap-4">
+    <div className="exercise-fade-in flex flex-col gap-4">
       <header className="flex items-end justify-between">
         <div>
-          <h2 className="ex-gradient-text text-2xl font-bold tracking-tight">History</h2>
+          <h2 className="exercise-gradient-text text-2xl font-bold tracking-tight">History</h2>
           <p className="text-sm text-muted-foreground">{sorted.length} logged sessions</p>
         </div>
       </header>
 
       {sorted.length === 0 ? (
-        <div className="ex-glass flex flex-col items-center gap-2 rounded-[var(--radius-lg)] p-10 text-center">
+        <div className="exercise-glass flex flex-col items-center gap-2 rounded-[var(--radius-lg)] p-10 text-center">
           <HistoryIcon className="h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">No sessions logged yet.</p>
         </div>
       ) : (
-        <ul className="ex-glass ex-scroll max-h-[calc(100vh-16rem)] divide-y divide-border overflow-y-auto rounded-[var(--radius-lg)]">
+        <ul className="exercise-glass exercise-scroll max-h-[calc(100vh-16rem)] divide-y divide-border overflow-y-auto rounded-[var(--radius-lg)]">
           {sorted.map((log) => {
             const m = meta(log.workout_id);
             return (
               <li key={log.id} className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-[color-mix(in_srgb,hsl(var(--foreground))_4%,transparent)]">
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className={cn("ex-dot shrink-0", m.colorClass)} />
+                  <span className={cn("exercise-dot shrink-0", m.colorClass)} />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">
                       {m.label}

@@ -14,7 +14,7 @@
 
 /* --- surfaces --------------------------------------------------------------- */
 
-.ex-glass {
+.exercise-glass {
   background: color-mix(in srgb, hsl(var(--card)) 80%, transparent);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
@@ -22,25 +22,25 @@
   box-shadow: var(--shadow-raised);
 }
 
-.ex-card {
+.exercise-card {
   transition:
     transform var(--motion-base) var(--ease-standard),
     box-shadow var(--motion-base) var(--ease-standard),
     border-color var(--motion-base) var(--ease-standard);
 }
 
-.ex-card:hover {
+.exercise-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-card-hover);
   border-color: color-mix(in srgb, hsl(var(--primary)) 38%, transparent);
 }
 
 /* Accent rail down the left edge of a card, tinted by --c */
-.ex-railed {
+.exercise-railed {
   position: relative;
   overflow: hidden;
 }
-.ex-railed::before {
+.exercise-railed::before {
   content: "";
   position: absolute;
   inset: 0 auto 0 0;
@@ -51,47 +51,47 @@
 
 /* --- brand gradient --------------------------------------------------------- */
 
-.ex-gradient {
+.exercise-gradient {
   background: var(--brand-gradient);
   color: #fff;
 }
 
-.ex-gradient-text {
+.exercise-gradient-text {
   background: var(--brand-gradient);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-.ex-glow {
+.exercise-glow {
   box-shadow: 0 10px 28px -10px color-mix(in srgb, hsl(var(--primary)) 55%, transparent);
 }
 
-/* --- category color binding (set --c via .ex-c-*) --------------------------- */
+/* --- category color binding (set --c via .exercise-c-*) --------------------------- */
 
-.ex-c-blue { --c: var(--category-sky); }
-.ex-c-indigo { --c: var(--primary); }
-.ex-c-violet { --c: var(--category-lavender); }
-.ex-c-rose { --c: var(--category-coral); }
-.ex-c-emerald { --c: var(--category-mint); }
-.ex-c-amber { --c: var(--category-tangerine); }
+.exercise-c-blue { --c: var(--category-sky); }
+.exercise-c-indigo { --c: var(--primary); }
+.exercise-c-violet { --c: var(--category-lavender); }
+.exercise-c-rose { --c: var(--category-coral); }
+.exercise-c-emerald { --c: var(--category-mint); }
+.exercise-c-amber { --c: var(--category-tangerine); }
 
 /* activity semantics */
-.ex-c-exercise { --c: var(--primary); }
-.ex-c-run { --c: var(--category-sky); }
-.ex-c-walk { --c: var(--category-mint); }
+.exercise-c-exercise { --c: var(--primary); }
+.exercise-c-run { --c: var(--category-sky); }
+.exercise-c-walk { --c: var(--category-mint); }
 
-.ex-fg { color: hsl(var(--c, var(--primary))); }
-.ex-bg { background: hsl(var(--c, var(--primary))); }
+.exercise-fg { color: hsl(var(--c, var(--primary))); }
+.exercise-bg { background: hsl(var(--c, var(--primary))); }
 
 /* svg chart bar — fill from the bound --c */
-.ex-bar {
+.exercise-bar {
   fill: hsl(var(--c, var(--primary)));
   transition: opacity var(--motion-fast) var(--ease-standard);
 }
-.ex-grid { stroke: color-mix(in srgb, hsl(var(--foreground)) 10%, transparent); }
-.ex-axis-text { fill: hsl(var(--muted-foreground)); font-size: 11px; }
-.ex-dot {
+.exercise-grid { stroke: color-mix(in srgb, hsl(var(--foreground)) 10%, transparent); }
+.exercise-axis-text { fill: hsl(var(--muted-foreground)); font-size: 11px; }
+.exercise-dot {
   width: 0.6rem;
   height: 0.6rem;
   border-radius: var(--radius-pill);
@@ -100,7 +100,7 @@
 
 /* --- badges / pills --------------------------------------------------------- */
 
-.ex-badge {
+.exercise-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -117,7 +117,7 @@
 
 /* --- segmented control (aggregation / metric toggles) ----------------------- */
 
-.ex-seg {
+.exercise-seg {
   display: inline-flex;
   gap: 2px;
   padding: 3px;
@@ -126,7 +126,7 @@
   border: 1px solid color-mix(in srgb, hsl(var(--foreground)) 6%, transparent);
 }
 
-.ex-seg-btn {
+.exercise-seg-btn {
   padding: 0.4rem 0.9rem;
   border-radius: var(--radius-sm);
   font-size: 0.8rem;
@@ -135,10 +135,10 @@
   transition: all var(--motion-fast) var(--ease-standard);
   white-space: nowrap;
 }
-.ex-seg-btn:hover {
+.exercise-seg-btn:hover {
   color: hsl(var(--foreground));
 }
-.ex-seg-btn[data-active="true"] {
+.exercise-seg-btn[data-active="true"] {
   background: var(--brand-gradient);
   color: #fff;
   box-shadow: var(--shadow-raised);
@@ -146,7 +146,7 @@
 
 /* --- top tab navigation (Dashboard / Workouts / ...) ------------------------ */
 
-.ex-tab {
+.exercise-tab {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -158,11 +158,11 @@
   color: hsl(var(--muted-foreground));
   transition: all var(--motion-fast) var(--ease-standard);
 }
-.ex-tab:hover {
+.exercise-tab:hover {
   color: hsl(var(--foreground));
   background: color-mix(in srgb, hsl(var(--foreground)) 5%, transparent);
 }
-.ex-tab[data-active="true"] {
+.exercise-tab[data-active="true"] {
   color: #fff;
   background: var(--brand-gradient);
   box-shadow: var(--shadow-card-hover);
@@ -170,7 +170,7 @@
 
 /* --- inputs ----------------------------------------------------------------- */
 
-.ex-input {
+.exercise-input {
   background: color-mix(in srgb, hsl(var(--muted)) 45%, transparent);
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius-sm);
@@ -180,7 +180,7 @@
   transition: border-color var(--motion-fast) var(--ease-standard),
     box-shadow var(--motion-fast) var(--ease-standard);
 }
-.ex-input:focus {
+.exercise-input:focus {
   outline: none;
   border-color: hsl(var(--primary));
   box-shadow: var(--focus-ring);
@@ -188,22 +188,22 @@
 
 /* --- motion ----------------------------------------------------------------- */
 
-@keyframes ex-fade-in {
+@keyframes exercise-fade-in {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
 }
-.ex-fade-in { animation: ex-fade-in var(--motion-base) var(--ease-standard) both; }
+.exercise-fade-in { animation: exercise-fade-in var(--motion-base) var(--ease-standard) both; }
 
 @media (prefers-reduced-motion: reduce) {
-  .ex-card, .ex-card:hover { transform: none; transition: none; }
-  .ex-fade-in { animation: none; }
+  .exercise-card, .exercise-card:hover { transform: none; transition: none; }
+  .exercise-fade-in { animation: none; }
 }
 
 /* --- scrollbar -------------------------------------------------------------- */
 
-.ex-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-.ex-scroll::-webkit-scrollbar-thumb {
+.exercise-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.exercise-scroll::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, hsl(var(--foreground)) 18%, transparent);
   border-radius: var(--radius-pill);
 }
-.ex-scroll::-webkit-scrollbar-track { background: transparent; }
+.exercise-scroll::-webkit-scrollbar-track { background: transparent; }

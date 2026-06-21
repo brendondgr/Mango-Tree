@@ -27,21 +27,21 @@ export function RoutinesView() {
   const items = routines.data ?? [];
 
   return (
-    <div className="ex-fade-in flex flex-col gap-6">
+    <div className="exercise-fade-in flex flex-col gap-6">
       <header>
-        <h2 className="ex-gradient-text text-2xl font-bold tracking-tight">Your Routines</h2>
+        <h2 className="exercise-gradient-text text-2xl font-bold tracking-tight">Your Routines</h2>
         <p className="text-sm text-muted-foreground">Weekly training schedules</p>
       </header>
 
       {items.length === 0 ? (
-        <div className="ex-glass flex flex-col items-center gap-2 rounded-[var(--radius-lg)] p-10 text-center">
+        <div className="exercise-glass flex flex-col items-center gap-2 rounded-[var(--radius-lg)] p-10 text-center">
           <CalendarDays className="h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">No routines yet.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-5">
           {items.map((routine) => (
-            <article key={routine.id} className="ex-glass rounded-[var(--radius-lg)] p-5">
+            <article key={routine.id} className="exercise-glass rounded-[var(--radius-lg)] p-5">
               <header className="mb-4 flex items-start justify-between gap-2">
                 <div>
                   <h3 className="text-lg font-bold text-foreground">{routine.name}</h3>
@@ -77,7 +77,7 @@ export function RoutinesView() {
                               <li
                                 key={id}
                                 className={cn(
-                                  "ex-railed flex items-center gap-1.5 truncate rounded-[var(--radius-sm)] border border-border bg-card py-1 pl-2.5 pr-1.5 text-xs text-foreground",
+                                  "exercise-railed flex items-center gap-1.5 truncate rounded-[var(--radius-sm)] border border-border bg-card py-1 pl-2.5 pr-1.5 text-xs text-foreground",
                                   workoutColorClass(w?.color),
                                 )}
                               >

@@ -18,14 +18,14 @@ export function WorkoutsView() {
   const items = workouts.data ?? [];
 
   return (
-    <div className="ex-fade-in flex flex-col gap-6">
+    <div className="exercise-fade-in flex flex-col gap-6">
       <header>
-        <h2 className="ex-gradient-text text-2xl font-bold tracking-tight">Your Workouts</h2>
+        <h2 className="exercise-gradient-text text-2xl font-bold tracking-tight">Your Workouts</h2>
         <p className="text-sm text-muted-foreground">Your custom workout programs</p>
       </header>
 
       {items.length === 0 ? (
-        <div className="ex-glass flex flex-col items-center gap-2 rounded-[var(--radius-lg)] p-10 text-center">
+        <div className="exercise-glass flex flex-col items-center gap-2 rounded-[var(--radius-lg)] p-10 text-center">
           <Dumbbell className="h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">No workout templates yet.</p>
         </div>
@@ -37,12 +37,12 @@ export function WorkoutsView() {
               <article
                 key={workout.id}
                 className={cn(
-                  "ex-glass ex-card ex-railed flex flex-col gap-4 rounded-[var(--radius-lg)] p-5 pl-6",
+                  "exercise-glass exercise-card exercise-railed flex flex-col gap-4 rounded-[var(--radius-lg)] p-5 pl-6",
                   colorClass,
                 )}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <span className={cn("ex-badge", colorClass)}>
+                  <span className={cn("exercise-badge", colorClass)}>
                     {workout.exercises.length} Exercise{workout.exercises.length === 1 ? "" : "s"}
                   </span>
                   <ConfirmDeleteButton

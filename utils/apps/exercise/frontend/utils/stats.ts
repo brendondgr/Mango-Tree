@@ -162,7 +162,7 @@ export function filterByRange(logs: HistoryLog[], start: Date, end: Date): Histo
 export interface Series {
   key: string;
   label: string;
-  colorClass: string; // .ex-c-* class supplying --c
+  colorClass: string; // .exercise-c-* class supplying --c
   values: number[];
 }
 
@@ -195,9 +195,9 @@ export function buildSeries(
       walk.push(+w.toFixed(2));
     }
     return [
-      { key: "exercise", label: "Exercise", colorClass: "ex-c-exercise", values: ex },
-      { key: "run", label: "Run", colorClass: "ex-c-run", values: run },
-      { key: "walk", label: "Walk", colorClass: "ex-c-walk", values: walk },
+      { key: "exercise", label: "Exercise", colorClass: "exercise-c-exercise", values: ex },
+      { key: "run", label: "Run", colorClass: "exercise-c-run", values: run },
+      { key: "walk", label: "Walk", colorClass: "exercise-c-walk", values: walk },
     ];
   }
 
@@ -211,7 +211,7 @@ export function buildSeries(
       }
       vol.push(+v.toFixed(0));
     }
-    return [{ key: "volume", label: "Volume", colorClass: "ex-c-emerald", values: vol }];
+    return [{ key: "volume", label: "Volume", colorClass: "exercise-c-emerald", values: vol }];
   }
 
   // distance
@@ -230,7 +230,7 @@ export function buildSeries(
     walk.push(+w.toFixed(2));
   }
   return [
-    { key: "run", label: "Run", colorClass: "ex-c-run", values: run },
-    { key: "walk", label: "Walk", colorClass: "ex-c-walk", values: walk },
+    { key: "run", label: "Run", colorClass: "exercise-c-run", values: run },
+    { key: "walk", label: "Walk", colorClass: "exercise-c-walk", values: walk },
   ];
 }

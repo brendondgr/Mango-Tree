@@ -47,8 +47,8 @@ export function StatChart({ labels, series, unit, formatValue }: StatChartProps)
           const y = yFor(t);
           return (
             <g key={i}>
-              <line x1={PAD.left} x2={W - PAD.right} y1={y} y2={y} className="ex-grid" strokeWidth={1} />
-              <text x={PAD.left - 8} y={y + 3} textAnchor="end" className="ex-axis-text">
+              <line x1={PAD.left} x2={W - PAD.right} y1={y} y2={y} className="exercise-grid" strokeWidth={1} />
+              <text x={PAD.left - 8} y={y + 3} textAnchor="end" className="exercise-axis-text">
                 {fmt(t)}
               </text>
             </g>
@@ -76,7 +76,7 @@ export function StatChart({ labels, series, unit, formatValue }: StatChartProps)
                     width={barW}
                     height={Math.max(h, 0)}
                     rx={3}
-                    className={cn("ex-bar", ser.colorClass)}
+                    className={cn("exercise-bar", ser.colorClass)}
                     style={{ opacity: dim ? 0.35 : 1 }}
                   />
                 );
@@ -92,7 +92,7 @@ export function StatChart({ labels, series, unit, formatValue }: StatChartProps)
                 onMouseLeave={() => setHovered(null)}
               />
               {i % labelEvery === 0 && (
-                <text x={cx} y={H - PAD.bottom + 18} textAnchor="middle" className="ex-axis-text">
+                <text x={cx} y={H - PAD.bottom + 18} textAnchor="middle" className="exercise-axis-text">
                   {label}
                 </text>
               )}
@@ -105,7 +105,7 @@ export function StatChart({ labels, series, unit, formatValue }: StatChartProps)
       <div className="mt-2 flex flex-wrap items-center justify-center gap-4">
         {series.map((ser) => (
           <div key={ser.key} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className={cn("ex-dot", ser.colorClass)} />
+            <span className={cn("exercise-dot", ser.colorClass)} />
             {ser.label}
           </div>
         ))}
@@ -114,7 +114,7 @@ export function StatChart({ labels, series, unit, formatValue }: StatChartProps)
       {/* tooltip */}
       {hovered !== null && (
         <div
-          className="ex-glass pointer-events-none absolute top-2 z-10 rounded-[var(--radius-md)] px-3 py-2 text-xs"
+          className="exercise-glass pointer-events-none absolute top-2 z-10 rounded-[var(--radius-md)] px-3 py-2 text-xs"
           style={{
             left: `${((PAD.left + step * hovered + step / 2) / W) * 100}%`,
             transform: "translateX(-50%)",
@@ -123,7 +123,7 @@ export function StatChart({ labels, series, unit, formatValue }: StatChartProps)
           <p className="mb-1 font-semibold text-foreground">{labels[hovered]}</p>
           {series.map((ser) => (
             <p key={ser.key} className="flex items-center gap-1.5 text-muted-foreground">
-              <span className={cn("ex-dot", ser.colorClass)} />
+              <span className={cn("exercise-dot", ser.colorClass)} />
               {ser.label}: <span className="font-medium text-foreground">{fmt(ser.values[hovered] || 0)} {unit}</span>
             </p>
           ))}
