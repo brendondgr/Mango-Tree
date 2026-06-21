@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { CalendarDays, Pencil, Plus } from "lucide-react";
+import { CalendarDays, Pencil, Play, Plus } from "lucide-react";
 
+import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ConfirmDeleteButton } from "@exercise/components/ConfirmDeleteButton";
@@ -10,6 +11,7 @@ import {
   useRoutines,
   useWorkouts,
 } from "@exercise/hooks/useExercise";
+import { buildSession } from "@exercise/utils/session";
 import { workoutColorClass } from "@exercise/utils/format";
 import type { Routine } from "@/types/exercise";
 
@@ -19,10 +21,11 @@ export function RoutinesView() {
   const routines = useRoutines();
   const workouts = useWorkouts();
   const deleteRoutine = useDeleteRoutine();
+  const startSession = useWorkspaceStore((s) => s.startExerciseSession);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<Routine | null>(null);
 
-  const workout = (id: string) => workouts.data?.find((w) => w.id === id);
+  const byId = (id: string) => workouts.data?.find((w) => w.id === id);
   const openNew = () => {
     setEditing(null);
     setEditorOpen(true);
@@ -39,7 +42,9 @@ export function RoutinesView() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-foreground">Your Routines</h2>
-          <p className="text-sm text-muted-foreground">Weekly training schedules</p>
+          <p className="text-sm text-muted-foreground">
+            Weekly schedules — click a workout to start a session
+          </p>
         </div>
         <Button onClick={openNew}>
           <Plus className="h-4 w-4" /> New Routine
@@ -59,23 +64,18 @@ export function RoutinesView() {
           </Button>
         </div>
       ) : (
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-4">
           {items.map((routine) => (
             <article key={routine.id} className="exercise-glass rounded-[var(--radius-lg)] p-5">
               <header className="mb-4 flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="text-lg font-bold text-foreground">{routine.name}</h3>
+                <div className="min-w-0">
+                  <h3 className="truncate text-lg font-bold text-foreground">{routine.name}</h3>
                   {routine.description ? (
-                    <p className="text-sm text-muted-foreground">{routine.description}</p>
+                    <p className="truncate text-sm text-muted-foreground">{routine.description}</p>
                   ) : null}
                 </div>
-                <div className="flex items-center">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Edit routine"
-                    onClick={() => openEdit(routine)}
-                  >
+                <div className="flex shrink-0 items-center">
+                  <Button variant="ghost" size="icon" aria-label="Edit routine" onClick={() => openEdit(routine)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
                   <ConfirmDeleteButton
@@ -86,40 +86,43 @@ export function RoutinesView() {
                   />
                 </div>
               </header>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-                {WEEKDAYS.map((day) => {
-                  const ids = routine.workouts[day] ?? [];
-                  return (
-                    <div
-                      key={day}
-                      className="rounded-[var(--radius-md)] border border-border bg-[color-mix(in_srgb,hsl(var(--muted))_30%,transparent)] p-2"
-                    >
-                      <p className="mb-1.5 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
-                        {day}
-                      </p>
-                      {ids.length === 0 ? (
-                        <p className="text-center text-[10px] text-muted-foreground/50">Rest</p>
-                      ) : (
-                        <ul className="flex flex-col gap-1.5">
-                          {ids.map((id, i) => {
-                            const w = workout(id);
+
+              <div className="exercise-scroll overflow-x-auto">
+                <div className="grid min-w-[640px] grid-cols-7 gap-2">
+                  {WEEKDAYS.map((day) => {
+                    const ids = routine.workouts[day] ?? [];
+                    return (
+                      <div key={day} className="flex flex-col gap-1.5">
+                        <p className="text-center text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                          {day}
+                        </p>
+                        {ids.length === 0 ? (
+                          <span className="py-2 text-center text-xs text-muted-foreground/30">·</span>
+                        ) : (
+                          ids.map((id, i) => {
+                            const w = byId(id);
                             return (
-                              <li
+                              <button
                                 key={`${id}-${i}`}
+                                type="button"
+                                title={w ? `Start ${w.name}` : id}
+                                disabled={!w}
+                                onClick={() => w && startSession(buildSession(w))}
                                 className={cn(
-                                  "exercise-railed truncate rounded-[var(--radius-sm)] border border-border bg-card py-1 pl-2.5 pr-1.5 text-[11px] text-foreground",
+                                  "exercise-railed group flex items-center gap-1 rounded-[var(--radius-sm)] border border-border bg-card py-1 pl-2.5 pr-1 text-[11px] text-foreground transition-colors hover:border-primary",
                                   workoutColorClass(w?.color),
                                 )}
                               >
-                                {w?.name ?? id}
-                              </li>
+                                <span className="flex-1 truncate text-left">{w?.name ?? id}</span>
+                                <Play className="h-3 w-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                              </button>
                             );
-                          })}
-                        </ul>
-                      )}
-                    </div>
-                  );
-                })}
+                          })
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </article>
           ))}
