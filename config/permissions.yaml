@@ -7,6 +7,14 @@ filesystem:
       - "../**"
       - "**/.env"
       - "config/**"
+  mailbox_config:
+    description: Local mailbox account-settings and secret store read/write scope
+    allow:
+      - "{mailbox_root}/**"
+    deny:
+      - "../**"
+      - "**/.env"
+      - "config/**"
 
 network:
   web_research:
@@ -21,5 +29,26 @@ network:
     allow_hosts:
       - www.strava.com
       - api.strava.com
+  mailbox_imap_smtp:
+    description: Outbound IMAP/SMTP to the supported mail providers (on-prem Exchange host is org-specific)
+    allow_schemes:
+      - imaps
+      - imap
+      - smtps
+      - smtp
+    allow_hosts:
+      - imap.gmail.com
+      - smtp.gmail.com
+      - outlook.office365.com
+      - smtp.office365.com
+      - imap.mail.yahoo.com
+      - smtp.mail.yahoo.com
+  mailbox_graph:
+    description: Outbound HTTPS to Microsoft Graph for the M365 Graph path
+    allow_schemes:
+      - https
+    allow_hosts:
+      - graph.microsoft.com
 
 artifacts_root: data/artifacts
+mailbox_root: data/mailbox
