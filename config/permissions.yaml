@@ -49,6 +49,13 @@ network:
       - https
     allow_hosts:
       - graph.microsoft.com
+  mailbox_oauth:
+    description: Outbound HTTPS to OAuth token endpoints to refresh access tokens
+    allow_schemes:
+      - https
+    allow_hosts:
+      - oauth2.googleapis.com
+      - login.microsoftonline.com
 
 artifacts_root: data/artifacts
 mailbox_root: data/mailbox

@@ -55,7 +55,7 @@ def _read_raw() -> dict[str, Any]:
     return data
 
 
-def _write_raw(secrets: dict[str, str]) -> None:
+def _write_raw(secrets: dict[str, Any]) -> None:
     path = secrets_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -80,20 +80,24 @@ def _write_raw(secrets: dict[str, str]) -> None:
 
 # --- public API ---------------------------------------------------------------
 
-def set_credential(ref: str, value: str) -> None:
-    """Store ``value`` under the ``ref`` key name (write-only — never echoed)."""
+def set_credential(ref: str, value: str | dict[str, Any]) -> None:
+    """Store ``value`` under the ``ref`` key name (write-only — never echoed).
+
+    ``value`` is either a plain app-password string, or an OAuth bundle dict
+    (``refresh_token`` / ``client_id`` / ``client_secret`` plus a cached
+    ``access_token`` / ``access_token_expiry``)."""
     if not isinstance(ref, str) or not ref.strip():
         raise ValidationError("credential_ref is required", details={"field": "credential_ref"})
-    if not isinstance(value, str) or not value:
+    if not isinstance(value, (str, dict)) or not value:
         raise ValidationError("credential value is required", details={"field": "credential"})
     raw = _read_raw()
     raw["secrets"][ref] = value
     _write_raw(raw["secrets"])
 
 
-def get_credential(ref: str) -> str:
-    """Resolve ``ref`` -> the raw secret. Raises ``permission_denied`` when the
-    ref is unset (the account is not fully configured)."""
+def get_credential(ref: str) -> str | dict[str, Any]:
+    """Resolve ``ref`` -> the raw secret (string app-password or OAuth bundle dict).
+    Raises ``permission_denied`` when the ref is unset (account not configured)."""
     if not ref:
         raise PermissionDeniedError("no credential_ref supplied", details={"missing": "credential_ref"})
     value = _read_raw()["secrets"].get(ref)
