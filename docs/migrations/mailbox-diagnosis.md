@@ -73,3 +73,33 @@ utils/apps/mailbox/
 Reference modules mirrored: `utils/apps/exercise/` (agent tools/prompts,
 injectable service seams, error/DTO conventions) and `utils/apps/media_viewer/`
 (filesystem permission scope, DRF view shape).
+
+## Done checklist
+
+- [x] Services + config store relocated; offline self-tests pass from new paths.
+- [x] `config_store`: CRUD, upsert, multiple-per-provider, atomic write; secret
+      never written to `accounts.json` (asserted).
+- [x] `secrets`: round-trips by `credential_ref`; file is `0600`; secret never
+      returned by any API.
+- [x] Accounts API: CRUD + credential (write-only) + test; messages list/detail
+      + folders + organize; documented in `docs/api.md`.
+- [x] Settings UI: add/configure/select/test/delete; multiple accounts and
+      multiple per provider; credential separation stated in the UI.
+- [x] Inbox UI: own right-side tab (above Exercise, below Artifacts);
+      per-account/provider differentiation; Compact + Modern density; click-to-
+      open message reading; labelled sample inbox.
+- [x] Tool contract frozen in `mailbox/README.md`; D1–D5 resolved.
+- [x] `agent/tools.py`: six tools, `ToolResult`, send gated on `confirm: true` in
+      code; account resolved via the registry/config store.
+- [x] `agent/prompts.py`: `MAILBOX_TOOLS_PROMPT` matches the contract.
+- [x] `config/tools.yaml`: six entries resolve to callables; count test passes.
+- [x] `config/permissions.yaml`: mail hosts + Graph allow-listed and
+      `data/mailbox/**` filesystem scope; both scope tests pass.
+- [x] Denial cases pass: no-confirm send, missing creds, unknown account/
+      provider, secret-in-config, secret-in-response, out-of-scope host,
+      out-of-scope path, Graph 403.
+- [x] API ↔ agent parity: each tool calls the same service its DRF view calls.
+- [x] No business logic in `agent/`, the prompt, or `web/src/services/` beyond
+      API calls; gates enforced in code only.
+- [x] `/api/mailbox/` endpoints documented in `docs/api.md` before the UI uses them.
+- [x] `uv run pytest tests/utils/apps/mailbox/` (and `utils/tests/...`) green.
