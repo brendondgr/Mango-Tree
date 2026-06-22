@@ -1,0 +1,201 @@
+"""DTOs for the mailbox app.
+
+``AccountConfig`` is the persisted account *settings* model (validated on the way
+in via ``from_dict``, serialized out via ``to_dict``). It NEVER carries a secret —
+only a ``credential_ref`` key name that points into the secret store.
+
+``MessageDTO`` and ``FolderNode`` are the normalized message / folder shapes the
+services, API, and agent tools all share.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+from utils.apps.mailbox.shared.errors import ValidationError
+
+VALID_PROVIDERS = ("gmail", "m365", "exchange", "yahoo")
+VALID_STATUS = ("untested", "ok", "error")
+
+# Keys that look like a secret and must never be accepted into account settings.
+# The config store asserts against this set as a defensive secret-leak guard.
+SECRET_KEYS = (
+    "credential",
+    "secret",
+    "password",
+    "app_password",
+    "access_token",
+    "token",
+    "graph_token",
+)
+
+
+def _req_str(data: dict, key: str) -> str:
+    value = data.get(key)
+    if not isinstance(value, str) or not value.strip():
+        raise ValidationError(f"'{key}' is required", details={"field": key})
+    return value
+
+
+def _opt_str(data: dict, key: str) -> str | None:
+    value = data.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValidationError(f"'{key}' must be a string", details={"field": key})
+    return value or None
+
+
+def _opt_int(data: dict, key: str) -> int | None:
+    value = data.get(key)
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValidationError(f"'{key}' must be an integer", details={"field": key}) from exc
+
+
+def _opt_bool(data: dict, key: str, default: bool) -> bool:
+    value = data.get(key, default)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in ("1", "true", "yes", "on")
+    return bool(value)
+
+
+# --- persisted account settings ----------------------------------------------
+
+@dataclass(frozen=True)
+class AccountConfig:
+    id: str
+    provider: str
+    display_name: str
+    email: str
+    enabled: bool = True
+    credential_ref: str | None = None
+    status: str = "untested"
+    use_graph: bool = False
+    imap_host: str | None = None
+    imap_port: int | None = None
+    smtp_host: str | None = None
+    smtp_port: int | None = None
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "AccountConfig":
+        if not isinstance(data, dict):
+            raise ValidationError("account must be a JSON object")
+
+        provider = _req_str(data, "provider")
+        if provider not in VALID_PROVIDERS:
+            raise ValidationError(
+                f"unknown provider '{provider}'",
+                details={"field": "provider", "valid": list(VALID_PROVIDERS)},
+            )
+
+        status = data.get("status", "untested")
+        if status not in VALID_STATUS:
+            raise ValidationError(
+                f"invalid status '{status}'",
+                details={"field": "status", "valid": list(VALID_STATUS)},
+            )
+
+        imap_host = _opt_str(data, "imap_host")
+        # On-prem Exchange host is organization-specific and cannot be defaulted.
+        if provider == "exchange" and not imap_host:
+            raise ValidationError(
+                "exchange accounts require an imap_host",
+                details={"field": "imap_host"},
+            )
+
+        return cls(
+            id=_req_str(data, "id"),
+            provider=provider,
+            display_name=_req_str(data, "display_name"),
+            email=_req_str(data, "email"),
+            enabled=_opt_bool(data, "enabled", True),
+            credential_ref=_opt_str(data, "credential_ref"),
+            status=status,
+            use_graph=_opt_bool(data, "use_graph", False),
+            imap_host=imap_host,
+            imap_port=_opt_int(data, "imap_port"),
+            smtp_host=_opt_str(data, "smtp_host"),
+            smtp_port=_opt_int(data, "smtp_port"),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "provider": self.provider,
+            "display_name": self.display_name,
+            "email": self.email,
+            "enabled": self.enabled,
+            "credential_ref": self.credential_ref,
+            "status": self.status,
+            "use_graph": self.use_graph,
+            "imap_host": self.imap_host,
+            "imap_port": self.imap_port,
+            "smtp_host": self.smtp_host,
+            "smtp_port": self.smtp_port,
+        }
+
+
+# --- normalized message -------------------------------------------------------
+
+@dataclass
+class MessageDTO:
+    uid: str
+    provider: str
+    account: str
+    subject: str
+    from_addr: str
+    to_addr: str
+    date: str
+    snippet: str
+    message_id: str = ""          # RFC Message-ID — stable across a folder MOVE
+    flags: list[str] = field(default_factory=list)
+    body_text: str | None = None  # populated only by the message-detail fetch
+    body_html: str | None = None
+
+    @property
+    def unread(self) -> bool:
+        return "\\Seen" not in self.flags
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "uid": self.uid,
+            "provider": self.provider,
+            "account": self.account,
+            "subject": self.subject,
+            "from": self.from_addr,
+            "to": self.to_addr,
+            "date": self.date,
+            "snippet": self.snippet,
+            "message_id": self.message_id,
+            "flags": self.flags,
+            "unread": self.unread,
+            "body_text": self.body_text,
+            "body_html": self.body_html,
+        }
+
+
+# --- folder tree --------------------------------------------------------------
+
+@dataclass
+class FolderNode:
+    name: str                    # leaf name, e.g. "Work"
+    path: str                    # full path, e.g. "INBOX/Work"
+    flags: list[str] = field(default_factory=list)
+    selectable: bool = True      # False for \Noselect containers
+    children: list["FolderNode"] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "path": self.path,
+            "flags": self.flags,
+            "selectable": self.selectable,
+            "children": [c.to_dict() for c in self.children],
+        }
