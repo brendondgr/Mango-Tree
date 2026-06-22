@@ -61,6 +61,12 @@ export type EphemeralTab = {
 export const EXERCISE_WORKSPACE_TAB = "app:exercise";
 export const EXERCISE_TAB_LABEL = "Exercise";
 
+export const MAILBOX_WORKSPACE_TAB = "app:mailbox";
+export const MAILBOX_TAB_LABEL = "Mailbox";
+
+export type MailboxView = "inbox" | "settings";
+export type MailboxDensity = "compact" | "modern";
+
 export type ExerciseView =
   | "dashboard"
   | "workouts"
@@ -91,7 +97,8 @@ export interface ExerciseSession {
 export type WorkspaceTabValue =
   | WorkspaceTabId
   | `ephemeral:${string}`
-  | typeof EXERCISE_WORKSPACE_TAB;
+  | typeof EXERCISE_WORKSPACE_TAB
+  | typeof MAILBOX_WORKSPACE_TAB;
 
 export const VIEWER_MEDIA_FRACTION_DEFAULT = 0.5;
 export const VIEWER_MEDIA_FRACTION_MIN = 0.2;
@@ -126,6 +133,10 @@ interface WorkspaceState {
   exerciseTabOpen: boolean;
   exerciseView: ExerciseView;
   exerciseSession: ExerciseSession | null;
+  mailboxTabOpen: boolean;
+  mailboxView: MailboxView;
+  mailboxDensity: MailboxDensity;
+  mailboxAccountId: string | null;
   sidebarMode: SidebarMode;
   artifactGridColumns: number;
   viewerMediaFraction: number;
@@ -145,6 +156,11 @@ interface WorkspaceState {
   openExerciseTab: () => void;
   closeExerciseTab: () => void;
   setExerciseView: (view: ExerciseView) => void;
+  openMailboxTab: () => void;
+  closeMailboxTab: () => void;
+  setMailboxView: (view: MailboxView) => void;
+  setMailboxDensity: (density: MailboxDensity) => void;
+  setMailboxAccountId: (accountId: string | null) => void;
   startExerciseSession: (session: ExerciseSession) => void;
   updateSessionExercise: (index: number, changes: Partial<SessionExercise>) => void;
   endExerciseSession: () => void;
@@ -193,6 +209,10 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       exerciseTabOpen: false,
       exerciseView: "dashboard",
       exerciseSession: null,
+      mailboxTabOpen: false,
+      mailboxView: "inbox",
+      mailboxDensity: "modern",
+      mailboxAccountId: null,
       sidebarMode: "chat",
       artifactGridColumns: ARTIFACT_GRID_COLUMNS_DEFAULT,
       viewerMediaFraction: VIEWER_MEDIA_FRACTION_DEFAULT,
@@ -226,7 +246,11 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       setActiveTab: (tab) => get().setPinnedTab(tab),
 
       setActiveWorkspaceTab: (tab) => {
-        if (isEphemeralWorkspaceTab(tab) || tab === EXERCISE_WORKSPACE_TAB) {
+        if (
+          isEphemeralWorkspaceTab(tab) ||
+          tab === EXERCISE_WORKSPACE_TAB ||
+          tab === MAILBOX_WORKSPACE_TAB
+        ) {
           set({ activeWorkspaceTab: tab });
           return;
         }
@@ -272,6 +296,29 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       },
 
       setExerciseView: (view) => set({ exerciseView: view }),
+
+      openMailboxTab: () =>
+        set({
+          mailboxTabOpen: true,
+          activeWorkspaceTab: MAILBOX_WORKSPACE_TAB,
+        }),
+
+      closeMailboxTab: () => {
+        const { activeWorkspaceTab, activeTab } = get();
+        set({
+          mailboxTabOpen: false,
+          activeWorkspaceTab:
+            activeWorkspaceTab === MAILBOX_WORKSPACE_TAB
+              ? activeTab
+              : activeWorkspaceTab,
+        });
+      },
+
+      setMailboxView: (view) => set({ mailboxView: view }),
+
+      setMailboxDensity: (density) => set({ mailboxDensity: density }),
+
+      setMailboxAccountId: (accountId) => set({ mailboxAccountId: accountId }),
 
       startExerciseSession: (session) => set({ exerciseSession: session }),
 
@@ -390,12 +437,15 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         artifactGridColumns: state.artifactGridColumns,
         viewerMediaFraction: state.viewerMediaFraction,
         exerciseView: state.exerciseView,
+        mailboxView: state.mailboxView,
+        mailboxDensity: state.mailboxDensity,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.sidebarWidth = state.lastWidth || SIDEBAR_DEFAULT;
           state.ephemeralTab = null;
           state.exerciseTabOpen = false;
+          state.mailboxTabOpen = false;
           state.activeWorkspaceTab = state.activeTab;
         }
       },

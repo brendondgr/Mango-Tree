@@ -1,11 +1,13 @@
 import {
   EXERCISE_WORKSPACE_TAB,
+  MAILBOX_WORKSPACE_TAB,
   ephemeralTabValue,
   isEphemeralWorkspaceTab,
   useWorkspaceStore,
 } from "@/app/stores/workspaceStore";
 import { getWorkspaceTab } from "@/features/workspace/components/workspaceTabs";
 import { ExerciseWorkspace } from "@exercise/pages/ExerciseWorkspace";
+import { MailboxWorkspace } from "@mailbox/pages/MailboxWorkspace";
 import { MediaViewerShell } from "@media-viewer/components/MediaViewerShell";
 
 export function WorkspaceMainBody() {
@@ -17,6 +19,14 @@ export function WorkspaceMainBody() {
     return (
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <ExerciseWorkspace />
+      </div>
+    );
+  }
+
+  if (activeWorkspaceTab === MAILBOX_WORKSPACE_TAB) {
+    return (
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <MailboxWorkspace />
       </div>
     );
   }

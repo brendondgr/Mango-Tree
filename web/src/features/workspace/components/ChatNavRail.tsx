@@ -1,7 +1,8 @@
-import { Dumbbell, MessageSquare, FolderOpen } from "lucide-react";
+import { Dumbbell, Mail, MessageSquare, FolderOpen } from "lucide-react";
 
 import {
   EXERCISE_WORKSPACE_TAB,
+  MAILBOX_WORKSPACE_TAB,
   useWorkspaceStore,
   type SidebarMode,
 } from "@/app/stores/workspaceStore";
@@ -24,6 +25,7 @@ export function ChatNavRail() {
   const setSidebarMode = useWorkspaceStore((s) => s.setSidebarMode);
   const expandSidebar = useWorkspaceStore((s) => s.expandSidebar);
   const openExerciseTab = useWorkspaceStore((s) => s.openExerciseTab);
+  const openMailboxTab = useWorkspaceStore((s) => s.openMailboxTab);
   const activeWorkspaceTab = useWorkspaceStore((s) => s.activeWorkspaceTab);
 
   const handleSelect = (mode: SidebarMode) => {
@@ -32,6 +34,7 @@ export function ChatNavRail() {
   };
 
   const exerciseActive = activeWorkspaceTab === EXERCISE_WORKSPACE_TAB;
+  const mailboxActive = activeWorkspaceTab === MAILBOX_WORKSPACE_TAB;
 
   return (
     <nav
@@ -64,6 +67,21 @@ export function ChatNavRail() {
           </Button>
         );
       })}
+      <Button
+        type="button"
+        variant={mailboxActive ? "secondary" : "ghost"}
+        size="icon"
+        className={cn(
+          "h-10 w-10 rounded-[var(--radius-md)]",
+          mailboxActive && "bg-secondary text-foreground",
+        )}
+        aria-label="Mailbox"
+        aria-current={mailboxActive ? "page" : undefined}
+        title="Mailbox"
+        onClick={() => openMailboxTab()}
+      >
+        <Mail className="h-5 w-5" />
+      </Button>
       <Button
         type="button"
         variant={exerciseActive ? "secondary" : "ghost"}

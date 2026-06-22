@@ -8,6 +8,7 @@
  * Any new utils/apps/<name>/frontend MUST be registered here.
  */
 @source "../../../utils/apps/exercise/frontend";
+@source "../../../utils/apps/mailbox/frontend";
 @source "../../../utils/apps/media_viewer/frontend";
 
 @import "./themes/default.css";

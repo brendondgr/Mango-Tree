@@ -1,9 +1,11 @@
-import { ChevronDown, Dumbbell, FileText, Menu, X } from "lucide-react";
+import { ChevronDown, Dumbbell, FileText, Mail, Menu, X } from "lucide-react";
 
 import {
   EPHEMERAL_ARTIFACT_TAB_LABEL,
   EXERCISE_TAB_LABEL,
   EXERCISE_WORKSPACE_TAB,
+  MAILBOX_TAB_LABEL,
+  MAILBOX_WORKSPACE_TAB,
   ephemeralTabValue,
   isEphemeralWorkspaceTab,
   selectSidebarCollapsed,
@@ -41,6 +43,9 @@ function getActiveLabel(
   if (activeWorkspaceTab === EXERCISE_WORKSPACE_TAB) {
     return EXERCISE_TAB_LABEL;
   }
+  if (activeWorkspaceTab === MAILBOX_WORKSPACE_TAB) {
+    return MAILBOX_TAB_LABEL;
+  }
   if (isEphemeralWorkspaceTab(activeWorkspaceTab) && hasEphemeralTab) {
     return EPHEMERAL_ARTIFACT_TAB_LABEL;
   }
@@ -54,6 +59,8 @@ export function WorkspaceHeader() {
   const ephemeralTab = useWorkspaceStore((s) => s.ephemeralTab);
   const exerciseTabOpen = useWorkspaceStore((s) => s.exerciseTabOpen);
   const closeExerciseTab = useWorkspaceStore((s) => s.closeExerciseTab);
+  const mailboxTabOpen = useWorkspaceStore((s) => s.mailboxTabOpen);
+  const closeMailboxTab = useWorkspaceStore((s) => s.closeMailboxTab);
   const setActiveWorkspaceTab = useWorkspaceStore((s) => s.setActiveWorkspaceTab);
   const sidebarWidth = useWorkspaceStore((s) => s.sidebarWidth);
   const mobileDrawerOpen = useWorkspaceStore((s) => s.mobileDrawerOpen);
@@ -71,10 +78,6 @@ export function WorkspaceHeader() {
   );
 
   const onTabChange = (value: string) => {
-    if (isEphemeralWorkspaceTab(value) || value === EXERCISE_WORKSPACE_TAB) {
-      setActiveWorkspaceTab(value as WorkspaceTabId);
-      return;
-    }
     setActiveWorkspaceTab(value as WorkspaceTabId);
   };
 
@@ -129,6 +132,40 @@ export function WorkspaceHeader() {
               >
                 <FileText className="h-4 w-4 shrink-0" />
                 {ephemeralTab.tabLabel}
+              </TabsTrigger>
+            )}
+            {mailboxTabOpen && (
+              <TabsTrigger
+                value={MAILBOX_WORKSPACE_TAB}
+                role="tab"
+                className={cn(workspaceTabTriggerClass, "pr-2")}
+              >
+                <Mail className="h-4 w-4 shrink-0" />
+                {MAILBOX_TAB_LABEL}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Close Mailbox tab"
+                  className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-[var(--radius-sm)] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
+                    event.preventDefault();
+                  }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    closeMailboxTab();
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.stopPropagation();
+                      event.preventDefault();
+                      closeMailboxTab();
+                    }
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </span>
               </TabsTrigger>
             )}
             {exerciseTabOpen && (
@@ -210,6 +247,33 @@ export function WorkspaceHeader() {
                   >
                     <FileText className="h-4 w-4" />
                     <span className="italic">{ephemeralTab.tabLabel}</span>
+                  </DropdownMenuItem>
+                </>
+              )}
+              {mailboxTabOpen && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className={cn(
+                      activeWorkspaceTab === MAILBOX_WORKSPACE_TAB &&
+                        "bg-primary/5 text-primary",
+                    )}
+                    onSelect={() => setActiveWorkspaceTab(MAILBOX_WORKSPACE_TAB)}
+                  >
+                    <Mail className="h-4 w-4" />
+                    <span className="flex-1">{MAILBOX_TAB_LABEL}</span>
+                    <span
+                      role="button"
+                      aria-label="Close Mailbox tab"
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] text-muted-foreground hover:bg-muted hover:text-foreground"
+                      onPointerDown={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        closeMailboxTab();
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </span>
                   </DropdownMenuItem>
                 </>
               )}

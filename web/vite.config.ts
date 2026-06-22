@@ -17,6 +17,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
       "@media-viewer": path.resolve(__dirname, "../utils/apps/media_viewer/frontend"),
       "@exercise": path.resolve(__dirname, "../utils/apps/exercise/frontend"),
+      "@mailbox": path.resolve(__dirname, "../utils/apps/mailbox/frontend"),
       react: path.resolve(__dirname, "./node_modules/react"),
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
       "lucide-react": path.resolve(__dirname, "./node_modules/lucide-react"),
