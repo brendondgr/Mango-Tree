@@ -90,16 +90,36 @@ class AccountDetailView(APIView):
 
 # --- credential (write-only) --------------------------------------------------
 
+_OAUTH_KEYS = ("refresh_token", "client_id", "client_secret", "access_token")
+
+
+def _credential_from_body(body: dict) -> str | dict:
+    """A plain app-password string, or an OAuth bundle for Gmail/M365."""
+    if any(key in body for key in _OAUTH_KEYS):
+        bundle = {
+            key: body[key]
+            for key in _OAUTH_KEYS
+            if isinstance(body.get(key), str) and body[key]
+        }
+        if not (bundle.get("refresh_token") or bundle.get("access_token")):
+            raise ValidationError(
+                "provide a refresh_token (with client_id and client_secret)",
+                details={"field": "refresh_token"},
+            )
+        return bundle
+    value = body.get("value") or body.get("credential")
+    if not isinstance(value, str) or not value:
+        raise ValidationError("credential value is required", details={"field": "value"})
+    return value
+
+
 class AccountCredentialView(APIView):
     def put(self, request: Request, account_id: str) -> Response:
         try:
             account = config_store.get_account(account_id)  # 404 if missing
-            body = parse_object(request.data)
-            value = body.get("value") or body.get("credential")
-            if not isinstance(value, str) or not value:
-                raise ValidationError("credential value is required", details={"field": "value"})
+            credential = _credential_from_body(parse_object(request.data))
             ref = account.credential_ref or _default_credential_ref(account.provider, account.id)
-            secrets.set_credential(ref, value)
+            secrets.set_credential(ref, credential)
             if account.credential_ref != ref:
                 config_store.save_account({**account.to_dict(), "credential_ref": ref})
         except MailError as exc:

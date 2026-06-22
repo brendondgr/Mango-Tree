@@ -76,13 +76,18 @@ export function deleteAccount(accountId: string): Promise<void> {
   return request<void>(`${base}/${id(accountId)}/`, { method: "DELETE" });
 }
 
+// A plain app-password (Yahoo/Exchange) or an OAuth bundle (Gmail/M365).
+export type CredentialPayload =
+  | { value: string }
+  | { refresh_token: string; client_id: string; client_secret: string };
+
 export function setCredential(
   accountId: string,
-  value: string,
+  payload: CredentialPayload,
 ): Promise<{ id: string; credential_ref: string; has_credential: boolean }> {
   return request(`${base}/${id(accountId)}/credential/`, {
     method: "PUT",
-    body: JSON.stringify({ value }),
+    body: JSON.stringify(payload),
   });
 }
 

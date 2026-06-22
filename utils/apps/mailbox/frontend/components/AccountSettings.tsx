@@ -74,7 +74,10 @@ export function AccountSettings() {
   const [selectedId, setSelectedId] = useState<string | "new" | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [credential, setCredential] = useState("");
+  const [oauth, setOauth] = useState({ refresh_token: "", client_id: "", client_secret: "" });
   const [error, setError] = useState<string | null>(null);
+
+  const isOAuth = form.provider === "gmail" || form.provider === "m365";
 
   const create = useCreateAccount();
   const update = useUpdateAccount();
@@ -89,6 +92,7 @@ export function AccountSettings() {
   useEffect(() => {
     setError(null);
     setCredential("");
+    setOauth({ refresh_token: "", client_id: "", client_secret: "" });
     if (isNew) {
       setForm(EMPTY);
     } else if (editing) {
@@ -115,11 +119,20 @@ export function AccountSettings() {
   };
 
   const onSaveCredential = async () => {
-    if (!editing || !credential) return;
+    if (!editing) return;
+    if (isOAuth ? !oauth.refresh_token.trim() : !credential) return;
+    const payload = isOAuth
+      ? {
+          refresh_token: oauth.refresh_token.trim(),
+          client_id: oauth.client_id.trim(),
+          client_secret: oauth.client_secret.trim(),
+        }
+      : { value: credential };
     setError(null);
     try {
-      await saveCred.mutateAsync({ id: editing.id, value: credential });
+      await saveCred.mutateAsync({ id: editing.id, payload });
       setCredential("");
+      setOauth({ refresh_token: "", client_id: "", client_secret: "" });
     } catch (err) {
       setError((err as Error).message);
     }
@@ -331,8 +344,43 @@ export function AccountSettings() {
               </div>
               {isNew ? (
                 <p className="text-xs text-muted-foreground">
-                  Create the account first, then add its access token or app password here.
+                  Create the account first, then add its credential here.
                 </p>
+              ) : isOAuth ? (
+                <div className="space-y-2">
+                  <Input
+                    type="password"
+                    value={oauth.refresh_token}
+                    onChange={(e) => setOauth((o) => ({ ...o, refresh_token: e.target.value }))}
+                    placeholder="OAuth2 refresh token"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      value={oauth.client_id}
+                      onChange={(e) => setOauth((o) => ({ ...o, client_id: e.target.value }))}
+                      placeholder="OAuth client ID"
+                    />
+                    <Input
+                      type="password"
+                      value={oauth.client_secret}
+                      onChange={(e) => setOauth((o) => ({ ...o, client_secret: e.target.value }))}
+                      placeholder="OAuth client secret"
+                    />
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={onSaveCredential}
+                      disabled={!oauth.refresh_token.trim() || saveCred.isPending}
+                    >
+                      {saveCred.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save credential"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Access tokens are minted from the refresh token automatically (they expire
+                    hourly). The bundle is stored separately in a private <code>0600</code> file —
+                    never written to the account config, never shown again.
+                  </p>
+                </div>
               ) : (
                 <>
                   <div className="flex gap-2">
@@ -340,11 +388,7 @@ export function AccountSettings() {
                       type="password"
                       value={credential}
                       onChange={(e) => setCredential(e.target.value)}
-                      placeholder={
-                        form.provider === "yahoo" || form.provider === "exchange"
-                          ? "App password"
-                          : "OAuth2 access token"
-                      }
+                      placeholder="App password"
                     />
                     <Button onClick={onSaveCredential} disabled={!credential || saveCred.isPending}>
                       {saveCred.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}

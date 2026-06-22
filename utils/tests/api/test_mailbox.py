@@ -99,6 +99,25 @@ def test_credential_is_write_only_and_never_echoed(client, stores):
     assert "SUPER-SECRET-TOKEN" not in Path(stores / "accounts.json").read_text()
 
 
+def test_oauth_bundle_credential_stored_but_never_echoed(client, stores):
+    account_id = _create(client).json()["id"]  # gmail
+    res = client.put(
+        f"/api/mailbox/accounts/{account_id}/credential/",
+        data=json.dumps({
+            "refresh_token": "RT-SECRET", "client_id": "CID", "client_secret": "CSEC-SECRET",
+        }),
+        content_type="application/json",
+    )
+    assert res.status_code == 200
+    assert res.json()["has_credential"] is True
+    # no part of the bundle is echoed
+    body = json.dumps(res.json())
+    assert "RT-SECRET" not in body and "CSEC-SECRET" not in body
+    # the refresh token lives only in the secrets file, never in accounts.json
+    assert "RT-SECRET" not in Path(stores / "accounts.json").read_text()
+    assert "RT-SECRET" in Path(stores / "secrets.json").read_text()
+
+
 def test_credential_for_missing_account_404(client):
     res = client.put(
         "/api/mailbox/accounts/ghost/credential/",

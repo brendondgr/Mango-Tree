@@ -102,8 +102,8 @@ export function useDeleteAccount() {
 export function useSetCredential() {
   const invalidate = useAccountsInvalidator();
   return useMutation({
-    mutationFn: ({ id, value }: { id: string; value: string }) =>
-      api.setCredential(id, value),
+    mutationFn: ({ id, payload }: { id: string; payload: api.CredentialPayload }) =>
+      api.setCredential(id, payload),
     onSuccess: invalidate,
   });
 }

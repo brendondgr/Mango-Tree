@@ -131,6 +131,8 @@ derived `has_credential` boolean; the credential endpoint is write-only.
 | `GET` | `/api/mailbox/accounts/{id}/messages/{uid}/` | `messages.get_message` | One message with decoded body (open) |
 | `POST` | `/api/mailbox/accounts/{id}/organize/` | `mailops.organize` | Move a message by UID (reversible) |
 
+The credential endpoint body is either `{"value": "<app password>"}` (Yahoo/Exchange) or an OAuth bundle `{"refresh_token", "client_id", "client_secret"}` (Gmail/M365 — short-lived access tokens are minted from the refresh token on demand). It is write-only and echoes only `{id, credential_ref, has_credential}`.
+
 An account settings object: `{id, provider, display_name, email, enabled, credential_ref, status, use_graph, imap_host, imap_port, smtp_host, smtp_port, has_credential}` — `status` is `untested`/`ok`/`error`. A message object: `{uid, message_id, provider, account, subject, from, to, date, snippet, flags, unread, body_text, body_html}` (`body_*` populated only by the detail endpoint). Errors use the platform schema (`validation_error` 400, `permission_denied` 403, `not_found` 404, `conflict` 409, `provider_error` 502). Reads against an account with no stored credential return `permission_denied` (403); no network is attempted.
 
 ### Exercise
