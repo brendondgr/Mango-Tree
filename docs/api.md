@@ -107,6 +107,32 @@ Local artifact storage and streaming for the `/chat` workspace. See `utils/apps/
 
 Artifact kinds: `image`, `video`, `pdf`, `markdown`, `latex`, `text`, `unknown`.
 
+### Mailbox
+
+Multi-provider mailbox (Gmail, Microsoft 365, on-prem Exchange, Yahoo). Account
+*settings* persist to a local file (`data/mailbox/accounts.json`); credentials
+live in a separate `0600` secret store (`data/mailbox/secrets.json`), referenced
+from settings only by a `credential_ref` key name. See `utils/apps/mailbox/README.md`.
+DRF routes: `utils/api/routes/mailbox.py`; views call `backend/services/` only.
+
+**Secrets are never serialized back.** CRUD returns account settings plus a
+derived `has_credential` boolean; the credential endpoint is write-only.
+
+| Method | Endpoint | Service | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/mailbox/accounts/` | `config_store.list_accounts` | List configured mailboxes (settings only) |
+| `POST` | `/api/mailbox/accounts/` | `config_store.save_account` | Create a mailbox (settings; id generated) |
+| `PUT` | `/api/mailbox/accounts/{id}/` | `config_store.save_account` | Update a mailbox (upsert on `id`) |
+| `DELETE` | `/api/mailbox/accounts/{id}/` | `config_store.delete_account` | Remove a mailbox (and its credential) |
+| `PUT` | `/api/mailbox/accounts/{id}/credential/` | `secrets.set_credential` | Store the credential (write-only; never echoed) |
+| `POST` | `/api/mailbox/accounts/{id}/test/` | `providers.test_account` | Test connectivity; updates `status` |
+| `GET` | `/api/mailbox/accounts/{id}/folders/` | `messages.list_folders` | Folder tree for one account |
+| `GET` | `/api/mailbox/accounts/{id}/messages/` | `messages.list_messages` | Recent messages (`?folder=INBOX&limit=25`) |
+| `GET` | `/api/mailbox/accounts/{id}/messages/{uid}/` | `messages.get_message` | One message with decoded body (open) |
+| `POST` | `/api/mailbox/accounts/{id}/organize/` | `mailops.organize` | Move a message by UID (reversible) |
+
+An account settings object: `{id, provider, display_name, email, enabled, credential_ref, status, use_graph, imap_host, imap_port, smtp_host, smtp_port, has_credential}` — `status` is `untested`/`ok`/`error`. A message object: `{uid, message_id, provider, account, subject, from, to, date, snippet, flags, unread, body_text, body_html}` (`body_*` populated only by the detail endpoint). Errors use the platform schema (`validation_error` 400, `permission_denied` 403, `not_found` 404, `conflict` 409, `provider_error` 502). Reads against an account with no stored credential return `permission_denied` (403); no network is attempted.
+
 ### Exercise
 
 Workout/routine/equipment/history tracking with Strava import, migrated from the standalone WorkoutTracker app. See `utils/apps/exercise/README.md`. Data lives in the legacy SQLite store at `data/exercise/workouttracker.db` (bound read/write, schema unchanged). DRF routes: `utils/api/routes/exercise.py`; views call `backend/services/` only.
