@@ -4,7 +4,12 @@ network — services are mocked."""
 
 from __future__ import annotations
 
+import importlib
+from pathlib import Path
 from unittest.mock import MagicMock
+
+import yaml
+from django.conf import settings
 
 from utils.apps.mailbox.agent import tools
 from utils.apps.mailbox.shared.errors import NotFoundError, PermissionDeniedError
@@ -101,3 +106,19 @@ def test_unknown_account_surfaces_not_found():
     mock.list_folders.side_effect = NotFoundError("missing")
     payload = tools.list_folders(account="ghost", service=mock)
     assert payload["error"]["code"] == "not_found"
+
+
+# --- registry manifest consistency --------------------------------------------
+
+def test_tools_yaml_entries_resolve():
+    config = yaml.safe_load((Path(settings.BASE_DIR) / "config" / "tools.yaml").read_text())
+    mailbox_tools = {
+        name: meta
+        for name, meta in config["tools"].items()
+        if meta.get("app") == "mailbox"
+    }
+    assert len(mailbox_tools) == 6
+    for meta in mailbox_tools.values():
+        module = importlib.import_module(meta["module"])
+        assert callable(getattr(module, meta["function"]))
+

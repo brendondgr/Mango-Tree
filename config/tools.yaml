@@ -94,3 +94,33 @@ tools:
     module: utils.apps.exercise.agent.tools
     function: sync_strava
     description: Import Strava run/walk activities into history (additive, dedups). Requires Strava credentials.
+  mailbox_list_accounts:
+    app: mailbox
+    module: utils.apps.mailbox.agent.tools
+    function: list_accounts
+    description: List configured mailbox accounts (id, provider, email, display name). No secrets.
+  mailbox_list_folders:
+    app: mailbox
+    module: utils.apps.mailbox.agent.tools
+    function: list_folders
+    description: Folder tree for one account (tree, flat, count). Requires a configured account.
+  mailbox_list_messages:
+    app: mailbox
+    module: utils.apps.mailbox.agent.tools
+    function: list_messages
+    description: Recent messages in a folder (default INBOX, limit 25), each with a uid.
+  mailbox_organize_message:
+    app: mailbox
+    module: utils.apps.mailbox.agent.tools
+    function: organize_message
+    description: Move a message by uid from source to dest (reversible; creates dest if missing).
+  mailbox_create_folder:
+    app: mailbox
+    module: utils.apps.mailbox.agent.tools
+    function: create_folder
+    description: Create a folder/label for an account (idempotent).
+  mailbox_send_message:
+    app: mailbox
+    module: utils.apps.mailbox.agent.tools
+    function: send_message
+    description: Send a message (irreversible). Returns permission_denied unless confirm is true.
