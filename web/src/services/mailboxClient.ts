@@ -92,9 +92,10 @@ export function testAccount(accountId: string): Promise<TestResult> {
 }
 
 // Begin the OAuth portal flow for Gmail/M365 — returns the provider authorize URL.
+// Note: the OAuth routes are mounted at /api/mailbox/oauth/..., NOT under accounts/.
 export function startOAuth(provider: string): Promise<{ authorize_url: string }> {
   return request<{ authorize_url: string }>(
-    `${base}/oauth/start/?provider=${encodeURIComponent(provider)}`,
+    `/api/mailbox/oauth/start/?provider=${encodeURIComponent(provider)}`,
   );
 }
 
