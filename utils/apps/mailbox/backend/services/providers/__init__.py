@@ -14,11 +14,10 @@ touch accounts that exist there.
 
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from utils.apps.mailbox.backend.services import oauth as _oauth
+from utils.apps.mailbox.backend.services.oauth import tokens as _tokens
 from utils.apps.mailbox.backend.services.ops import MailAccount
 from utils.apps.mailbox.shared.errors import MailError, ValidationError
 from utils.apps.mailbox.shared.schemas import AccountConfig
@@ -48,18 +47,21 @@ def build_account_from_config(
     account: AccountConfig,
     *,
     get_secret: Callable[[str], Any] | None = None,
-    transport: _oauth.Transport | None = None,
+    set_secret: Callable[[str, Any], None] | None = None,
+    transport: _tokens.PostTransport | None = None,
     now: float | None = None,
-    on_refresh: Callable[[dict[str, Any]], None] | None = None,
+    cache: dict[str, tuple[str, float]] | None = None,
+    provider_config: Any = None,
 ) -> MailAccount:
     """Assemble a connection ``MailAccount`` from persisted settings + secret.
 
-    ``get_secret`` resolves ``credential_ref`` -> the stored secret: a plain
-    app-password string, or an OAuth bundle dict. For OAuth providers the bundle's
-    refresh token is exchanged for a short-lived access token (cached via
-    ``on_refresh``); ``transport``/``now`` are injectable for offline tests. When
-    no credential is present the account is built without one and ``connect_imap``
-    raises ``permission_denied``.
+    For OAuth providers (Gmail/M365) the stored secret is a *refresh token*; it is
+    exchanged for a short-lived access token via ``tokens.get_access_token``
+    (cached in-process; a rotated refresh token is written back through
+    ``set_secret``). App-password providers (Yahoo/Exchange) use the stored string
+    directly. ``transport``/``now``/``cache``/``provider_config`` are injectable for
+    offline tests. With no credential the account is built without one and
+    ``connect_imap`` raises ``permission_denied``.
     """
     if account.provider not in PROVIDERS:
         raise ValidationError(
@@ -68,25 +70,25 @@ def build_account_from_config(
         )
     defaults = PROVIDERS[account.provider]
 
-    secret: Any = None
-    if account.credential_ref and get_secret is not None:
-        secret = get_secret(account.credential_ref)
-
     auth = defaults.auth
     access_token: str | None = None
     app_password: str | None = None
-    if secret is not None:
+    if account.credential_ref and get_secret is not None:
         if auth == "oauth2":
-            bundle = secret if isinstance(secret, dict) else {"access_token": secret}
-            access_token = _oauth.resolve_access_token(
-                account.provider,
-                bundle,
-                now=now if now is not None else time.time(),
+            access_token = _tokens.get_access_token(
+                account,
+                get_refresh=get_secret,
+                set_refresh=set_secret,
                 transport=transport,
-                on_refresh=on_refresh,
+                now=now,
+                cache=cache,
+                provider_config=provider_config,
             )
         else:  # password / either (app-password basic auth)
-            app_password = secret if isinstance(secret, str) else secret.get("app_password")
+            secret = get_secret(account.credential_ref)
+            app_password = secret if isinstance(secret, str) else (
+                secret.get("app_password") if isinstance(secret, dict) else None
+            )
 
     imap_host = account.imap_host or defaults.imap_host
     smtp_host = account.smtp_host or defaults.smtp_host or imap_host
@@ -104,19 +106,12 @@ def build_account_from_config(
     )
 
 
-def _writeback(secrets_mod: Any, ref: str | None) -> Callable[[dict[str, Any]], None] | None:
-    """A callback that caches a refreshed OAuth bundle back into the secret store."""
-    if not ref:
-        return None
-    return lambda updated: secrets_mod.set_credential(ref, updated)
-
-
 def build_account(
     account_id: str,
     *,
     config: Any = None,
     secret_store: Any = None,
-    transport: _oauth.Transport | None = None,
+    transport: _tokens.PostTransport | None = None,
     now: float | None = None,
 ) -> MailAccount:
     """Resolve an account id to a connection ``MailAccount`` (settings + secret),
@@ -129,9 +124,9 @@ def build_account(
     return build_account_from_config(
         account,
         get_secret=sec_mod.get_credential,
+        set_secret=sec_mod.set_credential,
         transport=transport,
         now=now,
-        on_refresh=_writeback(sec_mod, account.credential_ref),
     )
 
 
@@ -140,7 +135,7 @@ def test_account(
     *,
     config: Any = None,
     secret_store: Any = None,
-    transport: _oauth.Transport | None = None,
+    transport: _tokens.PostTransport | None = None,
     imap_factory: Callable[[MailAccount], Any] | None = None,
 ) -> dict[str, Any]:
     """Open and close an IMAP connection to verify the account, then persist the
@@ -156,8 +151,8 @@ def test_account(
         acct = build_account_from_config(
             account,
             get_secret=sec_mod.get_credential,
+            set_secret=sec_mod.set_credential,
             transport=transport,
-            on_refresh=_writeback(sec_mod, account.credential_ref),
         )
         client = ops.connect_imap(acct, imap_factory=imap_factory)
         ops._safe_logout(client)
