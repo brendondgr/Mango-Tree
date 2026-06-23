@@ -1,10 +1,21 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, KeyRound, Loader2, Plus, ShieldCheck, Trash2, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  ExternalLink,
+  KeyRound,
+  Loader2,
+  Plus,
+  RefreshCw,
+  ShieldCheck,
+  Trash2,
+  XCircle,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { startOAuth } from "@/services/mailboxClient";
 
 import {
   useAccounts,
@@ -18,6 +29,7 @@ import { type Accent, accentClass, accentForKey, providerLabel } from "@mailbox/
 import type { MailAccount, MailAccountDraft, MailProvider } from "@/types/mailbox";
 
 const PROVIDERS: MailProvider[] = ["gmail", "m365", "exchange", "yahoo"];
+const isOAuthProvider = (p: MailProvider) => p === "gmail" || p === "m365";
 
 interface FormState {
   provider: MailProvider;
@@ -74,10 +86,8 @@ export function AccountSettings() {
   const [selectedId, setSelectedId] = useState<string | "new" | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [credential, setCredential] = useState("");
-  const [oauth, setOauth] = useState({ refresh_token: "", client_id: "", client_secret: "" });
+  const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const isOAuth = form.provider === "gmail" || form.provider === "m365";
 
   const create = useCreateAccount();
   const update = useUpdateAccount();
@@ -87,12 +97,12 @@ export function AccountSettings() {
 
   const editing = accounts.find((a) => a.id === selectedId) ?? null;
   const isNew = selectedId === "new";
+  const isOAuth = isOAuthProvider(form.provider);
 
-  // Load the selected account into the form.
   useEffect(() => {
     setError(null);
     setCredential("");
-    setOauth({ refresh_token: "", client_id: "", client_secret: "" });
+    setConnecting(false);
     if (isNew) {
       setForm(EMPTY);
     } else if (editing) {
@@ -102,6 +112,18 @@ export function AccountSettings() {
 
   const accentOf = (id: string, index: number): Accent =>
     (["sky", "mint", "coral", "lavender", "tangerine"] as Accent[])[index % 5] ?? accentForKey(id);
+
+  const onConnect = async (provider: MailProvider) => {
+    setError(null);
+    setConnecting(true);
+    try {
+      const { authorize_url } = await startOAuth(provider);
+      window.location.assign(authorize_url);
+    } catch (err) {
+      setError((err as Error).message);
+      setConnecting(false);
+    }
+  };
 
   const onSave = async () => {
     setError(null);
@@ -119,20 +141,11 @@ export function AccountSettings() {
   };
 
   const onSaveCredential = async () => {
-    if (!editing) return;
-    if (isOAuth ? !oauth.refresh_token.trim() : !credential) return;
-    const payload = isOAuth
-      ? {
-          refresh_token: oauth.refresh_token.trim(),
-          client_id: oauth.client_id.trim(),
-          client_secret: oauth.client_secret.trim(),
-        }
-      : { value: credential };
+    if (!editing || !credential) return;
     setError(null);
     try {
-      await saveCred.mutateAsync({ id: editing.id, payload });
+      await saveCred.mutateAsync({ id: editing.id, value: credential });
       setCredential("");
-      setOauth({ refresh_token: "", client_id: "", client_secret: "" });
     } catch (err) {
       setError((err as Error).message);
     }
@@ -166,9 +179,7 @@ export function AccountSettings() {
         </div>
         <div className="mailbox-scroll max-h-48 overflow-y-auto px-2 pb-2 lg:max-h-none lg:flex-1">
           {accounts.length === 0 ? (
-            <p className="px-2 py-3 text-xs text-muted-foreground">
-              No accounts yet. Add one to start.
-            </p>
+            <p className="px-2 py-3 text-xs text-muted-foreground">No accounts yet. Add one to start.</p>
           ) : (
             accounts.map((account, index) => (
               <button
@@ -186,9 +197,7 @@ export function AccountSettings() {
                   <span className="block truncate text-sm font-medium text-foreground">
                     {account.display_name}
                   </span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {account.email}
-                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">{account.email}</span>
                 </span>
                 <StatusDot status={account.status} />
               </button>
@@ -232,175 +241,131 @@ export function AccountSettings() {
               </div>
             </div>
 
-            <Field label="Display name">
-              <Input
-                value={form.display_name}
-                onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value }))}
-                placeholder="Work, Personal, Team…"
-              />
-            </Field>
-
-            <Field label="Email address">
-              <Input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                placeholder="you@example.com"
-              />
-            </Field>
-
-            {form.provider === "m365" && (
-              <label className="flex items-center gap-2 text-sm text-foreground">
-                <input
-                  type="checkbox"
-                  checked={form.use_graph}
-                  onChange={(e) => setForm((f) => ({ ...f, use_graph: e.target.checked }))}
-                />
-                Use Microsoft Graph (when available)
-              </label>
-            )}
-
-            {form.provider === "exchange" && (
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="IMAP host">
-                  <Input
-                    value={form.imap_host}
-                    onChange={(e) => setForm((f) => ({ ...f, imap_host: e.target.value }))}
-                    placeholder="mail.corp.com"
-                  />
-                </Field>
-                <Field label="IMAP port">
-                  <Input
-                    value={form.imap_port}
-                    onChange={(e) => setForm((f) => ({ ...f, imap_port: e.target.value }))}
-                    placeholder="993"
-                  />
-                </Field>
-                <Field label="SMTP host">
-                  <Input
-                    value={form.smtp_host}
-                    onChange={(e) => setForm((f) => ({ ...f, smtp_host: e.target.value }))}
-                    placeholder="mail.corp.com"
-                  />
-                </Field>
-                <Field label="SMTP port">
-                  <Input
-                    value={form.smtp_port}
-                    onChange={(e) => setForm((f) => ({ ...f, smtp_port: e.target.value }))}
-                    placeholder="587"
-                  />
-                </Field>
-              </div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <Button onClick={onSave} disabled={create.isPending || update.isPending}>
-                {(create.isPending || update.isPending) && (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                )}
-                {isNew ? "Create account" : "Save changes"}
-              </Button>
-              {editing && (
-                <Button variant="outline" onClick={onTest} disabled={test.isPending}>
-                  {test.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <ShieldCheck className="h-4 w-4" />
-                  )}
-                  Test connection
-                </Button>
-              )}
-              {editing && (
-                <Button
-                  variant="ghost"
-                  className="ml-auto text-destructive hover:text-destructive"
-                  onClick={onDelete}
-                >
-                  <Trash2 className="h-4 w-4" /> Delete
-                </Button>
-              )}
-            </div>
-
-            {test.data && (
-              <p
-                className={cn(
-                  "flex items-center gap-1.5 text-sm",
-                  test.data.ok ? "text-[hsl(var(--success))]" : "text-destructive",
-                )}
-              >
-                {test.data.ok ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                {test.data.ok ? "Connection OK" : test.data.message ?? "Connection failed"}
-              </p>
-            )}
-
-            {/* credential */}
-            <div className="space-y-2 rounded-[var(--radius-md)] border border-border bg-card p-4">
-              <div className="flex items-center gap-2">
-                <KeyRound className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium text-foreground">Credential</span>
-                {editing?.has_credential && (
-                  <span className="mailbox-badge mailbox-c-mint ml-auto">Stored</span>
-                )}
-              </div>
-              {isNew ? (
-                <p className="text-xs text-muted-foreground">
-                  Create the account first, then add its credential here.
+            {isNew && isOAuth ? (
+              /* OAuth provider, new account: go straight to the portal */
+              <div className="space-y-3 rounded-[var(--radius-md)] border border-border bg-card p-5 text-center">
+                <p className="text-sm text-muted-foreground">
+                  You'll be redirected to {providerLabel(form.provider)} to sign in. We never see
+                  your password — only a token that keeps the connection alive.
                 </p>
-              ) : isOAuth ? (
-                <div className="space-y-2">
+                <Button onClick={() => onConnect(form.provider)} disabled={connecting} className="gap-1.5">
+                  {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+                  Connect {providerLabel(form.provider)}
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Field label="Display name">
                   <Input
-                    type="password"
-                    value={oauth.refresh_token}
-                    onChange={(e) => setOauth((o) => ({ ...o, refresh_token: e.target.value }))}
-                    placeholder="OAuth2 refresh token"
+                    value={form.display_name}
+                    onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value }))}
+                    placeholder="Work, Personal, Team…"
                   />
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      value={oauth.client_id}
-                      onChange={(e) => setOauth((o) => ({ ...o, client_id: e.target.value }))}
-                      placeholder="OAuth client ID"
+                </Field>
+
+                <Field label="Email address">
+                  <Input
+                    type="email"
+                    value={form.email}
+                    disabled={isOAuth}
+                    onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                    placeholder="you@example.com"
+                  />
+                </Field>
+
+                {form.provider === "m365" && (
+                  <label className="flex items-center gap-2 text-sm text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={form.use_graph}
+                      onChange={(e) => setForm((f) => ({ ...f, use_graph: e.target.checked }))}
                     />
-                    <Input
-                      type="password"
-                      value={oauth.client_secret}
-                      onChange={(e) => setOauth((o) => ({ ...o, client_secret: e.target.value }))}
-                      placeholder="OAuth client secret"
-                    />
+                    Use Microsoft Graph (when available)
+                  </label>
+                )}
+
+                {form.provider === "exchange" && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="IMAP host">
+                      <Input value={form.imap_host} onChange={(e) => setForm((f) => ({ ...f, imap_host: e.target.value }))} placeholder="mail.corp.com" />
+                    </Field>
+                    <Field label="IMAP port">
+                      <Input value={form.imap_port} onChange={(e) => setForm((f) => ({ ...f, imap_port: e.target.value }))} placeholder="993" />
+                    </Field>
+                    <Field label="SMTP host">
+                      <Input value={form.smtp_host} onChange={(e) => setForm((f) => ({ ...f, smtp_host: e.target.value }))} placeholder="mail.corp.com" />
+                    </Field>
+                    <Field label="SMTP port">
+                      <Input value={form.smtp_port} onChange={(e) => setForm((f) => ({ ...f, smtp_port: e.target.value }))} placeholder="587" />
+                    </Field>
                   </div>
-                  <div className="flex justify-end">
-                    <Button
-                      onClick={onSaveCredential}
-                      disabled={!oauth.refresh_token.trim() || saveCred.isPending}
-                    >
-                      {saveCred.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save credential"}
+                )}
+
+                <div className="flex items-center gap-2">
+                  {/* OAuth new accounts are created by the portal callback, not here */}
+                  {!(isNew && isOAuth) && (
+                    <Button onClick={onSave} disabled={create.isPending || update.isPending}>
+                      {(create.isPending || update.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {isNew ? "Create account" : "Save changes"}
                     </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Access tokens are minted from the refresh token automatically (they expire
-                    hourly). The bundle is stored separately in a private <code>0600</code> file —
-                    never written to the account config, never shown again.
-                  </p>
+                  )}
+                  {editing && isOAuth && (
+                    <Button variant="outline" onClick={() => onConnect(editing.provider)} disabled={connecting} className="gap-1.5">
+                      {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                      Reconnect
+                    </Button>
+                  )}
+                  {editing && (
+                    <Button variant="outline" onClick={onTest} disabled={test.isPending}>
+                      {test.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                      Test connection
+                    </Button>
+                  )}
+                  {editing && (
+                    <Button variant="ghost" className="ml-auto text-destructive hover:text-destructive" onClick={onDelete}>
+                      <Trash2 className="h-4 w-4" /> Delete
+                    </Button>
+                  )}
                 </div>
-              ) : (
-                <>
-                  <div className="flex gap-2">
-                    <Input
-                      type="password"
-                      value={credential}
-                      onChange={(e) => setCredential(e.target.value)}
-                      placeholder="App password"
-                    />
-                    <Button onClick={onSaveCredential} disabled={!credential || saveCred.isPending}>
-                      {saveCred.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Stored separately in a private <code>0600</code> file — never written to the
-                    account config, never shown again.
+
+                {test.data && (
+                  <p className={cn("flex items-center gap-1.5 text-sm", test.data.ok ? "text-[hsl(var(--success))]" : "text-destructive")}>
+                    {test.data.ok ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                    {test.data.ok ? "Connection OK" : test.data.message ?? "Connection failed"}
                   </p>
-                </>
-              )}
-            </div>
+                )}
+
+                {/* credential / connection status */}
+                {editing && isOAuth ? (
+                  <div className="flex items-center gap-2 rounded-[var(--radius-md)] border border-border bg-card p-4">
+                    <KeyRound className="h-4 w-4 text-primary" />
+                    <span className="text-sm text-muted-foreground">
+                      Connected via {providerLabel(editing.provider)}. Access tokens refresh
+                      automatically; use Reconnect if sign-in expires.
+                    </span>
+                    {editing.has_credential && <span className="mailbox-badge mailbox-c-mint ml-auto">Linked</span>}
+                  </div>
+                ) : editing ? (
+                  <div className="space-y-2 rounded-[var(--radius-md)] border border-border bg-card p-4">
+                    <div className="flex items-center gap-2">
+                      <KeyRound className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium text-foreground">App password</span>
+                      {editing.has_credential && <span className="mailbox-badge mailbox-c-mint ml-auto">Stored</span>}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input type="password" value={credential} onChange={(e) => setCredential(e.target.value)} placeholder="App password" />
+                      <Button onClick={onSaveCredential} disabled={!credential || saveCred.isPending}>
+                        {saveCred.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Stored separately in a private <code>0600</code> file — never written to the
+                      account config, never shown again.
+                    </p>
+                  </div>
+                ) : null}
+              </>
+            )}
 
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>

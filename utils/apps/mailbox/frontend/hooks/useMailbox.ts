@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   useMutation,
   useQueries,
@@ -5,6 +6,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
+import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import * as api from "@/services/mailboxClient";
 import type { MailAccount, MailAccountDraft, MailMessage } from "@/types/mailbox";
 
@@ -102,10 +104,39 @@ export function useDeleteAccount() {
 export function useSetCredential() {
   const invalidate = useAccountsInvalidator();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: api.CredentialPayload }) =>
-      api.setCredential(id, payload),
+    mutationFn: ({ id, value }: { id: string; value: string }) =>
+      api.setCredential(id, value),
     onSuccess: invalidate,
   });
+}
+
+/** When the OAuth callback bounces the browser back with ?mailbox_added /
+ *  ?mailbox_error, open the Mailbox Settings tab, select the new account, and
+ *  clean the URL. Mount once in an always-rendered workspace component. */
+export function useOAuthReturn() {
+  const qc = useQueryClient();
+  const openMailboxTab = useWorkspaceStore((s) => s.openMailboxTab);
+  const setMailboxView = useWorkspaceStore((s) => s.setMailboxView);
+  const setMailboxAccountId = useWorkspaceStore((s) => s.setMailboxAccountId);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const added = params.get("mailbox_added");
+    const error = params.get("mailbox_error");
+    if (!added && !error) return;
+
+    openMailboxTab();
+    setMailboxView("settings");
+    if (added) {
+      setMailboxAccountId(added);
+      qc.invalidateQueries({ queryKey: MAILBOX_KEYS.accounts });
+    }
+    params.delete("mailbox_added");
+    params.delete("mailbox_error");
+    const qs = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 }
 
 export function useTestAccount() {

@@ -76,23 +76,26 @@ export function deleteAccount(accountId: string): Promise<void> {
   return request<void>(`${base}/${id(accountId)}/`, { method: "DELETE" });
 }
 
-// A plain app-password (Yahoo/Exchange) or an OAuth bundle (Gmail/M365).
-export type CredentialPayload =
-  | { value: string }
-  | { refresh_token: string; client_id: string; client_secret: string };
-
+// App password (Yahoo/Exchange). Gmail/M365 use the OAuth portal, not this.
 export function setCredential(
   accountId: string,
-  payload: CredentialPayload,
+  value: string,
 ): Promise<{ id: string; credential_ref: string; has_credential: boolean }> {
   return request(`${base}/${id(accountId)}/credential/`, {
     method: "PUT",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ value }),
   });
 }
 
 export function testAccount(accountId: string): Promise<TestResult> {
   return request<TestResult>(`${base}/${id(accountId)}/test/`, { method: "POST" });
+}
+
+// Begin the OAuth portal flow for Gmail/M365 — returns the provider authorize URL.
+export function startOAuth(provider: string): Promise<{ authorize_url: string }> {
+  return request<{ authorize_url: string }>(
+    `${base}/oauth/start/?provider=${encodeURIComponent(provider)}`,
+  );
 }
 
 // --- messages ---------------------------------------------------------------

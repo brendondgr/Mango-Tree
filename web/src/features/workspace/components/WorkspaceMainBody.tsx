@@ -7,10 +7,12 @@ import {
 } from "@/app/stores/workspaceStore";
 import { getWorkspaceTab } from "@/features/workspace/components/workspaceTabs";
 import { ExerciseWorkspace } from "@exercise/pages/ExerciseWorkspace";
+import { useOAuthReturn } from "@mailbox/hooks/useMailbox";
 import { MailboxWorkspace } from "@mailbox/pages/MailboxWorkspace";
 import { MediaViewerShell } from "@media-viewer/components/MediaViewerShell";
 
 export function WorkspaceMainBody() {
+  useOAuthReturn();
   const activeTab = useWorkspaceStore((s) => s.activeTab);
   const activeWorkspaceTab = useWorkspaceStore((s) => s.activeWorkspaceTab);
   const ephemeralTab = useWorkspaceStore((s) => s.ephemeralTab);

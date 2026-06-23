@@ -32,6 +32,35 @@ Account **settings** persist to `data/mailbox/accounts.json` (override
 settings only by a `credential_ref` key name. Both are gitignored. The config
 file never holds a secret (the store strips secret-shaped keys, asserted by test).
 
+## OAuth sign-in (Gmail / Microsoft 365)
+
+Thunderbird-style portal flow — the user clicks **Connect**, signs in on the
+provider's own page, and lands back with a self-refreshing connection. We never
+see the password; we persist only the long-lived **refresh token** and mint
+short-lived access tokens on demand (`backend/services/oauth/`).
+
+```text
+Add → Connect → GET /oauth/start (authorize URL, PKCE+state)
+   → provider login/consent → GET /oauth/callback (?code&state)
+   → exchange code → store refresh token → upsert account → back to the SPA
+```
+
+One-time setup: register an OAuth app per provider (Google Cloud / Microsoft
+Entra), set the redirect URI to `<host>/api/mailbox/oauth/callback/`, and put the
+client id/secret in the environment:
+
+| Env var | Provider |
+| --- | --- |
+| `OAUTH_GMAIL_CLIENT_ID` / `OAUTH_GMAIL_CLIENT_SECRET` | Gmail (restricted scope `mail.google.com`; verification + CASA before public release) |
+| `OAUTH_M365_CLIENT_ID` / `OAUTH_M365_CLIENT_SECRET` | Microsoft 365 (some tenants need admin consent) |
+| `MANGO_MAILBOX_OAUTH_REDIRECT` | optional exact redirect URI override |
+| `MANGO_MAILBOX_OAUTH_RETURN` | optional SPA URL to return to (e.g. `/chat`) |
+
+Yahoo is excluded from the portal (its IMAP OAuth is not self-serve) and uses an
+app password; on-prem Exchange uses basic auth (host/port + app password), or its
+org's modern-auth endpoints when configured. A dead refresh token surfaces as
+`permission_denied` (action `reauthorize`) → the UI's one-click **Reconnect**.
+
 ## Agent tool contract (frozen)
 
 Single source of truth. `agent/tools.py`, `agent/prompts.py`, and
