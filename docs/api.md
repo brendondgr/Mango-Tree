@@ -126,12 +126,14 @@ derived `has_credential` boolean; the credential endpoint is write-only.
 | `DELETE` | `/api/mailbox/accounts/{id}/` | `config_store.delete_account` | Remove a mailbox (and its credential) |
 | `PUT` | `/api/mailbox/accounts/{id}/credential/` | `secrets.set_credential` | Store the credential (write-only; never echoed) |
 | `POST` | `/api/mailbox/accounts/{id}/test/` | `providers.test_account` | Test connectivity; updates `status` |
+| `GET` | `/api/mailbox/oauth/start/?provider=` | `oauth.flow.build_authorize_url` | Begin the OAuth portal flow (Gmail/M365); returns `{authorize_url}` |
+| `GET` | `/api/mailbox/oauth/callback/` | `oauth.flow.complete_login` | Provider redirect target; creates the account, redirects to the SPA |
 | `GET` | `/api/mailbox/accounts/{id}/folders/` | `messages.list_folders` | Folder tree for one account |
 | `GET` | `/api/mailbox/accounts/{id}/messages/` | `messages.list_messages` | Recent messages (`?folder=INBOX&limit=25`) |
 | `GET` | `/api/mailbox/accounts/{id}/messages/{uid}/` | `messages.get_message` | One message with decoded body (open) |
 | `POST` | `/api/mailbox/accounts/{id}/organize/` | `mailops.organize` | Move a message by UID (reversible) |
 
-The credential endpoint body is either `{"value": "<app password>"}` (Yahoo/Exchange) or an OAuth bundle `{"refresh_token", "client_id", "client_secret"}` (Gmail/M365 — short-lived access tokens are minted from the refresh token on demand). It is write-only and echoes only `{id, credential_ref, has_credential}`.
+**Gmail/M365 use the OAuth portal, not a token field.** `GET /oauth/start/?provider=gmail` returns `{authorize_url}`; the SPA opens it, the user signs in on the provider's own page, and the provider redirects to `/oauth/callback/`, which validates the one-time `state`, exchanges the code (Authorization Code + PKCE), stores the **refresh token** in the secret store, upserts the account from the verified email, and redirects the browser to the SPA with `?mailbox_added=<id>`. Short-lived access tokens are minted from the refresh token on demand. Requires `OAUTH_GMAIL_CLIENT_ID`/`OAUTH_M365_CLIENT_ID` (and secrets) in the environment. The `PUT .../credential/` endpoint is for **app passwords only** (Yahoo/Exchange): body `{"value": "<app password>"}`, write-only, echoes only `{id, credential_ref, has_credential}`.
 
 An account settings object: `{id, provider, display_name, email, enabled, credential_ref, status, use_graph, imap_host, imap_port, smtp_host, smtp_port, has_credential}` — `status` is `untested`/`ok`/`error`. A message object: `{uid, message_id, provider, account, subject, from, to, date, snippet, flags, unread, body_text, body_html}` (`body_*` populated only by the detail endpoint). Errors use the platform schema (`validation_error` 400, `permission_denied` 403, `not_found` 404, `conflict` 409, `provider_error` 502). Reads against an account with no stored credential return `permission_denied` (403); no network is attempted.
 

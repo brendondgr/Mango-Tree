@@ -16,9 +16,13 @@ from utils.apps.mailbox.backend.api.views import (
     AccountMessagesView,
     AccountOrganizeView,
     AccountTestView,
+    OAuthCallbackView,
+    OAuthStartView,
 )
 
 urlpatterns = [
+    path("oauth/start/", OAuthStartView.as_view(), name="mailbox-oauth-start"),
+    path("oauth/callback/", OAuthCallbackView.as_view(), name="mailbox-oauth-callback"),
     path("accounts/", AccountListCreateView.as_view(), name="mailbox-accounts"),
     path("accounts/<str:account_id>/", AccountDetailView.as_view(), name="mailbox-account-detail"),
     path("accounts/<str:account_id>/credential/", AccountCredentialView.as_view(), name="mailbox-account-credential"),

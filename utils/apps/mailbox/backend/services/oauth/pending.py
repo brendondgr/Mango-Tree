@@ -36,7 +36,10 @@ class FilePendingStore:
         self._now = now or time.time
 
     def _file(self) -> Path:
-        return self._path if self._path else _default_root() / "pending_oauth.json"
+        if self._path:
+            return self._path
+        override = os.environ.get("MANGO_MAILBOX_PENDING")
+        return Path(override) if override else _default_root() / "pending_oauth.json"
 
     def _read(self) -> dict[str, Any]:
         path = self._file()

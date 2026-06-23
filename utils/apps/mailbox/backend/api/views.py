@@ -8,6 +8,9 @@ the resolved account.
 
 from __future__ import annotations
 
+import os
+
+from django.http import HttpResponseRedirect
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -23,6 +26,8 @@ from utils.apps.mailbox.backend.services import mailops as mailops_service
 from utils.apps.mailbox.backend.services import messages as messages_service
 from utils.apps.mailbox.backend.services import providers as providers_service
 from utils.apps.mailbox.backend.services import secrets
+from utils.apps.mailbox.backend.services.oauth import flow as oauth_flow
+from utils.apps.mailbox.backend.services.oauth.pending import FilePendingStore
 from utils.apps.mailbox.shared.errors import MailError, ValidationError
 
 _STATUS = {
@@ -90,23 +95,9 @@ class AccountDetailView(APIView):
 
 # --- credential (write-only) --------------------------------------------------
 
-_OAUTH_KEYS = ("refresh_token", "client_id", "client_secret", "access_token")
-
-
-def _credential_from_body(body: dict) -> str | dict:
-    """A plain app-password string, or an OAuth bundle for Gmail/M365."""
-    if any(key in body for key in _OAUTH_KEYS):
-        bundle = {
-            key: body[key]
-            for key in _OAUTH_KEYS
-            if isinstance(body.get(key), str) and body[key]
-        }
-        if not (bundle.get("refresh_token") or bundle.get("access_token")):
-            raise ValidationError(
-                "provide a refresh_token (with client_id and client_secret)",
-                details={"field": "refresh_token"},
-            )
-        return bundle
+def _credential_from_body(body: dict) -> str:
+    """An app password (Yahoo/Exchange). Gmail/M365 credentials are obtained via
+    the OAuth portal (``/oauth/start`` -> ``/oauth/callback``), not pasted here."""
     value = body.get("value") or body.get("credential")
     if not isinstance(value, str) or not value:
         raise ValidationError("credential value is required", details={"field": "value"})
@@ -138,6 +129,59 @@ class AccountTestView(APIView):
         except MailError as exc:
             return _error_response(exc)
         return Response(result, status=status.HTTP_200_OK)
+
+
+# --- OAuth portal (Gmail / M365) ----------------------------------------------
+
+def _redirect_uri(request: Request) -> str:
+    """Where the provider sends the user back — must exactly match the URI
+    registered with the provider. Overridable via env for hosted deployments."""
+    override = os.environ.get("MANGO_MAILBOX_OAUTH_REDIRECT")
+    return override or request.build_absolute_uri("/api/mailbox/oauth/callback/")
+
+
+def _return_url(*, account_id: str | None = None, error: str | None = None) -> str:
+    """Where to send the browser after the callback (the SPA)."""
+    base = os.environ.get("MANGO_MAILBOX_OAUTH_RETURN", "/")
+    sep = "&" if "?" in base else "?"
+    if account_id:
+        return f"{base}{sep}mailbox_added={account_id}"
+    if error:
+        return f"{base}{sep}mailbox_error={error}"
+    return base
+
+
+class OAuthStartView(APIView):
+    """Begin the portal flow: return the provider authorize URL for the SPA to open."""
+
+    def get(self, request: Request) -> Response:
+        provider = request.query_params.get("provider", "")
+        try:
+            url = oauth_flow.build_authorize_url(provider, _redirect_uri(request), FilePendingStore())
+        except MailError as exc:
+            return _error_response(exc)
+        return Response({"authorize_url": url}, status=status.HTTP_200_OK)
+
+
+class OAuthCallbackView(APIView):
+    """Provider redirect target: validate state, exchange the code, create the
+    account, then bounce the browser back to the SPA."""
+
+    def get(self, request: Request) -> HttpResponseRedirect:
+        if request.query_params.get("error"):
+            return HttpResponseRedirect(_return_url(error=request.query_params["error"]))
+        state = request.query_params.get("state", "")
+        code = request.query_params.get("code", "")
+        pending = FilePendingStore().take(state)
+        if not pending or not code:
+            return HttpResponseRedirect(_return_url(error="invalid_state"))
+        try:
+            account = oauth_flow.complete_login(
+                pending, code, config_store=config_store, secrets=secrets
+            )
+        except MailError as exc:
+            return HttpResponseRedirect(_return_url(error=exc.code))
+        return HttpResponseRedirect(_return_url(account_id=account["id"]))
 
 
 # --- folders + messages (IMAP reads) ------------------------------------------

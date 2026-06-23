@@ -37,11 +37,14 @@ def test_graph_host_is_allow_listed():
     assert "https" in scope["allow_schemes"]
 
 
-def test_oauth_token_endpoints_are_allow_listed():
-    scope = _config()["network"]["mailbox_oauth"]
-    assert "oauth2.googleapis.com" in scope["allow_hosts"]
-    assert "login.microsoftonline.com" in scope["allow_hosts"]
-    assert "https" in scope["allow_schemes"]
+def test_oauth_endpoints_are_allow_listed():
+    hosts = set(_config()["network"]["mailbox_oauth"]["allow_hosts"])
+    required = {
+        "accounts.google.com", "oauth2.googleapis.com", "openidconnect.googleapis.com",
+        "login.microsoftonline.com", "outlook.office.com",
+    }
+    assert required <= hosts
+    assert "https" in _config()["network"]["mailbox_oauth"]["allow_schemes"]
 
 
 def test_out_of_scope_host_is_not_allowed():
