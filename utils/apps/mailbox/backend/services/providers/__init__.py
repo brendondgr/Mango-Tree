@@ -48,7 +48,7 @@ def build_account_from_config(
     *,
     get_secret: Callable[[str], Any] | None = None,
     set_secret: Callable[[str, Any], None] | None = None,
-    transport: _tokens.PostTransport | None = None,
+    minter: _tokens.Minter | None = None,
     now: float | None = None,
     cache: dict[str, tuple[str, float]] | None = None,
     provider_config: Any = None,
@@ -79,7 +79,7 @@ def build_account_from_config(
                 account,
                 get_refresh=get_secret,
                 set_refresh=set_secret,
-                transport=transport,
+                minter=minter,
                 now=now,
                 cache=cache,
                 provider_config=provider_config,
@@ -111,7 +111,7 @@ def build_account(
     *,
     config: Any = None,
     secret_store: Any = None,
-    transport: _tokens.PostTransport | None = None,
+    minter: _tokens.Minter | None = None,
     now: float | None = None,
 ) -> MailAccount:
     """Resolve an account id to a connection ``MailAccount`` (settings + secret),
@@ -125,7 +125,7 @@ def build_account(
         account,
         get_secret=sec_mod.get_credential,
         set_secret=sec_mod.set_credential,
-        transport=transport,
+        minter=minter,
         now=now,
     )
 
@@ -135,7 +135,7 @@ def test_account(
     *,
     config: Any = None,
     secret_store: Any = None,
-    transport: _tokens.PostTransport | None = None,
+    minter: _tokens.Minter | None = None,
     imap_factory: Callable[[MailAccount], Any] | None = None,
 ) -> dict[str, Any]:
     """Open and close an IMAP connection to verify the account, then persist the
@@ -152,7 +152,7 @@ def test_account(
             account,
             get_secret=sec_mod.get_credential,
             set_secret=sec_mod.set_credential,
-            transport=transport,
+            minter=minter,
         )
         client = ops.connect_imap(acct, imap_factory=imap_factory)
         ops._safe_logout(client)

@@ -192,7 +192,7 @@ def test_complete_login_without_refresh_token_denies(stores):
         )
 
 
-# --- token refresh ------------------------------------------------------------
+# --- token refresh: get_access_token via an injected minter -------------------
 
 class _Acct:
     def __init__(self, id="a1", provider="gmail", credential_ref="REF"):
@@ -205,11 +205,11 @@ def test_get_access_token_caches():
     cache = {}
     calls = {"n": 0}
 
-    def fake(url, data):
+    def minter(provider, refresh, now):
         calls["n"] += 1
-        return 200, {"access_token": "AT", "expires_in": 3600}
+        return tokens.MintResult("AT", now + 3600)
 
-    kw = dict(get_refresh=lambda ref: "RT", transport=fake, provider_config=_provider(), cache=cache, now=1000.0)
+    kw = dict(get_refresh=lambda ref: "RT", minter=minter, provider_config=_provider(), cache=cache, now=1000.0)
     assert tokens.get_access_token(_Acct(), **kw) == "AT"
     assert tokens.get_access_token(_Acct(), **kw) == "AT"
     assert calls["n"] == 1  # second call served from cache
@@ -219,17 +219,19 @@ def test_get_access_token_persists_rotated_refresh():
     rotated = {}
     tokens.get_access_token(
         _Acct(), get_refresh=lambda ref: "RT-old", set_refresh=lambda ref, v: rotated.update({ref: v}),
-        transport=lambda url, data: (200, {"access_token": "AT", "refresh_token": "RT-new", "expires_in": 3600}),
+        minter=lambda provider, refresh, now: tokens.MintResult("AT", now + 3600, "RT-new"),
         provider_config=_provider(), cache={}, now=0.0,
     )
     assert rotated["REF"] == "RT-new"
 
 
 def test_get_access_token_dead_refresh_denies():
+    def boom(provider, refresh, now):
+        raise PermissionDeniedError("dead", details={"action": "reauthorize"})
+
     with pytest.raises(PermissionDeniedError) as exc:
         tokens.get_access_token(
-            _Acct(), get_refresh=lambda ref: "RT",
-            transport=lambda url, data: (400, {"error": "invalid_grant"}),
+            _Acct(), get_refresh=lambda ref: "RT", minter=boom,
             provider_config=_provider(), cache={}, now=0.0,
         )
     assert exc.value.details["action"] == "reauthorize"
@@ -241,6 +243,66 @@ def test_get_access_token_missing_refresh_denies():
             _Acct(credential_ref=None), get_refresh=lambda ref: None,
             provider_config=_provider(), cache={}, now=0.0,
         )
+
+
+# --- the official-library minters (offline) -----------------------------------
+
+class _GoogleResp:
+    def __init__(self, status, payload):
+        self.status = status
+        self.headers = {}
+        self.data = json.dumps(payload).encode()
+
+
+def test_google_minter_refreshes_via_google_auth():
+    def fake_request(url, method="GET", body=None, headers=None, timeout=None, **kw):
+        return _GoogleResp(200, {"access_token": "G-AT", "expires_in": 3600, "token_type": "Bearer"})
+
+    result = tokens._google_minter(_provider("gmail"), "RT", now=1000.0, request=fake_request)
+    assert result.access_token == "G-AT"
+    assert result.expiry > 1000.0
+
+
+def test_google_minter_refresh_error_is_permission_denied():
+    def bad_request(url, method="GET", body=None, headers=None, timeout=None, **kw):
+        return _GoogleResp(400, {"error": "invalid_grant"})
+
+    with pytest.raises(PermissionDeniedError) as exc:
+        tokens._google_minter(_provider("gmail"), "RT", now=0.0, request=bad_request)
+    assert exc.value.details["action"] == "reauthorize"
+
+
+def test_msal_minter_refreshes_via_msal(monkeypatch):
+    import msal
+
+    class FakeApp:
+        def __init__(self, client_id, **kwargs):
+            pass
+
+        def acquire_token_by_refresh_token(self, refresh_token, scopes=None):
+            return {"access_token": "M-AT", "expires_in": 3600, "refresh_token": "M-RT-new"}
+
+    monkeypatch.setattr(msal, "ConfidentialClientApplication", FakeApp)
+    result = tokens._msal_minter(_provider("m365"), "RT", now=1000.0)
+    assert result.access_token == "M-AT"
+    assert result.refresh_token == "M-RT-new"
+    assert result.expiry == 1000.0 + 3600
+
+
+def test_msal_minter_error_is_permission_denied(monkeypatch):
+    import msal
+
+    class FakeApp:
+        def __init__(self, client_id, **kwargs):
+            pass
+
+        def acquire_token_by_refresh_token(self, refresh_token, scopes=None):
+            return {"error": "invalid_grant", "error_description": "expired"}
+
+    monkeypatch.setattr(msal, "ConfidentialClientApplication", FakeApp)
+    with pytest.raises(PermissionDeniedError) as exc:
+        tokens._msal_minter(_provider("m365"), "RT", now=0.0)
+    assert exc.value.details["action"] == "reauthorize"
 
 
 # --- registry -----------------------------------------------------------------
@@ -278,7 +340,7 @@ def test_build_account_mints_via_refresh(stores, monkeypatch):
     secrets.set_credential("REF", "RT-live")
     minted = providers.build_account(
         account.id,
-        transport=lambda url, data: (200, {"access_token": "AT-LIVE", "expires_in": 3600}),
+        minter=lambda provider, refresh, now: tokens.MintResult("AT-LIVE", now + 3600),
         now=0.0,
     )
     assert minted.access_token == "AT-LIVE"

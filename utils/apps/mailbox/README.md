@@ -37,7 +37,9 @@ file never holds a secret (the store strips secret-shaped keys, asserted by test
 Thunderbird-style portal flow — the user clicks **Connect**, signs in on the
 provider's own page, and lands back with a self-refreshing connection. We never
 see the password; we persist only the long-lived **refresh token** and mint
-short-lived access tokens on demand (`backend/services/oauth/`).
+short-lived access tokens on demand (`backend/services/oauth/`). The refresh
+itself is delegated to the official libraries — `google-auth` (Gmail) and `msal`
+(M365) — via per-provider minters in `oauth/tokens.py`, not a hand-rolled POST.
 
 ```text
 Add → Connect → GET /oauth/start (authorize URL, PKCE+state)
