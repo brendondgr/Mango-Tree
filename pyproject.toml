@@ -13,6 +13,8 @@ dependencies = [
     "requests>=2.34.2",
     "beautifulsoup4>=4.13.4",
     "opencv-python-headless>=4.13.0.92",
+    "google-auth>=2.55.1",
+    "msal>=1.37.0",
 ]
 
 [project.optional-dependencies]
