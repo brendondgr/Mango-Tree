@@ -2,7 +2,6 @@ import { FolderOpen, Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { WorkspaceSidebarShell } from "@/features/workspace/components/WorkspaceSidebarShell";
 
 import { ArtifactGrid } from "@media-viewer/components/ArtifactGrid";
 import { ArtifactSearchControls } from "@media-viewer/components/ArtifactSearchControls";
@@ -13,7 +12,13 @@ import {
   type ArtifactTypeFilter,
 } from "@media-viewer/utils/filterArtifacts";
 
-export function ArtifactsSidebar() {
+/**
+ * Full-width workspace page for browsing artifacts. Mirrors the artifact
+ * sidebar content but renders inside the main workspace body as a tab app,
+ * alongside the other apps (Mailbox, Projects, Exercise). Selecting an
+ * artifact still opens it in an ephemeral viewer tab.
+ */
+export function ArtifactsWorkspace() {
   const { data, isLoading, isError, error } = useArtifacts();
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<ArtifactTypeFilter>("all");
@@ -25,8 +30,8 @@ export function ArtifactsSidebar() {
   );
 
   return (
-    <WorkspaceSidebarShell>
-      <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border bg-card/80 px-4 backdrop-blur-sm">
+    <div className="flex min-h-0 flex-1 flex-col bg-background">
+      <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
         <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Artifacts
         </h2>
@@ -87,6 +92,6 @@ export function ArtifactsSidebar() {
           <ArtifactGrid artifacts={filteredArtifacts} />
         )}
       </ScrollArea>
-    </WorkspaceSidebarShell>
+    </div>
   );
 }

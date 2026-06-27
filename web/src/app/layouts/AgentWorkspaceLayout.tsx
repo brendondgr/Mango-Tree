@@ -5,7 +5,6 @@ import { WorkspaceHeader } from "@/features/workspace/components/WorkspaceHeader
 import { WorkspaceMainBody } from "@/features/workspace/components/WorkspaceMainBody";
 import { MOBILE_BREAKPOINT, useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
-import { ArtifactsSidebar } from "@media-viewer/pages/ArtifactsSidebar";
 
 function MobileSidebarBackdrop() {
   const isMobile = useMediaQuery(MOBILE_BREAKPOINT);
@@ -31,7 +30,6 @@ function MobileSidebarBackdrop() {
 
 export function AgentWorkspaceLayout() {
   const isMobile = useMediaQuery(MOBILE_BREAKPOINT);
-  const sidebarMode = useWorkspaceStore((s) => s.sidebarMode);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background">
@@ -43,7 +41,7 @@ export function AgentWorkspaceLayout() {
         )}
       >
         <ChatNavRail />
-        {sidebarMode === "chat" ? <ChatWindow /> : <ArtifactsSidebar />}
+        <ChatWindow />
       </div>
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden max-[820px]:pt-11">
         <WorkspaceHeader />

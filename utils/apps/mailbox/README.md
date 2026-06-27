@@ -121,6 +121,28 @@ Imported by `web/` via the `@mailbox` Vite alias. The API client is
 offers Compact and Modern density modes, per-account/provider differentiation,
 and click-to-open message reading; Settings manages accounts.
 
+**Differentiation.** Accounts and messages are told apart by each provider's
+brand logo (`frontend/components/ProviderIcon.tsx`) inside a colored outline
+ring — not colored dots.
+
+**Ordering & volume.** Messages merge across accounts sorted by the parsed
+`timestamp` (newest first), and the inbox loads the whole folder by default
+(`limit=all`); the load count is configurable.
+
+**Email rendering.** `frontend/components/EmailBody.tsx` + `utils/renderEmail.ts`
+render HTML mail in a locked-down sandboxed iframe (no scripts, no same-origin)
+after sanitizing it (scripts, event handlers and `javascript:` URLs removed).
+Remote images and external CSS are **blocked until the user clicks Display
+content** — the permission gate for potentially harmful/tracking content.
+Text-only bodies are stripped of invisible spacer characters and linkified.
+
+**Customization (persistent).** A Customize dialog (`CustomizeDialog.tsx`)
+controls field show/hide, text size, row tightness, per-section column widths
+(From/Title/Description), list width, and the load limit. These live in
+`mailboxPrefs` on the workspace store and persist to `localStorage`, surviving
+sessions. Compact mode spans the full screen width with the section widths
+applied; Modern mode uses the configurable list-column width.
+
 ## Rules
 
 - Business logic lives in `backend/services/` or `shared/`.

@@ -1,53 +1,19 @@
-import {
-  CalendarDays,
-  Dumbbell,
-  FolderKanban,
-  Mail,
-  MessageSquare,
-  FolderOpen,
-} from "lucide-react";
+import { MessageSquare } from "lucide-react";
 
 import {
-  CALENDAR_WORKSPACE_TAB,
-  EXERCISE_WORKSPACE_TAB,
-  MAILBOX_WORKSPACE_TAB,
-  PROJECTMANAGER_WORKSPACE_TAB,
+  appTabValue,
   useWorkspaceStore,
-  type SidebarMode,
 } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
+import { WORKSPACE_APPS } from "@/features/workspace/apps/appRegistry";
 import { MOBILE_BREAKPOINT, useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 
-const destinations: Array<{
-  mode: SidebarMode;
-  label: string;
-  icon: typeof MessageSquare;
-}> = [
-  { mode: "chat", label: "Chat", icon: MessageSquare },
-  { mode: "artifacts", label: "Artifacts", icon: FolderOpen },
-];
-
 export function ChatNavRail() {
   const isMobile = useMediaQuery(MOBILE_BREAKPOINT);
-  const sidebarMode = useWorkspaceStore((s) => s.sidebarMode);
-  const setSidebarMode = useWorkspaceStore((s) => s.setSidebarMode);
   const expandSidebar = useWorkspaceStore((s) => s.expandSidebar);
-  const openExerciseTab = useWorkspaceStore((s) => s.openExerciseTab);
-  const openMailboxTab = useWorkspaceStore((s) => s.openMailboxTab);
-  const openProjectManagerTab = useWorkspaceStore((s) => s.openProjectManagerTab);
-  const openCalendarTab = useWorkspaceStore((s) => s.openCalendarTab);
+  const openAppTab = useWorkspaceStore((s) => s.openAppTab);
   const activeWorkspaceTab = useWorkspaceStore((s) => s.activeWorkspaceTab);
-
-  const handleSelect = (mode: SidebarMode) => {
-    setSidebarMode(mode);
-    expandSidebar();
-  };
-
-  const exerciseActive = activeWorkspaceTab === EXERCISE_WORKSPACE_TAB;
-  const mailboxActive = activeWorkspaceTab === MAILBOX_WORKSPACE_TAB;
-  const projectManagerActive = activeWorkspaceTab === PROJECTMANAGER_WORKSPACE_TAB;
-  const calendarActive = activeWorkspaceTab === CALENDAR_WORKSPACE_TAB;
 
   return (
     <nav
@@ -59,11 +25,24 @@ export function ChatNavRail() {
           : "flex w-[52px] flex-col items-center gap-1 border-r py-3",
       )}
     >
-      {destinations.map(({ mode, label, icon: Icon }) => {
-        const active = sidebarMode === mode;
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="h-10 w-10 rounded-[var(--radius-md)]"
+        aria-label="Chat"
+        title="Chat"
+        onClick={() => expandSidebar()}
+      >
+        <MessageSquare className="h-5 w-5" />
+      </Button>
+
+      {WORKSPACE_APPS.map((app) => {
+        const Icon = app.icon;
+        const active = activeWorkspaceTab === appTabValue(app.id);
         return (
           <Button
-            key={mode}
+            key={app.id}
             type="button"
             variant={active ? "secondary" : "ghost"}
             size="icon"
@@ -71,75 +50,15 @@ export function ChatNavRail() {
               "h-10 w-10 rounded-[var(--radius-md)]",
               active && "bg-secondary text-foreground",
             )}
-            aria-label={label}
+            aria-label={app.label}
             aria-current={active ? "page" : undefined}
-            title={label}
-            onClick={() => handleSelect(mode)}
+            title={app.label}
+            onClick={() => openAppTab(app.id)}
           >
             <Icon className="h-5 w-5" />
           </Button>
         );
       })}
-      <Button
-        type="button"
-        variant={mailboxActive ? "secondary" : "ghost"}
-        size="icon"
-        className={cn(
-          "h-10 w-10 rounded-[var(--radius-md)]",
-          mailboxActive && "bg-secondary text-foreground",
-        )}
-        aria-label="Mailbox"
-        aria-current={mailboxActive ? "page" : undefined}
-        title="Mailbox"
-        onClick={() => openMailboxTab()}
-      >
-        <Mail className="h-5 w-5" />
-      </Button>
-      <Button
-        type="button"
-        variant={exerciseActive ? "secondary" : "ghost"}
-        size="icon"
-        className={cn(
-          "h-10 w-10 rounded-[var(--radius-md)]",
-          exerciseActive && "bg-secondary text-foreground",
-        )}
-        aria-label="Exercise"
-        aria-current={exerciseActive ? "page" : undefined}
-        title="Exercise"
-        onClick={() => openExerciseTab()}
-      >
-        <Dumbbell className="h-5 w-5" />
-      </Button>
-      <Button
-        type="button"
-        variant={projectManagerActive ? "secondary" : "ghost"}
-        size="icon"
-        className={cn(
-          "h-10 w-10 rounded-[var(--radius-md)]",
-          projectManagerActive && "bg-secondary text-foreground",
-        )}
-        aria-label="Projects"
-        aria-current={projectManagerActive ? "page" : undefined}
-        title="Project Manager"
-        onClick={() => openProjectManagerTab()}
-      >
-        <FolderKanban className="h-5 w-5" />
-      </Button>
-      <Button
-        type="button"
-        variant={calendarActive ? "secondary" : "ghost"}
-        size="icon"
-        className={cn(
-          "h-10 w-10 rounded-[var(--radius-md)]",
-          calendarActive && "bg-secondary text-foreground",
-        )}
-        aria-label="Calendar"
-        aria-current={calendarActive ? "page" : undefined}
-        title="Calendar"
-        onClick={() => openCalendarTab()}
-      >
-        <CalendarDays className="h-5 w-5" />
-      </Button>
     </nav>
   );
 }

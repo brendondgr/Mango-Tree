@@ -1,22 +1,10 @@
-import {
-  ChevronDown,
-  Dumbbell,
-  FileText,
-  FolderKanban,
-  Mail,
-  Menu,
-  X,
-} from "lucide-react";
+import { ChevronDown, FileText, Menu, X } from "lucide-react";
 
 import {
   EPHEMERAL_ARTIFACT_TAB_LABEL,
-  EXERCISE_TAB_LABEL,
-  EXERCISE_WORKSPACE_TAB,
-  MAILBOX_TAB_LABEL,
-  MAILBOX_WORKSPACE_TAB,
-  PROJECTMANAGER_TAB_LABEL,
-  PROJECTMANAGER_WORKSPACE_TAB,
+  appTabValue,
   ephemeralTabValue,
+  isAppWorkspaceTab,
   isEphemeralWorkspaceTab,
   selectSidebarCollapsed,
   useWorkspaceStore,
@@ -30,11 +18,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { WorkspaceOptionsMenu } from "@/features/workspace/components/WorkspaceOptionsMenu";
 import {
-  WORKSPACE_TABS,
-  type WorkspaceTabId,
-} from "@/features/workspace/components/workspaceTabs";
+  getWorkspaceApp,
+  type WorkspaceApp,
+} from "@/features/workspace/apps/appRegistry";
+import { WorkspaceOptionsMenu } from "@/features/workspace/components/WorkspaceOptionsMenu";
+import { WORKSPACE_HOME_TAB } from "@/features/workspace/components/workspaceTabs";
 import { MOBILE_BREAKPOINT, useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 
@@ -45,37 +34,61 @@ const workspaceTabTriggerClass = cn(
   "hover:text-foreground",
 );
 
+function TabCloseAffordance({
+  label,
+  onClose,
+}: {
+  label: string;
+  onClose: () => void;
+}) {
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      aria-label={label}
+      className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-[var(--radius-sm)] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      onPointerDown={(event) => {
+        event.stopPropagation();
+        event.preventDefault();
+      }}
+      onClick={(event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        onClose();
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.stopPropagation();
+          event.preventDefault();
+          onClose();
+        }
+      }}
+    >
+      <X className="h-3 w-3" />
+    </span>
+  );
+}
+
 function getActiveLabel(
   activeWorkspaceTab: string,
-  activeTab: WorkspaceTabId,
   hasEphemeralTab: boolean,
 ): string {
-  if (activeWorkspaceTab === EXERCISE_WORKSPACE_TAB) {
-    return EXERCISE_TAB_LABEL;
-  }
-  if (activeWorkspaceTab === MAILBOX_WORKSPACE_TAB) {
-    return MAILBOX_TAB_LABEL;
-  }
-  if (activeWorkspaceTab === PROJECTMANAGER_WORKSPACE_TAB) {
-    return PROJECTMANAGER_TAB_LABEL;
+  if (isAppWorkspaceTab(activeWorkspaceTab)) {
+    const app = getWorkspaceApp(activeWorkspaceTab.slice("app:".length));
+    if (app) return app.label;
   }
   if (isEphemeralWorkspaceTab(activeWorkspaceTab) && hasEphemeralTab) {
     return EPHEMERAL_ARTIFACT_TAB_LABEL;
   }
-  return WORKSPACE_TABS.find((t) => t.id === activeTab)?.label ?? "Overview";
+  return WORKSPACE_HOME_TAB.label;
 }
 
 export function WorkspaceHeader() {
   const isMobile = useMediaQuery(MOBILE_BREAKPOINT);
-  const activeTab = useWorkspaceStore((s) => s.activeTab);
   const activeWorkspaceTab = useWorkspaceStore((s) => s.activeWorkspaceTab);
   const ephemeralTab = useWorkspaceStore((s) => s.ephemeralTab);
-  const exerciseTabOpen = useWorkspaceStore((s) => s.exerciseTabOpen);
-  const closeExerciseTab = useWorkspaceStore((s) => s.closeExerciseTab);
-  const mailboxTabOpen = useWorkspaceStore((s) => s.mailboxTabOpen);
-  const closeMailboxTab = useWorkspaceStore((s) => s.closeMailboxTab);
-  const projectManagerTabOpen = useWorkspaceStore((s) => s.projectManagerTabOpen);
-  const closeProjectManagerTab = useWorkspaceStore((s) => s.closeProjectManagerTab);
+  const openAppIds = useWorkspaceStore((s) => s.openAppIds);
+  const closeAppTab = useWorkspaceStore((s) => s.closeAppTab);
   const setActiveWorkspaceTab = useWorkspaceStore((s) => s.setActiveWorkspaceTab);
   const sidebarWidth = useWorkspaceStore((s) => s.sidebarWidth);
   const mobileDrawerOpen = useWorkspaceStore((s) => s.mobileDrawerOpen);
@@ -86,14 +99,17 @@ export function WorkspaceHeader() {
     mobileDrawerOpen,
   });
 
-  const activeLabel = getActiveLabel(
-    activeWorkspaceTab,
-    activeTab,
-    Boolean(ephemeralTab),
-  );
+  const activeLabel = getActiveLabel(activeWorkspaceTab, Boolean(ephemeralTab));
+
+  // Open apps in tab order, resolved against the registry.
+  const openApps = openAppIds
+    .map((id) => getWorkspaceApp(id))
+    .filter((app): app is WorkspaceApp => Boolean(app));
+
+  const HomeIcon = WORKSPACE_HOME_TAB.icon;
 
   const onTabChange = (value: string) => {
-    setActiveWorkspaceTab(value as WorkspaceTabId);
+    setActiveWorkspaceTab(value as Parameters<typeof setActiveWorkspaceTab>[0]);
   };
 
   return (
@@ -125,20 +141,34 @@ export function WorkspaceHeader() {
             className="h-full w-full items-end justify-start gap-0"
             role="tablist"
           >
-            {WORKSPACE_TABS.map((tab) => {
-              const Icon = tab.icon;
+            <TabsTrigger
+              value={WORKSPACE_HOME_TAB.id}
+              role="tab"
+              className={workspaceTabTriggerClass}
+            >
+              <HomeIcon className="h-4 w-4" />
+              {WORKSPACE_HOME_TAB.label}
+            </TabsTrigger>
+
+            {openApps.map((app) => {
+              const Icon = app.icon;
               return (
                 <TabsTrigger
-                  key={tab.id}
-                  value={tab.id}
+                  key={app.id}
+                  value={appTabValue(app.id)}
                   role="tab"
-                  className={workspaceTabTriggerClass}
+                  className={cn(workspaceTabTriggerClass, "pr-2")}
                 >
-                  <Icon className="h-4 w-4" />
-                  {tab.label}
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {app.label}
+                  <TabCloseAffordance
+                    label={`Close ${app.label} tab`}
+                    onClose={() => closeAppTab(app.id)}
+                  />
                 </TabsTrigger>
               );
             })}
+
             {ephemeralTab && (
               <TabsTrigger
                 value={ephemeralTabValue(ephemeralTab.id)}
@@ -147,108 +177,6 @@ export function WorkspaceHeader() {
               >
                 <FileText className="h-4 w-4 shrink-0" />
                 {ephemeralTab.tabLabel}
-              </TabsTrigger>
-            )}
-            {mailboxTabOpen && (
-              <TabsTrigger
-                value={MAILBOX_WORKSPACE_TAB}
-                role="tab"
-                className={cn(workspaceTabTriggerClass, "pr-2")}
-              >
-                <Mail className="h-4 w-4 shrink-0" />
-                {MAILBOX_TAB_LABEL}
-                <span
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Close Mailbox tab"
-                  className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-[var(--radius-sm)] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  onPointerDown={(event) => {
-                    event.stopPropagation();
-                    event.preventDefault();
-                  }}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    event.preventDefault();
-                    closeMailboxTab();
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.stopPropagation();
-                      event.preventDefault();
-                      closeMailboxTab();
-                    }
-                  }}
-                >
-                  <X className="h-3 w-3" />
-                </span>
-              </TabsTrigger>
-            )}
-            {exerciseTabOpen && (
-              <TabsTrigger
-                value={EXERCISE_WORKSPACE_TAB}
-                role="tab"
-                className={cn(workspaceTabTriggerClass, "pr-2")}
-              >
-                <Dumbbell className="h-4 w-4 shrink-0" />
-                {EXERCISE_TAB_LABEL}
-                <span
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Close Exercise tab"
-                  className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-[var(--radius-sm)] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  onPointerDown={(event) => {
-                    event.stopPropagation();
-                    event.preventDefault();
-                  }}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    event.preventDefault();
-                    closeExerciseTab();
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.stopPropagation();
-                      event.preventDefault();
-                      closeExerciseTab();
-                    }
-                  }}
-                >
-                  <X className="h-3 w-3" />
-                </span>
-              </TabsTrigger>
-            )}
-            {projectManagerTabOpen && (
-              <TabsTrigger
-                value={PROJECTMANAGER_WORKSPACE_TAB}
-                role="tab"
-                className={cn(workspaceTabTriggerClass, "pr-2")}
-              >
-                <FolderKanban className="h-4 w-4 shrink-0" />
-                {PROJECTMANAGER_TAB_LABEL}
-                <span
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Close Projects tab"
-                  className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-[var(--radius-sm)] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  onPointerDown={(event) => {
-                    event.stopPropagation();
-                    event.preventDefault();
-                  }}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    event.preventDefault();
-                    closeProjectManagerTab();
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.stopPropagation();
-                      event.preventDefault();
-                      closeProjectManagerTab();
-                    }
-                  }}
-                >
-                  <X className="h-3 w-3" />
-                </span>
               </TabsTrigger>
             )}
           </TabsList>
@@ -267,21 +195,47 @@ export function WorkspaceHeader() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-              {WORKSPACE_TABS.map((tab) => {
-                const Icon = tab.icon;
+              <DropdownMenuItem
+                className={cn(
+                  activeWorkspaceTab === WORKSPACE_HOME_TAB.id &&
+                    "bg-primary/5 text-primary",
+                )}
+                onSelect={() => setActiveWorkspaceTab(WORKSPACE_HOME_TAB.id)}
+              >
+                <HomeIcon className="h-4 w-4" />
+                {WORKSPACE_HOME_TAB.label}
+              </DropdownMenuItem>
+
+              {openApps.length > 0 && <DropdownMenuSeparator />}
+              {openApps.map((app) => {
+                const Icon = app.icon;
                 return (
                   <DropdownMenuItem
-                    key={tab.id}
+                    key={app.id}
                     className={cn(
-                      activeWorkspaceTab === tab.id && "bg-primary/5 text-primary",
+                      activeWorkspaceTab === appTabValue(app.id) &&
+                        "bg-primary/5 text-primary",
                     )}
-                    onSelect={() => setActiveWorkspaceTab(tab.id)}
+                    onSelect={() => setActiveWorkspaceTab(appTabValue(app.id))}
                   >
                     <Icon className="h-4 w-4" />
-                    {tab.label}
+                    <span className="flex-1">{app.label}</span>
+                    <span
+                      role="button"
+                      aria-label={`Close ${app.label} tab`}
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] text-muted-foreground hover:bg-muted hover:text-foreground"
+                      onPointerDown={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        closeAppTab(app.id);
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </span>
                   </DropdownMenuItem>
                 );
               })}
+
               {ephemeralTab && (
                 <>
                   <DropdownMenuSeparator />
@@ -296,89 +250,6 @@ export function WorkspaceHeader() {
                   >
                     <FileText className="h-4 w-4" />
                     <span className="italic">{ephemeralTab.tabLabel}</span>
-                  </DropdownMenuItem>
-                </>
-              )}
-              {mailboxTabOpen && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className={cn(
-                      activeWorkspaceTab === MAILBOX_WORKSPACE_TAB &&
-                        "bg-primary/5 text-primary",
-                    )}
-                    onSelect={() => setActiveWorkspaceTab(MAILBOX_WORKSPACE_TAB)}
-                  >
-                    <Mail className="h-4 w-4" />
-                    <span className="flex-1">{MAILBOX_TAB_LABEL}</span>
-                    <span
-                      role="button"
-                      aria-label="Close Mailbox tab"
-                      className="inline-flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] text-muted-foreground hover:bg-muted hover:text-foreground"
-                      onPointerDown={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        closeMailboxTab();
-                      }}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </span>
-                  </DropdownMenuItem>
-                </>
-              )}
-              {exerciseTabOpen && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className={cn(
-                      activeWorkspaceTab === EXERCISE_WORKSPACE_TAB &&
-                        "bg-primary/5 text-primary",
-                    )}
-                    onSelect={() => setActiveWorkspaceTab(EXERCISE_WORKSPACE_TAB)}
-                  >
-                    <Dumbbell className="h-4 w-4" />
-                    <span className="flex-1">{EXERCISE_TAB_LABEL}</span>
-                    <span
-                      role="button"
-                      aria-label="Close Exercise tab"
-                      className="inline-flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] text-muted-foreground hover:bg-muted hover:text-foreground"
-                      onPointerDown={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        closeExerciseTab();
-                      }}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </span>
-                  </DropdownMenuItem>
-                </>
-              )}
-              {projectManagerTabOpen && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className={cn(
-                      activeWorkspaceTab === PROJECTMANAGER_WORKSPACE_TAB &&
-                        "bg-primary/5 text-primary",
-                    )}
-                    onSelect={() =>
-                      setActiveWorkspaceTab(PROJECTMANAGER_WORKSPACE_TAB)
-                    }
-                  >
-                    <FolderKanban className="h-4 w-4" />
-                    <span className="flex-1">{PROJECTMANAGER_TAB_LABEL}</span>
-                    <span
-                      role="button"
-                      aria-label="Close Projects tab"
-                      className="inline-flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] text-muted-foreground hover:bg-muted hover:text-foreground"
-                      onPointerDown={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        closeProjectManagerTab();
-                      }}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </span>
                   </DropdownMenuItem>
                 </>
               )}

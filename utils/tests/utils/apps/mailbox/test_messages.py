@@ -101,6 +101,21 @@ def test_list_messages_orchestration_newest_first():
     assert payload["subject"] == "Quarterly report"
     assert payload["message_id"] == "<m1@x>"
     assert payload["unread"] is False  # \\Seen present
+    # Date header is parsed to an epoch timestamp the frontend can sort on.
+    assert payload["timestamp"] > 0
+
+
+def test_list_messages_limit_caps_count_and_none_fetches_all():
+    capped = messages.list_messages(
+        "acc1", limit=1, build=_build, imap_factory=lambda a: FakeImap()
+    )
+    assert len(capped) == 1
+    assert capped[0].uid == "2"  # most recent of the two
+
+    everything = messages.list_messages(
+        "acc1", limit=None, build=_build, imap_factory=lambda a: FakeImap()
+    )
+    assert len(everything) == 2  # limit=None -> all messages in the folder
 
 
 def test_get_message_returns_decoded_body():

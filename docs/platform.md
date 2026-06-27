@@ -107,10 +107,11 @@ Future: `/recipes`, `/imdbspy`, `/timekeeper`. Do not implement a route until it
 | UI primitives (shadcn) | `web/src/components/ui/` |
 | Forms, tables, charts, markdown | `web/src/components/{forms,tables,charts,markdown}/` |
 | Features (chat, workspace, dashboard, command-palette, memory, settings) | `web/src/features/` |
-| Agent workspace layout (`/chat`) | `web/src/app/layouts/AgentWorkspaceLayout.tsx` composes `ChatNavRail`, resizable left sidebar (`ChatWindow` or `ArtifactsSidebar`), `WorkspaceHeader`, `MediaViewerShell` or `WorkspaceMainBody` |
+| Agent workspace layout (`/chat`) | `web/src/app/layouts/AgentWorkspaceLayout.tsx` composes `ChatNavRail`, resizable left `ChatWindow`, `WorkspaceHeader`, and `WorkspaceMainBody` |
 | Pages | `web/src/pages/` |
 | API clients, types, hooks, styles | `web/src/{services,types,hooks,lib,styles}/` |
-| App UI fragments | `utils/apps/{app}/frontend/` (e.g. `media_viewer` artifacts sidebar and viewers) |
+| App UI fragments | `utils/apps/{app}/frontend/` (e.g. `media_viewer` artifact grid and viewers) |
+| Apps registry | `web/src/features/workspace/apps/appRegistry.tsx` (one entry per workspace app) |
 
 ### `/chat` workspace layout
 
@@ -118,25 +119,27 @@ Future: `/recipes`, `/imdbspy`, `/timekeeper`. Do not implement a route until it
 ┌────┬──────────────────────────┬─────────────────────────────────────────────┐
 │Nav │  Left sidebar (resizable) │  Right workspace (main column)              │
 │rail│                           │                                             │
-│ 💬 │  Chat mode: ChatWindow    │  WorkspaceHeader (pinned + ephemeral tabs)  │
-│ 📁 │  Artifacts: artifact grid │  WorkspaceMainBody or app viewer content      │
+│ 💬 │  ChatWindow               │  WorkspaceHeader (Apps home + app tabs)     │
+│ 📨 │  (left sidebar is chat)   │  WorkspaceMainBody: Apps overview or app    │
+│ 🏋│                           │  content (Mailbox / Exercise / Projects /   │
+│ 📁 │                           │  Artifacts) or ephemeral artifact viewer    │
 └────┴──────────────────────────┴─────────────────────────────────────────────┘
 ```
 
-The nav rail (~48px) switches left sidebar content only; the right workspace keeps its own state.
+The nav rail (~48px) has a Chat button (re-opens the chat sidebar) plus one quick-launch icon per registered app; the left sidebar stays on chat and apps open as tabs in the right workspace.
 
-### Workspace tabs (pinned + ephemeral)
+### Workspace tabs (Apps home + app tabs + ephemeral)
 
-The right column header tab bar has **pinned tabs** (Overview, Assets, History) and **ephemeral tabs** for app content opened from the left sidebar (artifacts first; other apps follow the same pattern).
+The right column header tab bar has a single pinned **Apps** home tab plus **app tabs** and **ephemeral tabs**. The apps are defined by a registry (`web/src/features/workspace/apps/appRegistry.tsx`); adding an entry there wires the app into the launcher, header tabs, nav-rail quick-launch, and main-body routing.
 
 | Tab type | Behavior |
 | --- | --- |
-| Pinned | Always visible; show placeholder content in `WorkspaceMainBody` |
-| Ephemeral | Opened when user selects an item (e.g. artifact); label is **Artifacts** (italic); viewer shows the selected file |
-| Auto-close | Switching to any pinned tab closes the ephemeral tab and unmounts the viewer |
-| Re-open | User must select the item again from the app sidebar (e.g. Artifacts nav) |
+| Apps home | Always visible (leftmost); `WorkspaceMainBody` shows the Apps overview launcher — a card per registered app with name + description |
+| App tab | Opened from the overview card or the nav-rail icon; closeable; renders the app's `Component` (Mailbox, Exercise, Projects, Artifacts) |
+| Ephemeral | Opened when the user selects an artifact from the Artifacts tab; label is **Artifacts** (italic); viewer shows the selected file |
+| Default | When no app/ephemeral tab is active, the Apps overview is shown |
 
-Ephemeral tab state is **not persisted** across reloads. One ephemeral tab at a time; opening another item replaces it.
+App tabs open/close through the generic store actions `openAppTab(id)` / `closeAppTab(id)`. Open app tabs and the ephemeral tab are **not persisted** across reloads; the Apps home is the landing surface on load.
 
 ## Local runtime data
 

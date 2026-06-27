@@ -1,44 +1,20 @@
-import {
-  Clock,
-  FileText,
-  ShoppingBag,
-  type LucideIcon,
-} from "lucide-react";
+import { LayoutGrid, type LucideIcon } from "lucide-react";
 
-export type WorkspaceTabId = "overview" | "assets" | "history";
+/**
+ * The only pinned (non-closeable) workspace tab is the Apps home, which shows
+ * the Apps overview launcher. Every other tab is an app opened from the
+ * registry (see `apps/appRegistry`) or an ephemeral artifact viewer.
+ */
+export type WorkspaceTabId = "apps";
 
 export interface WorkspaceTabMeta {
   id: WorkspaceTabId;
   label: string;
-  title: string;
-  body: string;
   icon: LucideIcon;
 }
 
-export const WORKSPACE_TABS: WorkspaceTabMeta[] = [
-  {
-    id: "overview",
-    label: "Overview",
-    title: "Workspace active",
-    body: "Your digital canvas is ready. Select a tab or message the agent to begin.",
-    icon: ShoppingBag,
-  },
-  {
-    id: "assets",
-    label: "Assets",
-    title: "Assets",
-    body: "Uploaded files and generated outputs will appear here.",
-    icon: FileText,
-  },
-  {
-    id: "history",
-    label: "History",
-    title: "History",
-    body: "Past sessions and workspace activity will be listed here.",
-    icon: Clock,
-  },
-];
-
-export function getWorkspaceTab(id: WorkspaceTabId): WorkspaceTabMeta {
-  return WORKSPACE_TABS.find((t) => t.id === id) ?? WORKSPACE_TABS[0];
-}
+export const WORKSPACE_HOME_TAB: WorkspaceTabMeta = {
+  id: "apps",
+  label: "Apps",
+  icon: LayoutGrid,
+};

@@ -198,7 +198,13 @@ class AccountFoldersView(APIView):
 class AccountMessagesView(APIView):
     def get(self, request: Request, account_id: str) -> Response:
         folder = request.query_params.get("folder", "INBOX")
-        limit = _int(request.query_params.get("limit"), 25, lo=1, hi=200)
+        raw_limit = request.query_params.get("limit")
+        # `limit=all` (or `0`) fetches every message in the folder; otherwise a
+        # bounded count. None flows through to the service as "fetch all".
+        if raw_limit in ("all", "0"):
+            limit: int | None = None
+        else:
+            limit = _int(raw_limit, 25, lo=1, hi=2000)
         try:
             items = messages_service.list_messages(account_id, folder=folder, limit=limit)
         except MailError as exc:

@@ -47,8 +47,6 @@ function newChatSessionId(): string {
   return crypto.randomUUID();
 }
 
-export type SidebarMode = "chat" | "artifacts";
-
 export const EPHEMERAL_ARTIFACT_TAB_LABEL = "Artifacts";
 
 export type EphemeralTab = {
@@ -58,20 +56,47 @@ export type EphemeralTab = {
   tabLabel: typeof EPHEMERAL_ARTIFACT_TAB_LABEL;
 };
 
-export const EXERCISE_WORKSPACE_TAB = "app:exercise";
-export const EXERCISE_TAB_LABEL = "Exercise";
-
-export const MAILBOX_WORKSPACE_TAB = "app:mailbox";
-export const MAILBOX_TAB_LABEL = "Mailbox";
-
-export const PROJECTMANAGER_WORKSPACE_TAB = "app:projectmanager";
-export const PROJECTMANAGER_TAB_LABEL = "Projects";
-
-export const CALENDAR_WORKSPACE_TAB = "app:calendar";
-export const CALENDAR_TAB_LABEL = "Calendar";
-
 export type MailboxView = "inbox" | "settings";
 export type MailboxDensity = "compact" | "modern";
+
+export type MailboxTextSize = "sm" | "md" | "lg";
+
+/** Persistent inbox display preferences — the "dynamic config" that survives
+ *  sessions (stored in localStorage alongside the rest of the workspace). */
+export interface MailboxPrefs {
+  // show / hide fields
+  showProviderIcon: boolean;
+  showSnippet: boolean; // the description / preview text
+  showDate: boolean;
+  showAccountBadge: boolean;
+  showProviderBadge: boolean;
+  showUnreadBadge: boolean;
+  // sizing
+  textSize: MailboxTextSize;
+  tightRows: boolean; // extra-compact row spacing
+  fromWidth: number; // px — "From" column width (compact)
+  subjectWidth: number; // px — "Title" column width (compact)
+  snippetWidth: number; // px — "Description" max width (compact); 0 = fill
+  listWidth: number; // px — list column width (modern split view)
+  // how many messages to load per account
+  loadLimit: number | "all";
+}
+
+export const MAILBOX_PREFS_DEFAULT: MailboxPrefs = {
+  showProviderIcon: true,
+  showSnippet: true,
+  showDate: true,
+  showAccountBadge: true,
+  showProviderBadge: true,
+  showUnreadBadge: true,
+  textSize: "md",
+  tightRows: false,
+  fromWidth: 180,
+  subjectWidth: 280,
+  snippetWidth: 0,
+  listWidth: 440,
+  loadLimit: "all",
+};
 
 export type ProjectManagerView = "board" | "timeline" | "deadlines";
 
@@ -107,10 +132,19 @@ export interface ExerciseSession {
 export type WorkspaceTabValue =
   | WorkspaceTabId
   | `ephemeral:${string}`
-  | typeof EXERCISE_WORKSPACE_TAB
-  | typeof MAILBOX_WORKSPACE_TAB
-  | typeof PROJECTMANAGER_WORKSPACE_TAB
-  | typeof CALENDAR_WORKSPACE_TAB;
+  | `app:${string}`;
+
+export function appTabValue(id: string): `app:${string}` {
+  return `app:${id}`;
+}
+
+export function isAppWorkspaceTab(value: string): value is `app:${string}` {
+  return value.startsWith("app:");
+}
+
+export function appIdFromTab(value: `app:${string}`): string {
+  return value.slice("app:".length);
+}
 
 export const VIEWER_MEDIA_FRACTION_DEFAULT = 0.5;
 export const VIEWER_MEDIA_FRACTION_MIN = 0.2;
@@ -142,18 +176,16 @@ interface WorkspaceState {
   activeTab: WorkspaceTabId;
   activeWorkspaceTab: WorkspaceTabValue;
   ephemeralTab: EphemeralTab | null;
-  exerciseTabOpen: boolean;
+  /** Ids of apps with an open workspace tab, in tab order. */
+  openAppIds: string[];
   exerciseView: ExerciseView;
   exerciseSession: ExerciseSession | null;
-  mailboxTabOpen: boolean;
   mailboxView: MailboxView;
   mailboxDensity: MailboxDensity;
   mailboxAccountId: string | null;
-  projectManagerTabOpen: boolean;
+  mailboxPrefs: MailboxPrefs;
   projectManagerView: ProjectManagerView;
-  calendarTabOpen: boolean;
   calendarView: CalendarView;
-  sidebarMode: SidebarMode;
   artifactGridColumns: number;
   viewerMediaFraction: number;
   artifactNotice: string | null;
@@ -169,24 +201,19 @@ interface WorkspaceState {
   setActiveWorkspaceTab: (tab: WorkspaceTabValue) => void;
   openArtifactTab: (artifactId: string) => void;
   closeEphemeralTab: () => void;
-  openExerciseTab: () => void;
-  closeExerciseTab: () => void;
+  openAppTab: (appId: string) => void;
+  closeAppTab: (appId: string) => void;
   setExerciseView: (view: ExerciseView) => void;
-  openMailboxTab: () => void;
-  closeMailboxTab: () => void;
   setMailboxView: (view: MailboxView) => void;
   setMailboxDensity: (density: MailboxDensity) => void;
   setMailboxAccountId: (accountId: string | null) => void;
-  openProjectManagerTab: () => void;
-  closeProjectManagerTab: () => void;
+  setMailboxPrefs: (patch: Partial<MailboxPrefs>) => void;
+  resetMailboxPrefs: () => void;
   setProjectManagerView: (view: ProjectManagerView) => void;
-  openCalendarTab: () => void;
-  closeCalendarTab: () => void;
   setCalendarView: (view: CalendarView) => void;
   startExerciseSession: (session: ExerciseSession) => void;
   updateSessionExercise: (index: number, changes: Partial<SessionExercise>) => void;
   endExerciseSession: () => void;
-  setSidebarMode: (mode: SidebarMode) => void;
   setArtifactGridColumns: (columns: number) => void;
   setViewerMediaFraction: (fraction: number) => void;
   setArtifactNotice: (message: string | null) => void;
@@ -225,21 +252,18 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       mobileDrawerOpen: false,
       lastWidth: SIDEBAR_DEFAULT,
       isTyping: false,
-      activeTab: "overview",
-      activeWorkspaceTab: "overview",
+      activeTab: "apps",
+      activeWorkspaceTab: "apps",
       ephemeralTab: null,
-      exerciseTabOpen: false,
+      openAppIds: [],
       exerciseView: "dashboard",
       exerciseSession: null,
-      mailboxTabOpen: false,
       mailboxView: "inbox",
       mailboxDensity: "modern",
       mailboxAccountId: null,
-      projectManagerTabOpen: false,
+      mailboxPrefs: MAILBOX_PREFS_DEFAULT,
       projectManagerView: "board",
-      calendarTabOpen: false,
       calendarView: "calendar",
-      sidebarMode: "chat",
       artifactGridColumns: ARTIFACT_GRID_COLUMNS_DEFAULT,
       viewerMediaFraction: VIEWER_MEDIA_FRACTION_DEFAULT,
       artifactNotice: null,
@@ -272,13 +296,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       setActiveTab: (tab) => get().setPinnedTab(tab),
 
       setActiveWorkspaceTab: (tab) => {
-        if (
-          isEphemeralWorkspaceTab(tab) ||
-          tab === EXERCISE_WORKSPACE_TAB ||
-          tab === MAILBOX_WORKSPACE_TAB ||
-          tab === PROJECTMANAGER_WORKSPACE_TAB ||
-          tab === CALENDAR_WORKSPACE_TAB
-        ) {
+        if (isEphemeralWorkspaceTab(tab) || isAppWorkspaceTab(tab)) {
           set({ activeWorkspaceTab: tab });
           return;
         }
@@ -306,18 +324,20 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         });
       },
 
-      openExerciseTab: () =>
-        set({
-          exerciseTabOpen: true,
-          activeWorkspaceTab: EXERCISE_WORKSPACE_TAB,
-        }),
+      openAppTab: (appId) =>
+        set((state) => ({
+          openAppIds: state.openAppIds.includes(appId)
+            ? state.openAppIds
+            : [...state.openAppIds, appId],
+          activeWorkspaceTab: appTabValue(appId),
+        })),
 
-      closeExerciseTab: () => {
-        const { activeWorkspaceTab, activeTab } = get();
+      closeAppTab: (appId) => {
+        const { activeWorkspaceTab, activeTab, openAppIds } = get();
         set({
-          exerciseTabOpen: false,
+          openAppIds: openAppIds.filter((id) => id !== appId),
           activeWorkspaceTab:
-            activeWorkspaceTab === EXERCISE_WORKSPACE_TAB
+            activeWorkspaceTab === appTabValue(appId)
               ? activeTab
               : activeWorkspaceTab,
         });
@@ -325,64 +345,18 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
       setExerciseView: (view) => set({ exerciseView: view }),
 
-      openMailboxTab: () =>
-        set({
-          mailboxTabOpen: true,
-          activeWorkspaceTab: MAILBOX_WORKSPACE_TAB,
-        }),
-
-      closeMailboxTab: () => {
-        const { activeWorkspaceTab, activeTab } = get();
-        set({
-          mailboxTabOpen: false,
-          activeWorkspaceTab:
-            activeWorkspaceTab === MAILBOX_WORKSPACE_TAB
-              ? activeTab
-              : activeWorkspaceTab,
-        });
-      },
-
       setMailboxView: (view) => set({ mailboxView: view }),
 
       setMailboxDensity: (density) => set({ mailboxDensity: density }),
 
       setMailboxAccountId: (accountId) => set({ mailboxAccountId: accountId }),
 
-      openProjectManagerTab: () =>
-        set({
-          projectManagerTabOpen: true,
-          activeWorkspaceTab: PROJECTMANAGER_WORKSPACE_TAB,
-        }),
+      setMailboxPrefs: (patch) =>
+        set((state) => ({ mailboxPrefs: { ...state.mailboxPrefs, ...patch } })),
 
-      closeProjectManagerTab: () => {
-        const { activeWorkspaceTab, activeTab } = get();
-        set({
-          projectManagerTabOpen: false,
-          activeWorkspaceTab:
-            activeWorkspaceTab === PROJECTMANAGER_WORKSPACE_TAB
-              ? activeTab
-              : activeWorkspaceTab,
-        });
-      },
+      resetMailboxPrefs: () => set({ mailboxPrefs: MAILBOX_PREFS_DEFAULT }),
 
       setProjectManagerView: (view) => set({ projectManagerView: view }),
-
-      openCalendarTab: () =>
-        set({
-          calendarTabOpen: true,
-          activeWorkspaceTab: CALENDAR_WORKSPACE_TAB,
-        }),
-
-      closeCalendarTab: () => {
-        const { activeWorkspaceTab, activeTab } = get();
-        set({
-          calendarTabOpen: false,
-          activeWorkspaceTab:
-            activeWorkspaceTab === CALENDAR_WORKSPACE_TAB
-              ? activeTab
-              : activeWorkspaceTab,
-        });
-      },
 
       setCalendarView: (view) => set({ calendarView: view }),
 
@@ -402,8 +376,6 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         }),
 
       endExerciseSession: () => set({ exerciseSession: null }),
-
-      setSidebarMode: (mode) => set({ sidebarMode: mode }),
 
       setArtifactGridColumns: (columns) =>
         set({
@@ -499,12 +471,12 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       partialize: (state) => ({
         lastWidth: state.lastWidth,
         activeTab: state.activeTab,
-        sidebarMode: state.sidebarMode,
         artifactGridColumns: state.artifactGridColumns,
         viewerMediaFraction: state.viewerMediaFraction,
         exerciseView: state.exerciseView,
         mailboxView: state.mailboxView,
         mailboxDensity: state.mailboxDensity,
+        mailboxPrefs: state.mailboxPrefs,
         projectManagerView: state.projectManagerView,
         calendarView: state.calendarView,
       }),
@@ -512,11 +484,14 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         if (state) {
           state.sidebarWidth = state.lastWidth || SIDEBAR_DEFAULT;
           state.ephemeralTab = null;
-          state.exerciseTabOpen = false;
-          state.mailboxTabOpen = false;
-          state.projectManagerTabOpen = false;
-          state.calendarTabOpen = false;
+          state.openAppIds = [];
+          // Drop any stale pinned tab persisted before the Apps home existed.
+          if (state.activeTab !== "apps") {
+            state.activeTab = "apps";
+          }
           state.activeWorkspaceTab = state.activeTab;
+          // merge defaults so prefs added in later versions are populated
+          state.mailboxPrefs = { ...MAILBOX_PREFS_DEFAULT, ...(state.mailboxPrefs ?? {}) };
         }
       },
     },
