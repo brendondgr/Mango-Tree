@@ -13,6 +13,7 @@ import {
   useDeleteSchedule,
   useDeleteScheduleEvent,
   usePalette,
+  useRenameCategory,
   useScheduleDetail,
   useSchedules,
   useUpdateColorMappings,
@@ -20,6 +21,7 @@ import {
 import { buildClassToHex, colorForType } from "../utils/colors";
 import { DOW_LABELS } from "../utils/dates";
 import type { GridEvent } from "../utils/timegrid";
+import { CategoryEditor } from "./CategoryEditor";
 import { ScheduleEventDialog } from "./ScheduleEventDialog";
 import { TimeGrid } from "./TimeGrid";
 
@@ -59,6 +61,7 @@ export function SchedulesView() {
   const deleteSchedule = useDeleteSchedule();
   const deleteEvent = useDeleteScheduleEvent(selected ?? "");
   const updateColors = useUpdateColorMappings(selected ?? "");
+  const renameCategory = useRenameCategory(selected ?? "");
   const addEntry = useAddEntry();
   const deleteEntry = useDeleteEntry();
 
@@ -71,7 +74,6 @@ export function SchedulesView() {
   const myEntries = entries.filter((e) => e.schedule_filename === selected);
 
   const types = detail.data ? Object.keys(detail.data.colors).sort() : [];
-  const colorNames = (palette.data ?? []).map((c) => c.name);
 
   // Expanded schedule events → timeline events (day index is 0=Mon..6=Sun).
   const gridEvents = useMemo<GridEvent[]>(() => {
@@ -209,6 +211,32 @@ export function SchedulesView() {
               </div>
             </div>
 
+            {/* categories — above the grid; each opens a color/rename popover */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Categories
+              </span>
+              {types.map((type) => (
+                <CategoryEditor
+                  key={type}
+                  type={type}
+                  swatch={colorForType(type, detail.data!.colors, classToHex)}
+                  currentColorName={detail.data!.schedule.color_mappings[type] ?? ""}
+                  palette={palette.data ?? []}
+                  busy={renameCategory.isPending || updateColors.isPending}
+                  onPickColor={(name) =>
+                    updateColors.mutate({
+                      ...detail.data!.schedule.color_mappings,
+                      [type]: name,
+                    })
+                  }
+                  onRename={(newName) =>
+                    renameCategory.mutate({ oldType: type, newType: newName })
+                  }
+                />
+              ))}
+            </div>
+
             {/* weekly grid (hour-by-hour timeline, honors overwriteable) */}
             <div className="h-[26rem] min-h-0">
               <TimeGrid
@@ -226,73 +254,36 @@ export function SchedulesView() {
               />
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
-              {/* legend + color editing */}
-              <section>
-                <h3 className="mb-2 text-sm font-semibold text-foreground">Categories</h3>
-                <ul className="flex flex-col gap-1.5">
-                  {types.map((type) => {
-                    const color = colorForType(type, detail.data!.colors, classToHex);
+            {/* stats */}
+            <section>
+              <h3 className="mb-2 text-sm font-semibold text-foreground">
+                Weekly hours
+                <span className="ml-2 font-normal text-muted-foreground">
+                  {detail.data.stats.total.toFixed(1)}h total
+                </span>
+              </h3>
+              <ul className="flex flex-col gap-1.5 sm:grid sm:grid-cols-2">
+                {Object.entries(detail.data.stats.by_category)
+                  .filter(([, hrs]) => hrs > 0)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([cat, hrs]) => {
+                    const pct = detail.data!.stats.total
+                      ? (hrs / detail.data!.stats.total) * 100
+                      : 0;
                     return (
-                      <li key={type} className="flex items-center gap-2">
-                        <span
-                          className="calendar-legend-swatch"
-                          style={{ background: color.bg, borderColor: color.border }}
-                        />
-                        <span className="flex-1 text-sm capitalize text-foreground">{type}</span>
-                        <select
-                          className="rounded-[var(--radius-sm)] border border-border bg-background px-2 py-1 text-xs"
-                          value={detail.data!.schedule.color_mappings[type] ?? ""}
-                          onChange={(e) =>
-                            updateColors.mutate({
-                              ...detail.data!.schedule.color_mappings,
-                              [type]: e.target.value,
-                            })
-                          }
-                        >
-                          {colorNames.map((name) => (
-                            <option key={name} value={name}>
-                              {name}
-                            </option>
-                          ))}
-                        </select>
+                      <li key={cat} className="text-sm">
+                        <div className="flex justify-between">
+                          <span className="capitalize text-foreground">{cat}</span>
+                          <span className="text-muted-foreground">{hrs.toFixed(1)}h</span>
+                        </div>
+                        <div className="calendar-stat-bar">
+                          <div className="calendar-stat-fill" style={{ width: `${pct}%` }} />
+                        </div>
                       </li>
                     );
                   })}
-                </ul>
-              </section>
-
-              {/* stats */}
-              <section>
-                <h3 className="mb-2 text-sm font-semibold text-foreground">
-                  Weekly hours
-                  <span className="ml-2 font-normal text-muted-foreground">
-                    {detail.data.stats.total.toFixed(1)}h total
-                  </span>
-                </h3>
-                <ul className="flex flex-col gap-1.5">
-                  {Object.entries(detail.data.stats.by_category)
-                    .filter(([, hrs]) => hrs > 0)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([cat, hrs]) => {
-                      const pct = detail.data!.stats.total
-                        ? (hrs / detail.data!.stats.total) * 100
-                        : 0;
-                      return (
-                        <li key={cat} className="text-sm">
-                          <div className="flex justify-between">
-                            <span className="capitalize text-foreground">{cat}</span>
-                            <span className="text-muted-foreground">{hrs.toFixed(1)}h</span>
-                          </div>
-                          <div className="calendar-stat-bar">
-                            <div className="calendar-stat-fill" style={{ width: `${pct}%` }} />
-                          </div>
-                        </li>
-                      );
-                    })}
-                </ul>
-              </section>
-            </div>
+              </ul>
+            </section>
 
             {/* calendar entries (date mappings) */}
             <section>

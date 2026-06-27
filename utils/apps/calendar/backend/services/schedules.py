@@ -193,6 +193,42 @@ def update_color_mappings(filename: str, mappings: dict[str, Any]) -> None:
     store.write_json_atomic(path, data)
 
 
+def rename_category(filename: str, old_type: str, new_type: str) -> int:
+    """Rename an event category across a schedule.
+
+    Rewrites the ``type`` of every raw event matching ``old_type`` and moves its
+    ``color_mappings`` entry to ``new_type`` (without clobbering an existing
+    mapping). Operating on the raw (unexpanded) events keeps the ``timestamps``/
+    list-``day`` structures intact, which per-event API updates could not. Returns
+    the number of events updated.
+    """
+    old_type = (old_type or "").strip()
+    new_type = (new_type or "").strip()
+    if not old_type:
+        raise ValidationError("Existing category name is required")
+    if not new_type:
+        raise ValidationError("New category name is required")
+
+    data, path = _load_raw_schedule(filename)
+    if old_type == new_type:
+        return 0
+
+    count = 0
+    for event in data.get("events", []):
+        if event.get("type") == old_type:
+            event["type"] = new_type
+            count += 1
+
+    mappings = data.get("color_mappings")
+    if isinstance(mappings, dict) and old_type in mappings:
+        color = mappings.pop(old_type)
+        mappings.setdefault(new_type, color)
+        data["color_mappings"] = mappings
+
+    store.write_json_atomic(path, data)
+    return count
+
+
 def add_event(filename: str, event_data: dict[str, Any]) -> int:
     """Append an event to a schedule. Returns the new event's raw index."""
     valid, msg = validators.validate_event(event_data)

@@ -312,6 +312,95 @@
   pointer-events: none;
 }
 
+/* Category chips + edit popover */
+.calendar-cat {
+  position: relative;
+  display: inline-block;
+}
+.calendar-cat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.8rem;
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.calendar-cat-btn:hover,
+.calendar-cat-btn[data-open="true"] {
+  background: hsl(var(--muted));
+  border-color: hsl(var(--ring));
+}
+.calendar-cat-pop {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  width: 16rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  box-shadow: 0 8px 24px hsl(var(--foreground) / 0.16);
+}
+.calendar-cat-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 0.3rem;
+}
+.calendar-cat-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+.calendar-cat-save {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  cursor: pointer;
+}
+.calendar-cat-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.calendar-swatches {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0.3rem;
+}
+.calendar-swatch {
+  aspect-ratio: 1;
+  border-radius: 0.3rem;
+  border-width: 1px;
+  border-style: solid;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.calendar-swatch[data-active="true"] {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 1px;
+}
+
 /* Schedule weekly grid */
 .calendar-legend-swatch {
   width: 0.85rem;

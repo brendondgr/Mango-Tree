@@ -87,6 +87,31 @@ def test_schedule_event_crud(data_dir):
     assert raw["events"] == []
 
 
+def test_rename_category_rewrites_events_and_color(data_dir):
+    schedules.save_schedule("cat.json", {
+        "name": "C",
+        "events": [
+            {"title": "Gym", "type": "exercise", "day": 1, "start": "07:00", "end": "08:00"},
+            {"title": "Run", "type": "exercise", "day": 3, "start": "07:00", "end": "08:00"},
+            {"title": "Lunch", "type": "food", "day": 2, "start": "12:00", "end": "13:00"},
+        ],
+        "color_mappings": {"exercise": "blue", "food": "green"},
+    })
+    updated = schedules.rename_category("cat.json", "exercise", "fitness")
+    assert updated == 2
+    raw, _ = schedules._load_raw_schedule("cat.json")
+    assert {e["type"] for e in raw["events"]} == {"fitness", "food"}
+    # color mapping migrates to the new name, preserving the old color
+    assert raw["color_mappings"]["fitness"] == "blue"
+    assert "exercise" not in raw["color_mappings"]
+
+
+def test_rename_category_requires_new_name(data_dir):
+    schedules.save_schedule("cat2.json", {"name": "C2", "events": []})
+    with pytest.raises(ValidationError):
+        schedules.rename_category("cat2.json", "exercise", "  ")
+
+
 def test_add_invalid_event_raises_validation(data_dir):
     schedules.save_schedule("v.json", {"name": "V", "events": []})
     with pytest.raises(ValidationError):

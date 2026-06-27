@@ -91,6 +91,17 @@ export function updateColorMappings(
   });
 }
 
+export function renameCategory(
+  filename: string,
+  oldType: string,
+  newType: string,
+): Promise<{ message: string; updated: number }> {
+  return request(`${BASE}/schedules/${encodeURIComponent(filename)}/categories/rename/`, {
+    method: "POST",
+    body: JSON.stringify({ old: oldType, new: newType }),
+  });
+}
+
 export function addScheduleEvent(
   filename: string,
   event: ScheduleEvent,

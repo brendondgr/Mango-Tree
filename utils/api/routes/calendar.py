@@ -20,6 +20,7 @@ from utils.apps.calendar.backend.api.views import (
     CalendarWeekView,
     ColorsView,
     InstructionsView,
+    ScheduleCategoryRenameView,
     ScheduleColorMappingsView,
     ScheduleDetailView,
     ScheduleEventDetailView,
@@ -32,6 +33,7 @@ urlpatterns = [
     # Schedules (specific subpaths before the <filename> catch-all)
     path("schedules/", SchedulesView.as_view(), name="calendar-schedules"),
     path("schedules/<str:filename>/color-mappings/", ScheduleColorMappingsView.as_view(), name="calendar-schedule-colors"),
+    path("schedules/<str:filename>/categories/rename/", ScheduleCategoryRenameView.as_view(), name="calendar-schedule-category-rename"),
     path("schedules/<str:filename>/events/", ScheduleEventsView.as_view(), name="calendar-schedule-events"),
     path("schedules/<str:filename>/events/<int:index>/", ScheduleEventDetailView.as_view(), name="calendar-schedule-event-detail"),
     path("schedules/<str:filename>/print/", SchedulePrintView.as_view(), name="calendar-schedule-print"),

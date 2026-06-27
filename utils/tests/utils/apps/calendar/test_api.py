@@ -161,6 +161,35 @@ def test_schedule_save_and_delete(client):
     assert client.delete("/api/calendar/schedules/api_made.json/").status_code == 200
 
 
+def test_rename_category_endpoint(client):
+    client.post("/api/calendar/schedules/", {
+        "filename": "rn.json",
+        "name": "RN",
+        "events": [
+            {"title": "Gym", "type": "exercise", "day": 1, "start": "07:00", "end": "08:00"},
+        ],
+        "color_mappings": {"exercise": "blue"},
+    }, format="json")
+    r = client.post("/api/calendar/schedules/rn.json/categories/rename/", {
+        "old": "exercise", "new": "fitness",
+    }, format="json")
+    assert r.status_code == 200
+    assert r.json()["updated"] == 1
+    detail = client.get("/api/calendar/schedules/rn.json/").json()
+    assert "fitness" in detail["colors"]
+    assert "exercise" not in detail["colors"]
+
+
+def test_rename_category_blank_400(client):
+    client.post("/api/calendar/schedules/", {
+        "filename": "rn2.json", "name": "RN2", "events": [],
+    }, format="json")
+    r = client.post("/api/calendar/schedules/rn2.json/categories/rename/", {
+        "old": "exercise", "new": "",
+    }, format="json")
+    assert r.status_code == 400
+
+
 def test_print_returns_pdf(client):
     r = client.post("/api/calendar/schedules/spring_2026.json/print/", {
         "timeRange": {"startHour": 7, "endHour": 20},

@@ -190,3 +190,12 @@ export function useUpdateColorMappings(file: string) {
     onSuccess: invalidate,
   });
 }
+
+export function useRenameCategory(file: string) {
+  const invalidate = useInvalidateSchedule(file);
+  return useMutation({
+    mutationFn: ({ oldType, newType }: { oldType: string; newType: string }) =>
+      api.renameCategory(file, oldType, newType),
+    onSuccess: invalidate,
+  });
+}

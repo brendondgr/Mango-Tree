@@ -81,6 +81,18 @@ class ScheduleColorMappingsView(APIView):
         return Response({"message": "Color mappings updated"})
 
 
+class ScheduleCategoryRenameView(APIView):
+    def post(self, request: Request, filename: str) -> Response:
+        try:
+            body = parse_object(request.data)
+            updated = schedules_service.rename_category(
+                filename, body.get("old"), body.get("new")
+            )
+        except CalendarError as exc:
+            return error_response(exc)
+        return Response({"message": "Category renamed", "updated": updated})
+
+
 class ScheduleEventsView(APIView):
     def post(self, request: Request, filename: str) -> Response:
         try:
