@@ -19,16 +19,20 @@ from __future__ import annotations
 
 import email
 import re
+import time
 from email.header import decode_header, make_header
 from email.utils import parsedate_to_datetime
 from typing import Any, Callable, Iterable
 
+from utils.apps.mailbox.backend.services import cache as _cache
 from utils.apps.mailbox.backend.services import ops
 from utils.apps.mailbox.backend.services.ops import ImapLike, MailAccount
 from utils.apps.mailbox.shared.errors import ValidationError
 from utils.apps.mailbox.shared.schemas import MessageDTO
 
 _FLAGS_RE = re.compile(rb"FLAGS \(([^)]*)\)", re.IGNORECASE)
+_UID_RE = re.compile(rb"UID\s+(\d+)", re.IGNORECASE)
+_UIDVALIDITY_RE = re.compile(rb"UIDVALIDITY\s+(\d+)", re.IGNORECASE)
 
 
 # --- parsing helpers ----------------------------------------------------------
@@ -225,6 +229,122 @@ def get_message(
             flags=_parse_flags(envelope),
             with_body=True,
         )
+    finally:
+        ops._safe_logout(client)
+
+
+# --- incremental sync (cache-backed) ------------------------------------------
+
+def _decode_uid(value: Any) -> str:
+    return value.decode() if isinstance(value, bytes) else str(value)
+
+
+def _server_uidvalidity(client: ImapLike, folder: str) -> int | None:
+    """Read the folder's UIDVALIDITY (so a server-side UID reset invalidates the
+    cache). Best-effort: returns None if the server/STATUS doesn't provide it."""
+    try:
+        typ, data = client.status(folder, "(UIDVALIDITY)")  # type: ignore[attr-defined]
+    except Exception:
+        return None
+    if not data or not data[0]:
+        return None
+    raw = data[0] if isinstance(data[0], bytes) else str(data[0]).encode()
+    match = _UIDVALIDITY_RE.search(raw)
+    return int(match.group(1)) if match else None
+
+
+def _fetch_flags(client: ImapLike, uids: list[str]) -> dict[str, list[str]]:
+    """One batched ``UID FETCH (FLAGS)`` so read/unread stays fresh cheaply."""
+    out: dict[str, list[str]] = {}
+    if not uids:
+        return out
+    typ, data = client.uid("FETCH", ",".join(uids), "(FLAGS)")
+    for item in data or []:
+        raw = item[0] if isinstance(item, (tuple, list)) and item else item
+        if raw is None:
+            continue
+        if isinstance(raw, str):
+            raw = raw.encode()
+        if not isinstance(raw, bytes):
+            continue
+        um = _UID_RE.search(raw)
+        if not um:
+            continue
+        fm = _FLAGS_RE.search(raw)
+        flags = [f.decode() if isinstance(f, bytes) else f for f in (fm.group(1).split() if fm else [])]
+        out[um.group(1).decode()] = flags
+    return out
+
+
+def sync_folder(
+    account: MailAccount,
+    *,
+    account_id: str,
+    folder: str = "INBOX",
+    imap_factory: Callable[[MailAccount], ImapLike] | None = None,
+    on_progress: Callable[[int, int], None] | None = None,
+    now: float | None = None,
+    save_every: int = 25,
+) -> dict[str, Any]:
+    """Incrementally sync ``folder`` into the local cache.
+
+    Fetches only UIDs not already cached, drops UIDs no longer on the server, and
+    refreshes flags for the rest — so the whole folder is never re-downloaded.
+    ``on_progress(processed, total)`` reports new-message fetch progress.
+    """
+    now = time.time() if now is None else now
+    doc = _cache.load(account_id, folder)
+    client = ops.connect_imap(account, imap_factory=imap_factory)
+    try:
+        client.select(folder, readonly=True)
+        uidvalidity = _server_uidvalidity(client, folder)
+        if doc.get("uidvalidity") != uidvalidity:
+            _cache.reset_messages(doc, uidvalidity)
+
+        typ, data = client.uid("SEARCH", "ALL")
+        server_uids = [_decode_uid(x) for x in (data[0].split() if data and data[0] else [])]
+        server_set = set(server_uids)
+
+        cached = _cache.cached_uids(doc)
+        removed = cached - server_set
+        _cache.remove_uids(doc, removed)
+
+        # refresh flags for messages we already have (read/unread changes)
+        existing = [u for u in server_uids if u in cached and u not in removed]
+        for uid, flags in _fetch_flags(client, existing).items():
+            _cache.update_flags(doc, uid, flags)
+
+        new_uids = [u for u in server_uids if u not in cached]
+        total = len(new_uids)
+        if on_progress:
+            on_progress(0, total)
+        for index, uid in enumerate(new_uids):
+            typ, fetched = client.uid("FETCH", uid, "(FLAGS RFC822)")
+            split = _split_fetch(fetched[0]) if fetched and fetched[0] else None
+            if split:
+                envelope, raw_bytes = split
+                dto = parse_rfc822(
+                    raw_bytes,
+                    uid=uid,
+                    provider=account.provider,
+                    account=account.email,
+                    flags=_parse_flags(envelope),
+                )
+                _cache.upsert_message(doc, dto.to_dict())
+            if on_progress:
+                on_progress(index + 1, total)
+            if save_every and (index + 1) % save_every == 0:
+                doc["uidvalidity"] = uidvalidity
+                _cache.save(doc, now=now)
+
+        doc["uidvalidity"] = uidvalidity
+        _cache.save(doc, now=now)
+        return {
+            "new": total,
+            "removed": len(removed),
+            "total": len(doc["messages"]),
+            "uidvalidity": uidvalidity,
+        }
     finally:
         ops._safe_logout(client)
 
