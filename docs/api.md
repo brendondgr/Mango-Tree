@@ -163,6 +163,29 @@ List endpoints return the standard envelope `{count, next, previous, results}` (
 
 IDs are the legacy string keys (`wk_…`, `rt_…`, `eq_…`, `hist_…`, `strava_…`). `history.workout_id` may be `run`/`walk` (cardio/Strava) and is not constrained to an existing workout. Strava sync endpoint: added in Stage 7.
 
+### Project Manager
+
+Projects, goals, deadlines, and a Gantt timeline, migrated from the standalone ProjectManager (Flask) app. See `utils/apps/projectmanager/README.md`. Data lives in the legacy SQLite store at `data/projectmanager/projectmanager.db` (bound read/write, schema unchanged; `managed = False` models). DRF routes: `utils/api/routes/projectmanager.py`; views call `backend/services/` only.
+
+| Method | Endpoint | Service | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/projectmanager/projects/` | `projects.list_projects` | List projects (category, progress, goal counts) |
+| `POST` | `/api/projectmanager/projects/` | `projects.create_project` | Create a project (resolves/creates its category) |
+| `GET` | `/api/projectmanager/projects/{id}/` | `projects.get_project` | Project detail |
+| `PATCH` | `/api/projectmanager/projects/{id}/` | `projects.update_status` | Update status (body `{"status": ...}`; stamps lifecycle dates) |
+| `DELETE` | `/api/projectmanager/projects/{id}/` | `projects.delete_project` | Delete a project and its goals |
+| `GET` | `/api/projectmanager/projects/{id}/goals/` | `goals.list_goals_for_project` | List a project's goals |
+| `POST` | `/api/projectmanager/projects/{id}/goals/` | `goals.create_goals` | Create goals (body `{"goals": [{title, deadline?}, ...]}`) |
+| `GET` | `/api/projectmanager/goals/deadlines/` | `goals.list_goals_with_deadlines` | List all goals with a deadline (soonest first) |
+| `PATCH` | `/api/projectmanager/goals/{id}/` | `goals.update_goal` | Update a goal's title/deadline |
+| `POST` | `/api/projectmanager/goals/{id}/toggle/` | `goals.toggle_goal` | Toggle Pending/Completed |
+| `DELETE` | `/api/projectmanager/goals/{id}/` | `goals.delete_goal` | Delete a goal |
+| `GET` | `/api/projectmanager/categories/` | `categories.list_categories` | List categories |
+| `GET` | `/api/projectmanager/timeline/dashboard/` | `timeline.dashboard_timeline` | Gantt data for all projects + goals (filters: `status`, `type`, `project_id`, `start_date`, `end_date`) |
+| `GET` | `/api/projectmanager/timeline/project/{id}/` | `timeline.project_timeline` | Gantt data scoped to one project |
+
+List endpoints return the standard envelope `{count, next, previous, results}` (default `page_size` 25, max 2000 via `?page_size=`). Project/goal objects carry a computed `deadline_status` (`{display, css_class, date_formatted, is_overdue, is_approaching}`) when a deadline is set. IDs are integers (legacy autoincrement). Statuses: project `Active`/`Completed`/`On-Hold`/`Abandoned`, goal `Pending`/`Completed`. Errors use the platform schema with codes `validation_error` (400), `not_found` (404), `conflict` (409).
+
 ### Reserved (TBD)
 
 `/api/recipes/`, `/api/imdbspy/`, `/api/timekeeper/`

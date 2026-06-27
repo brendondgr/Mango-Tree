@@ -47,7 +47,7 @@ utils/apps/{app_name}/
 `-- shared/
 ```
 
-Registered apps: projects, notes, jobs, calendar, recipes, imdbspy, timekeeper, **media_viewer** (local artifacts and media viewer), **exercise** (workout/routine/equipment/history tracking with Strava import; migrated from the standalone WorkoutTracker app). media_viewer and exercise are fully implemented app modules.
+Registered apps: projects, notes, jobs, calendar, recipes, imdbspy, timekeeper, **media_viewer** (local artifacts and media viewer), **exercise** (workout/routine/equipment/history tracking with Strava import; migrated from the standalone WorkoutTracker app), **projectmanager** (projects, goals, deadlines, and a Gantt timeline; migrated from the standalone ProjectManager app). media_viewer, exercise, and projectmanager are fully implemented app modules.
 
 **Code placement:** business logic in `backend/services/` or `shared/`; agent tools call services; UI in `web/src/` or `utils/apps/{app}/frontend/`; no business logic in `web/src/services/` beyond API clients.
 
@@ -85,7 +85,7 @@ Target: React/Vite SPA with swappable shadcn/Tailwind themes (Canva-inspired def
 | Route | Data Source |
 | --- | --- |
 | `/dashboard` | `/api/tasks/`, app summaries |
-| `/chat` | `/api/tasks/`, agent endpoints, `/api/media-viewer/artifacts/`, `/api/exercise/` (Exercise opens as a persistent workspace tab) |
+| `/chat` | `/api/tasks/`, agent endpoints, `/api/media-viewer/artifacts/`, `/api/exercise/` (Exercise opens as a persistent workspace tab), `/api/projectmanager/` (Project Manager opens as a persistent workspace tab) |
 | `/projects`, `/projects/:id` | `/api/projects/` |
 | `/notes`, `/notes/:id` | `/api/notes/` |
 | `/jobs` | `/api/jobs/` |
@@ -152,6 +152,8 @@ data/artifacts/
 Configure via `config/artifacts.yaml` and optional `MANGO_ARTIFACTS_ROOT`. See `utils/apps/media_viewer/README.md` and `docs/api.md` for endpoints and permission boundaries (read/write scoped to `{artifacts.root}/**` only).
 
 The **exercise** app preserves the legacy WorkoutTracker SQLite database at `data/exercise/workouttracker.db` (gitignored). It is bound through a dedicated `exercise` Django connection with `managed = False` models (schema unchanged); override the path with `MANGO_EXERCISE_DB`. See `utils/apps/exercise/README.md`.
+
+The **projectmanager** app preserves the legacy ProjectManager SQLite database at `data/projectmanager/projectmanager.db` (gitignored). It is bound through a dedicated `projectmanager` Django connection with `managed = False` models (schema unchanged); override the path with `MANGO_PROJECTMANAGER_DB`. It opens as a persistent workspace tab (board / timeline / deadlines). See `utils/apps/projectmanager/README.md`.
 
 ## Build Sequence
 
