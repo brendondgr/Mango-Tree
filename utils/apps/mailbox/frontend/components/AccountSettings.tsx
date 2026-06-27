@@ -227,7 +227,11 @@ export function AccountSettings() {
                     key={provider}
                     type="button"
                     disabled={!isNew}
-                    onClick={() => setForm((f) => ({ ...f, provider }))}
+                    onClick={() => {
+                      setError(null);
+                      setConnecting(false);
+                      setForm((f) => ({ ...f, provider }));
+                    }}
                     className={cn(
                       "mailbox-chip",
                       form.provider === provider && "mailbox-c-primary",
