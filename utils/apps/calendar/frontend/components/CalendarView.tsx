@@ -18,8 +18,10 @@ import {
   today,
   weekDates,
 } from "../utils/dates";
+import type { GridEvent } from "../utils/timegrid";
 import { DirectEventDialog } from "./DirectEventDialog";
-import { EventBlock, EventChipMini } from "./EventBlock";
+import { EventChipMini } from "./EventBlock";
+import { TimeGrid } from "./TimeGrid";
 
 type Mode = "week" | "month";
 
@@ -67,6 +69,30 @@ export function CalendarView() {
       setDialogOpen(true);
     }
   }
+
+  // Week timeline: flatten the merged week buckets into TimeGrid events. Each
+  // event carries its source date + merged payload so clicks can reopen it.
+  const weekDateList = useMemo(() => weekDates(anchor), [anchor]);
+  const weekGridEvents = useMemo<GridEvent[]>(() => {
+    const out: GridEvent[] = [];
+    weekDateList.forEach((date, dayIndex) => {
+      const events = week.data?.days?.[date]?.events ?? [];
+      for (const ev of events) {
+        if (!ev.start || !ev.end) continue;
+        out.push({
+          dayIndex,
+          start: ev.start,
+          end: ev.end,
+          title: ev.title,
+          type: ev.type,
+          sub: ev.sub,
+          overwriteable: ev.overwriteable,
+          meta: { date, event: ev },
+        });
+      }
+    });
+    return out;
+  }, [weekDateList, week.data]);
 
   function shift(delta: number) {
     setAnchor((a) => (mode === "week" ? addDays(a, delta * 7) : addMonths(a, delta)));
@@ -118,43 +144,28 @@ export function CalendarView() {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto p-4">
+      <div
+        className={`min-h-0 flex-1 p-4 ${mode === "week" ? "overflow-hidden" : "overflow-auto"}`}
+      >
         {mode === "week" ? (
-          <div className="calendar-week">
-            {weekDates(anchor).map((date, i) => {
-              const bucket = week.data?.days?.[date];
-              const events = bucket?.events ?? [];
-              return (
-                <div key={date} className="calendar-daycol">
-                  <div className="calendar-daycol-head" data-today={date === todayStr}>
-                    <span className="text-xs font-medium text-muted-foreground">
-                      {DOW_LABELS[i]}
-                    </span>
-                    <span className="text-sm font-semibold text-foreground">
-                      {dayNumber(date)}
-                    </span>
-                  </div>
-                  <div className="calendar-daycol-body">
-                    {events.map((ev, idx) => (
-                      <EventBlock
-                        key={idx}
-                        event={ev}
-                        color={colorForType(ev.type, week.data?.colors, classToHex)}
-                        onClick={() => openEvent(date, ev)}
-                      />
-                    ))}
-                    <button
-                      type="button"
-                      className="mt-auto rounded-[var(--radius-sm)] py-1 text-xs text-muted-foreground hover:bg-muted"
-                      onClick={() => openNew(date)}
-                    >
-                      + Add
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <TimeGrid
+            days={weekDateList.map((date, i) => ({
+              key: date,
+              label: DOW_LABELS[i],
+              sublabel: String(dayNumber(date)),
+              isToday: date === todayStr,
+            }))}
+            events={weekGridEvents}
+            resolveColor={(type) =>
+              colorForType(type, week.data?.colors, classToHex)
+            }
+            emptyHint="No events this week. Click a column to add one."
+            onCellClick={(dayIndex) => openNew(weekDateList[dayIndex])}
+            onEventClick={(ev) => {
+              const meta = ev.meta as { date: string; event: MergedEvent };
+              openEvent(meta.date, meta.event);
+            }}
+          />
         ) : (
           <div className="calendar-month">
             {DOW_LABELS.map((d) => (

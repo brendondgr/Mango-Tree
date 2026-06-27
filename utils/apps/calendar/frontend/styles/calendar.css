@@ -144,6 +144,174 @@
   text-overflow: ellipsis;
 }
 
+/* Timeline hour-grid (Week view + Schedule editor) */
+.tg-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: hsl(var(--card));
+}
+.tg-head {
+  display: grid;
+  flex-shrink: 0;
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+}
+.tg-corner {
+  border-right: 1px solid hsl(var(--border));
+}
+.tg-dayhead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+  padding: 0.4rem 0.25rem;
+  height: 40px;
+  border-left: 1px solid hsl(var(--border));
+}
+.tg-dayhead-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+.tg-dayhead-sub {
+  font-size: 0.7rem;
+  color: hsl(var(--muted-foreground));
+}
+.tg-dayhead[data-today="true"] {
+  background: hsl(var(--secondary));
+}
+.tg-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.tg-body {
+  position: relative;
+  width: 100%;
+}
+/* Full-height day columns behind everything */
+.tg-cols {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+}
+.tg-col {
+  flex: 1;
+  min-width: 0;
+  border-left: 1px solid hsl(var(--border));
+  cursor: pointer;
+  position: relative;
+}
+.tg-col:hover {
+  background: hsl(var(--muted) / 0.35);
+}
+.tg-col[data-today="true"] {
+  background: hsl(var(--secondary) / 0.4);
+}
+.tg-add {
+  position: absolute;
+  top: 0.4rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  color: hsl(var(--muted-foreground));
+  opacity: 0;
+  transition: opacity 0.12s;
+  z-index: 20;
+}
+.tg-col:hover .tg-add {
+  opacity: 1;
+}
+.tg-add:hover {
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted));
+}
+/* Hour rows: a baseline rule + time label in the gutter */
+.tg-hourline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid hsl(var(--border) / 0.6);
+  pointer-events: none;
+}
+.tg-hourlabel {
+  position: absolute;
+  top: -0.55rem;
+  left: 0;
+  width: 56px;
+  padding-right: 0.4rem;
+  text-align: right;
+  font-size: 0.66rem;
+  font-variant-numeric: tabular-nums;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--card));
+}
+/* Event cards on the timeline */
+.tg-event {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  overflow: hidden;
+  padding: 0.18rem 0.35rem;
+  border-left-width: 3px;
+  border-left-style: solid;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  line-height: 1.1;
+  cursor: pointer;
+  box-shadow: 0 1px 2px hsl(var(--foreground) / 0.08);
+}
+.tg-event[data-segment="true"] {
+  opacity: 0.92;
+  border-left-style: dashed;
+}
+.tg-event-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tg-event-time {
+  font-size: 0.64rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+.tg-event-sub {
+  font-size: 0.64rem;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tg-empty {
+  position: absolute;
+  top: 1.5rem;
+  left: 56px;
+  right: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+}
+
 /* Schedule weekly grid */
 .calendar-legend-swatch {
   width: 0.85rem;
