@@ -239,6 +239,13 @@ def _decode_uid(value: Any) -> str:
     return value.decode() if isinstance(value, bytes) else str(value)
 
 
+def _uid_sort_key(uid: str) -> int:
+    try:
+        return int(uid)
+    except (TypeError, ValueError):
+        return 0
+
+
 def _server_uidvalidity(client: ImapLike, folder: str) -> int | None:
     """Read the folder's UIDVALIDITY (so a server-side UID reset invalidates the
     cache). Best-effort: returns None if the server/STATUS doesn't provide it."""
@@ -314,7 +321,11 @@ def sync_folder(
         for uid, flags in _fetch_flags(client, existing).items():
             _cache.update_flags(doc, uid, flags)
 
+        # Fetch newest first (UID SEARCH returns ascending) so that during a big
+        # initial sync the most recent mail populates — and appears at the top of
+        # the inbox — before the backlog, not after it.
         new_uids = [u for u in server_uids if u not in cached]
+        new_uids.sort(key=_uid_sort_key, reverse=True)
         total = len(new_uids)
         if on_progress:
             on_progress(0, total)

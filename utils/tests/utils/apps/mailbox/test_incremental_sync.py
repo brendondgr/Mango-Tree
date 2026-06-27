@@ -124,6 +124,14 @@ def test_flag_refresh_updates_unread():
     assert cache.cached_list("acc1", "INBOX")[0]["unread"] is False
 
 
+def test_initial_sync_fetches_newest_first():
+    # UID SEARCH returns ascending; the sync must fetch highest-UID (newest)
+    # first so recent mail tops the inbox during a long initial sync.
+    server = FakeImap(["1", "2", "3", "10"])
+    sync.sync_folder(_account(), account_id="acc1", imap_factory=lambda a: server)
+    assert server.rfc822_fetched == ["10", "3", "2", "1"]
+
+
 def test_progress_callback_reports_new_count():
     calls: list[tuple[int, int]] = []
     sync.sync_folder(
