@@ -15,6 +15,14 @@ filesystem:
       - "../**"
       - "**/.env"
       - "config/**"
+  calendar_data:
+    description: Local calendar JSON store (calendar.json + schedules/*.json) read/write scope
+    allow:
+      - "{calendar_root}/**"
+    deny:
+      - "../**"
+      - "**/.env"
+      - "config/**"
 
 network:
   web_research:
@@ -62,3 +70,4 @@ network:
 
 artifacts_root: data/artifacts
 mailbox_root: data/mailbox
+calendar_root: data/calendar

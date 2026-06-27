@@ -144,3 +144,63 @@ tools:
     module: utils.apps.projectmanager.agent.tools
     function: create_goals
     description: Add one or more goals (each with title and optional deadline) to an existing project.
+  calendar_list_schedules:
+    app: calendar
+    module: utils.apps.calendar.agent.tools
+    function: list_schedules
+    description: List available weekly schedule filenames.
+  calendar_get_day:
+    app: calendar
+    module: utils.apps.calendar.agent.tools
+    function: get_day
+    description: Get merged schedule + direct events for one date (YYYY-MM-DD).
+  calendar_get_week:
+    app: calendar
+    module: utils.apps.calendar.agent.tools
+    function: get_week
+    description: Get merged events for a week (optional date; defaults to current week).
+  calendar_get_range:
+    app: calendar
+    module: utils.apps.calendar.agent.tools
+    function: get_range
+    description: Get merged events across an inclusive start..end date range.
+  calendar_find_free_slots:
+    app: calendar
+    module: utils.apps.calendar.agent.tools
+    function: find_free_slots
+    description: Find open time gaps on a date within a window (for suggesting meeting times).
+  calendar_list_upcoming:
+    app: calendar
+    module: utils.apps.calendar.agent.tools
+    function: list_upcoming
+    description: List upcoming direct events within N days (optional type filter).
+  calendar_add_direct_event:
+    app: calendar
+    module: utils.apps.calendar.agent.tools
+    function: add_direct_event
+    description: Add a one-off direct event (date, title, start, end, optional type/sub).
+  calendar_update_direct_event:
+    app: calendar
+    module: utils.apps.calendar.agent.tools
+    function: update_direct_event
+    description: Update the direct event at a given index.
+  calendar_delete_direct_event:
+    app: calendar
+    module: utils.apps.calendar.agent.tools
+    function: delete_direct_event
+    description: Delete the direct event at an index (irreversible; requires confirm true).
+  calendar_delete_event_by_title:
+    app: calendar
+    module: utils.apps.calendar.agent.tools
+    function: delete_event_by_title
+    description: Delete a direct event by date + partial title (irreversible; requires confirm true).
+  calendar_add_entry:
+    app: calendar
+    module: utils.apps.calendar.agent.tools
+    function: add_entry
+    description: Map a schedule to a date range (409 on overlap).
+  calendar_delete_entry:
+    app: calendar
+    module: utils.apps.calendar.agent.tools
+    function: delete_entry
+    description: Remove the schedule-to-date mapping at an index (irreversible; requires confirm true).
