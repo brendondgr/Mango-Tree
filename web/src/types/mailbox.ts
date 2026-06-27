@@ -57,10 +57,23 @@ export interface ListResponse<T> {
   results: T[];
 }
 
+export type MailSyncState = "idle" | "syncing" | "error";
+
+export interface MailSyncStatus {
+  state: MailSyncState;
+  processed: number;
+  total: number;
+  new: number;
+  removed: number;
+  error: string | null;
+  updated_at: number;
+}
+
 export interface MessagesResponse {
   messages: MailMessage[];
   count: number;
   folder: string;
+  sync?: MailSyncStatus;
 }
 
 export interface TestResult {

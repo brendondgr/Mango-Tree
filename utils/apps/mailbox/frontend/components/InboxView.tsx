@@ -1,5 +1,6 @@
 import { type CSSProperties, useState } from "react";
 import {
+  AlertCircle,
   Inbox,
   LayoutGrid,
   Loader2,
@@ -7,6 +8,7 @@ import {
   RefreshCw,
   Rows3,
   Settings as SettingsIcon,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -14,7 +16,7 @@ import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-import { CustomizeDialog } from "@mailbox/components/CustomizeDialog";
+import { CustomizePanel } from "@mailbox/components/CustomizePanel";
 import { MessageDetail } from "@mailbox/components/MessageDetail";
 import { MessageList, messageKey } from "@mailbox/components/MessageList";
 import { ProviderIcon } from "@mailbox/components/ProviderIcon";
@@ -22,7 +24,9 @@ import {
   type InboxMessage,
   useAccountMessages,
   useAccounts,
+  useMailboxAutoSync,
 } from "@mailbox/hooks/useMailbox";
+import { syncAccount } from "@/services/mailboxClient";
 import { ACCENTS, type Accent, accentClass, accentForKey } from "@mailbox/utils/colors";
 
 const FOLDER = "INBOX";
@@ -50,6 +54,7 @@ export function InboxView() {
     accounts.find((a) => a.id === id)?.display_name ?? id;
 
   const live = useAccountMessages(credentialed, FOLDER, true, prefs.loadLimit);
+  useMailboxAutoSync(credentialed, FOLDER);
   const allMessages: InboxMessage[] = live.messages;
   const messages =
     selected === "all" ? allMessages : allMessages.filter((m) => m.accountId === selected);
@@ -57,9 +62,11 @@ export function InboxView() {
   const unreadCount = messages.filter((m) => m.unread).length;
 
   const [openKey, setOpenKey] = useState<string | null>(null);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
   const openMessage = messages.find((m) => messageKey(m) === openKey) ?? null;
 
   const refresh = () => {
+    for (const account of credentialed) void syncAccount(account.id, FOLDER).catch(() => {});
     queryClient.invalidateQueries({ queryKey: ["mailbox", "messages"] });
     void accountsQuery.refetch();
   };
@@ -81,7 +88,16 @@ export function InboxView() {
       <Loader2 className="h-4 w-4 animate-spin" /> Loading inbox…
     </div>
   ) : messages.length === 0 ? (
-    <EmptyInbox onOpenSettings={() => setMailboxView("settings")} />
+    live.sync.isSyncing ? (
+      <div className="flex flex-col items-center justify-center gap-2 p-10 text-sm text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        {live.sync.total > 0
+          ? `Fetching your mail… ${live.sync.processed}/${live.sync.total}`
+          : "Fetching your mail…"}
+      </div>
+    ) : (
+      <EmptyInbox onOpenSettings={() => setMailboxView("settings")} />
+    )
   ) : (
     <MessageList
       messages={messages}
@@ -119,6 +135,18 @@ export function InboxView() {
         </div>
 
         <div className="flex items-center gap-1.5">
+          {live.sync.isSyncing ? (
+            <span className="mailbox-sync">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              {live.sync.total > 0
+                ? `Syncing ${live.sync.processed}/${live.sync.total}…`
+                : "Syncing…"}
+            </span>
+          ) : live.sync.error ? (
+            <span className="mailbox-sync text-destructive" title={live.sync.error}>
+              <AlertCircle className="h-3.5 w-3.5" /> Sync failed
+            </span>
+          ) : null}
           <span className="hidden px-1 text-xs text-muted-foreground sm:inline">
             {messages.length} · {unreadCount} unread
           </span>
@@ -140,7 +168,16 @@ export function InboxView() {
               <LayoutGrid className="h-3.5 w-3.5" /> Modern
             </button>
           </div>
-          <CustomizeDialog />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9"
+            data-active={customizeOpen}
+            onClick={() => setCustomizeOpen((o) => !o)}
+            title="Customize inbox"
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-9 w-9" onClick={refresh} title="Refresh">
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -157,26 +194,29 @@ export function InboxView() {
       </div>
 
       {/* body */}
-      {density === "compact" ? (
-        <div className="mailbox-scroll min-h-0 flex-1 overflow-y-auto">
-          {openMessage ? detail : listBody}
-        </div>
-      ) : (
-        <div className="flex min-h-0 flex-1">
-          <div
-            className={cn(
-              "mailbox-scroll mailbox-list-pane min-h-0 overflow-y-auto lg:shrink-0 lg:border-r lg:border-border",
-              openMessage && "hidden lg:block",
-            )}
-            style={{ "--mb-list-w": `${prefs.listWidth}px` } as CSSProperties}
-          >
-            {listBody}
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+        {density === "compact" ? (
+          <div className="mailbox-scroll min-h-0 flex-1 overflow-y-auto">
+            {openMessage ? detail : listBody}
           </div>
-          <div className={cn("min-h-0 flex-1", openMessage ? "block" : "hidden lg:block")}>
-            {openMessage ? detail : <DetailPlaceholder />}
+        ) : (
+          <div className="flex min-h-0 flex-1">
+            <div
+              className={cn(
+                "mailbox-scroll mailbox-list-pane min-h-0 overflow-y-auto lg:shrink-0 lg:border-r lg:border-border",
+                openMessage && "hidden lg:block",
+              )}
+              style={{ "--mb-list-w": `${prefs.listWidth}px` } as CSSProperties}
+            >
+              {listBody}
+            </div>
+            <div className={cn("min-h-0 flex-1", openMessage ? "block" : "hidden lg:block")}>
+              {openMessage ? detail : <DetailPlaceholder />}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+        <CustomizePanel open={customizeOpen} onClose={() => setCustomizeOpen(false)} />
+      </div>
     </div>
   );
 }

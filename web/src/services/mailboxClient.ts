@@ -6,6 +6,7 @@ import type {
   ListResponse,
   MailAccount,
   MailAccountDraft,
+  MailSyncStatus,
   MessagesResponse,
   MailMessage,
   TestResult,
@@ -117,4 +118,10 @@ export function getMessage(
 ): Promise<MailMessage> {
   const params = new URLSearchParams({ folder });
   return request<MailMessage>(`${base}/${id(accountId)}/messages/${id(uid)}/?${params}`);
+}
+
+// Trigger an incremental background sync of a folder into the local cache.
+export function syncAccount(accountId: string, folder = "INBOX"): Promise<MailSyncStatus> {
+  const params = new URLSearchParams({ folder });
+  return request<MailSyncStatus>(`${base}/${id(accountId)}/sync/?${params}`, { method: "POST" });
 }

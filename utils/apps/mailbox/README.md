@@ -129,6 +129,20 @@ ring — not colored dots.
 `timestamp` (newest first), and the inbox loads the whole folder by default
 (`limit=all`); the load count is configurable.
 
+**Local cache + incremental sync.** The folder is downloaded once into a local
+cache (`backend/services/cache.py`, files under `data/mailbox/cache/`) keyed by
+IMAP UID. After that, `sync.sync_folder` only fetches *new* UIDs (cheap
+`UID SEARCH ALL` diff against the cache), drops removed ones, and batch-refreshes
+flags — the inbox never re-downloads everything. Bodies are cached lazily on
+first open. New UIDs are fetched newest-first so recent mail appears at the top
+during a long initial sync. The `GET messages` endpoint serves the cache (no
+network); `POST /sync/` runs the sync in a background thread
+(`backend/services/syncrunner.py`) and reports `processed/total/new` progress via
+a status sidecar file. The frontend triggers an incremental sync on open and
+every 10s while the inbox is visible (`useMailboxAutoSync`), shows progress in
+the toolbar, and polls faster while syncing. Single-process assumption: the
+dedupe set is per worker; the cache/status files are shared.
+
 **Email rendering.** `frontend/components/EmailBody.tsx` + `utils/renderEmail.ts`
 render HTML mail in a locked-down sandboxed iframe (no scripts, no same-origin)
 after sanitizing it (scripts, event handlers and `javascript:` URLs removed).
@@ -136,12 +150,14 @@ Remote images and external CSS are **blocked until the user clicks Display
 content** — the permission gate for potentially harmful/tracking content.
 Text-only bodies are stripped of invisible spacer characters and linkified.
 
-**Customization (persistent).** A Customize dialog (`CustomizeDialog.tsx`)
-controls field show/hide, text size, row tightness, per-section column widths
-(From/Title/Description), list width, and the load limit. These live in
-`mailboxPrefs` on the workspace store and persist to `localStorage`, surviving
-sessions. Compact mode spans the full screen width with the section widths
-applied; Modern mode uses the configurable list-column width.
+**Customization (persistent).** A non-modal Customize drawer
+(`CustomizePanel.tsx`) docked to the right of the inbox controls field
+show/hide, text size, row tightness, per-section column widths
+(From/Title/Description), list width, and the load limit — the inbox stays
+visible and updates live as the controls change. These live in `mailboxPrefs` on
+the workspace store and persist to `localStorage`, surviving sessions. Compact
+mode spans the full screen width with the section widths applied; Modern mode
+uses the configurable list-column width.
 
 ## Rules
 

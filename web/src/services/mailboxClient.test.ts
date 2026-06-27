@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { listMessages, setCredential, startOAuth, testAccount } from "./mailboxClient";
+import { listMessages, setCredential, startOAuth, syncAccount, testAccount } from "./mailboxClient";
 
 function mockFetch() {
   const fetchMock = vi.fn().mockResolvedValue({
@@ -48,5 +48,12 @@ describe("mailboxClient URLs", () => {
     expect(fetchMock.mock.calls[0][0]).toBe(
       "/api/mailbox/accounts/acc_1/messages/?folder=INBOX&limit=100",
     );
+  });
+
+  it("syncAccount POSTs the account sync endpoint", async () => {
+    const fetchMock = mockFetch();
+    await syncAccount("acc_1");
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/mailbox/accounts/acc_1/sync/?folder=INBOX");
+    expect(fetchMock.mock.calls[0][1]?.method).toBe("POST");
   });
 });

@@ -24,6 +24,7 @@ def stores(tmp_path, monkeypatch):
     monkeypatch.setenv("MANGO_MAILBOX_CONFIG", str(tmp_path / "accounts.json"))
     monkeypatch.setenv("MANGO_MAILBOX_SECRETS", str(tmp_path / "secrets.json"))
     monkeypatch.setenv("MANGO_MAILBOX_PENDING", str(tmp_path / "pending.json"))
+    monkeypatch.setenv("MANGO_MAILBOX_CACHE", str(tmp_path / "cache"))
     return tmp_path
 
 
@@ -129,9 +130,20 @@ def test_test_endpoint_without_credentials_reports_error_status(client):
     assert body["status"] == "error"
 
 
-def test_messages_without_credentials_denied(client):
+def test_messages_returns_empty_cache_without_network(client):
+    # messages GET reads the local cache (no IMAP); a fresh account is just empty.
     account_id = _create(client).json()["id"]
     res = client.get(f"/api/mailbox/accounts/{account_id}/messages/")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["messages"] == [] and body["count"] == 0
+    assert body["sync"]["state"] in ("idle", "syncing", "error")
+
+
+def test_sync_without_credentials_denied(client):
+    # syncing requires credentials; with none stored it denies (no network).
+    account_id = _create(client).json()["id"]
+    res = client.post(f"/api/mailbox/accounts/{account_id}/sync/")
     assert res.status_code == 403
     assert res.json()["code"] == "permission_denied"
 
