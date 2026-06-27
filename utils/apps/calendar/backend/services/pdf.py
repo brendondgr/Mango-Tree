@@ -21,9 +21,24 @@ MARGIN_TOP = 0.5 * inch
 MARGIN_BOTTOM = 0.5 * inch
 
 # Layout constants
-HEADER_HEIGHT = 0.5 * inch
-LEGEND_HEIGHT = 0.35 * inch
-GRID_TIME_COL_WIDTH = 0.6 * inch
+HEADER_HEIGHT = 0.62 * inch    # taller to hold name + description + breathing room
+LEGEND_HEIGHT = 0.38 * inch    # room for one row of swatches plus gap
+GRID_TIME_COL_WIDTH = 0.62 * inch
+
+# Design tokens (mirror the web app's token palette)
+_COLOR_GRID_LINE = '#e5e7eb'       # subtle horizontal / vertical dividers
+_COLOR_GRID_BORDER = '#d1d5db'     # outer grid border
+_COLOR_DAY_HEADER_BG = '#f1f5f9'   # day-header band fill
+_COLOR_DAY_HEADER_TEXT = '#334155' # day label text
+_COLOR_HOUR_LABEL = '#64748b'      # hour label text
+_COLOR_TITLE_TEXT = '#0f172a'      # schedule name
+_COLOR_DESC_TEXT = '#64748b'       # description / subtitle text
+_COLOR_META_TEXT = '#94a3b8'       # footer / muted meta text
+_COLOR_LEGEND_LABEL = '#334155'    # legend category name text
+_COLOR_DIVIDER = '#e5e7eb'         # thin rule lines
+
+# Left accent bar width (points; ~3 px at 72 dpi)
+_ACCENT_BAR_WIDTH = 3.5
 
 # Days of week labels
 DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -238,6 +253,49 @@ def filter_events(events, view_state, hidden_categories):
     return filtered
 
 
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _compute_hours(events):
+    """Return total scheduled hours for a list of filtered events (before overlap split)."""
+    total_mins = 0
+    for evt in events:
+        s = parse_time_to_minutes(evt.get('start', '00:00'))
+        e = parse_time_to_minutes(evt.get('end', '00:00'))
+        total_mins += max(0, e - s)
+    return total_mins / 60.0
+
+
+def _compute_hours_by_category(events):
+    """Return {category: hours} dict for filtered events."""
+    totals = {}
+    for evt in events:
+        cat = evt.get('type', '')
+        s = parse_time_to_minutes(evt.get('start', '00:00'))
+        e = parse_time_to_minutes(evt.get('end', '00:00'))
+        totals[cat] = totals.get(cat, 0.0) + max(0, e - s) / 60.0
+    return totals
+
+
+def _format_hours(h):
+    """Format hours as e.g. 12.0h or 12.5h."""
+    if h == int(h):
+        return f"{int(h)}h"
+    return f"{h:.1f}h"
+
+
+def _draw_thin_rule(c, x1, y, x2):
+    """Draw a hairline rule in the divider colour."""
+    c.setStrokeColor(hex_to_color(_COLOR_DIVIDER))
+    c.setLineWidth(0.5)
+    c.line(x1, y, x2, y)
+
+
+# ---------------------------------------------------------------------------
+# Public entry point
+# ---------------------------------------------------------------------------
+
 def generate_schedule_pdf(schedule_data, events, color_scheme, view_state, hidden_categories):
     """
     Generate a PDF of the schedule.
@@ -255,8 +313,12 @@ def generate_schedule_pdf(schedule_data, events, color_scheme, view_state, hidde
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=landscape(letter))
 
-    # Filter events first
+    # Filter events first (compute hours from this, before overlap split)
     filtered_events = filter_events(events, view_state, hidden_categories)
+
+    # Compute hours statistics from filtered events (before segmentation)
+    total_hours = _compute_hours(filtered_events)
+    hours_by_cat = _compute_hours_by_category(filtered_events)
 
     # Get visible categories (for legend)
     hidden_set = set(hidden_categories) if hidden_categories else set()
@@ -289,248 +351,307 @@ def generate_schedule_pdf(schedule_data, events, color_scheme, view_state, hidde
         processed = process_overlap_segments(day_events)
         processed_events.extend(processed)
 
-    # Calculate grid dimensions
+    # ---------- layout geometry ----------
+    # Reserve space at bottom for footer
+    FOOTER_HEIGHT = 0.25 * inch
     content_width = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT
-    content_height = PAGE_HEIGHT - MARGIN_TOP - MARGIN_BOTTOM - HEADER_HEIGHT - LEGEND_HEIGHT
+
+    # grid_top is the top edge of the grid body (below header + legend)
+    grid_top = PAGE_HEIGHT - MARGIN_TOP - HEADER_HEIGHT - LEGEND_HEIGHT
+
+    # grid_height fills from grid_top down to footer margin
+    grid_height = grid_top - MARGIN_BOTTOM - FOOTER_HEIGHT
 
     grid_width = content_width - GRID_TIME_COL_WIDTH
     day_width = grid_width / num_days if num_days > 0 else grid_width
-    hour_height = content_height / num_hours if num_hours > 0 else content_height
+    hour_height = grid_height / num_hours if num_hours > 0 else grid_height
 
     grid_left = MARGIN_LEFT + GRID_TIME_COL_WIDTH
-    grid_top = PAGE_HEIGHT - MARGIN_TOP - HEADER_HEIGHT - LEGEND_HEIGHT
 
-    # Draw header
-    _draw_header(c, schedule_data)
-
-    # Draw legend
-    _draw_legend(c, visible_categories, color_scheme, grid_top + LEGEND_HEIGHT)
-
-    # Draw grid
-    _draw_grid(c, grid_left, grid_top, grid_width, content_height,
+    # Draw layers
+    _draw_header(c, schedule_data, total_hours)
+    _draw_legend(c, visible_categories, color_scheme, hours_by_cat,
+                 grid_top + LEGEND_HEIGHT)
+    _draw_grid(c, grid_left, grid_top, grid_width, grid_height,
                visible_days, start_hour, end_hour, day_width, hour_height)
-
-    # Draw events (now processed for overlaps)
     _draw_events(c, processed_events, color_scheme,
                  grid_left, grid_top, day_width, hour_height,
                  visible_days, start_hour)
+    _draw_footer(c)
 
     c.save()
     buffer.seek(0)
     return buffer
 
 
-def _draw_header(c, schedule_data):
-    """Draw the header with schedule name and description."""
-    y = PAGE_HEIGHT - MARGIN_TOP - 0.3 * inch
+# ---------------------------------------------------------------------------
+# Drawing sub-routines
+# ---------------------------------------------------------------------------
 
-    # Schedule name
-    c.setFont("Helvetica-Bold", 18)
-    c.setFillColor(colors.black)
+def _draw_header(c, schedule_data, total_hours):
+    """Draw a clean header band with schedule name, description, and total-hours badge."""
+    # Top of text area
+    y_name = PAGE_HEIGHT - MARGIN_TOP - 0.22 * inch
+
     name = schedule_data.get('name', 'Schedule')
-    c.drawString(MARGIN_LEFT, y, name)
-
-    # Description
     description = schedule_data.get('description', '')
+
+    # --- schedule name (left) ---
+    c.setFont("Helvetica-Bold", 18)
+    c.setFillColor(hex_to_color(_COLOR_TITLE_TEXT))
+    c.drawString(MARGIN_LEFT, y_name, name)
+
+    # --- description (left, below name) ---
     if description:
-        c.setFont("Helvetica", 12)
-        c.setFillColor(colors.gray)
-        c.drawString(MARGIN_LEFT, y - 0.25 * inch, description)
+        c.setFont("Helvetica", 11)
+        c.setFillColor(hex_to_color(_COLOR_DESC_TEXT))
+        c.drawString(MARGIN_LEFT, y_name - 0.22 * inch, description)
+
+    # --- right-aligned meta line ---
+    # e.g. "Weekly schedule · 41.5 h"
+    view_label = "Weekly schedule"
+    hours_str = _format_hours(total_hours)
+    meta_text = f"{view_label}  ·  {hours_str}"
+
+    c.setFont("Helvetica", 9)
+    c.setFillColor(hex_to_color(_COLOR_DESC_TEXT))
+    meta_x = PAGE_WIDTH - MARGIN_RIGHT
+    meta_y = y_name  # align to name baseline
+    c.drawRightString(meta_x, meta_y, meta_text)
+
+    # --- thin divider rule below header ---
+    rule_y = PAGE_HEIGHT - MARGIN_TOP - HEADER_HEIGHT + 2
+    _draw_thin_rule(c, MARGIN_LEFT, rule_y, PAGE_WIDTH - MARGIN_RIGHT)
 
 
-def _draw_legend(c, categories, color_scheme, y_top):
-    """Draw the color legend."""
+def _draw_legend(c, categories, color_scheme, hours_by_cat, y_top):
+    """Draw rounded swatches with category name + hours, wrapping as needed."""
     if not categories:
         return
 
-    x = MARGIN_LEFT
-    y = y_top - 0.15 * inch
-    swatch_size = 0.12 * inch
-    padding = 0.08 * inch
+    # Vertical centre of the legend band
+    y = y_top - LEGEND_HEIGHT / 2 - 1
 
-    c.setFont("Helvetica", 10)
+    x = MARGIN_LEFT
+    swatch_size = 9   # points (~9 px)
+    gap = 5           # gap between swatch and label
+    item_spacing = 14  # gap between legend items
+
+    c.setFont("Helvetica", 8.5)
 
     for category in categories:
-        # Get colors for this category
         hex_colors = get_hex_from_color_scheme(category, color_scheme)
-
-        # Draw swatch
         bg_color = hex_to_color(hex_colors['bgHex'])
         border_color = hex_to_color(hex_colors['borderHex'])
 
+        # Rounded swatch
         c.setFillColor(bg_color)
         c.setStrokeColor(border_color)
-        c.setLineWidth(1)
-        c.rect(x, y - swatch_size/2, swatch_size, swatch_size, fill=1, stroke=1)
+        c.setLineWidth(0.75)
+        swatch_y = y - swatch_size / 2
+        c.roundRect(x, swatch_y, swatch_size, swatch_size,
+                    radius=2, fill=1, stroke=1)
 
-        # Draw label
-        c.setFillColor(colors.black)
-        label_x = x + swatch_size + padding
-        c.drawString(label_x, y - 0.03 * inch, category)
+        # Label: "Category  1.5h"
+        cat_hours = hours_by_cat.get(category, 0.0)
+        label = f"{category}  {_format_hours(cat_hours)}"
+        c.setFillColor(hex_to_color(_COLOR_LEGEND_LABEL))
+        c.setStrokeColor(hex_to_color(_COLOR_LEGEND_LABEL))
+        label_x = x + swatch_size + gap
+        c.drawString(label_x, y - 3, label)
 
-        # Move to next item
-        text_width = c.stringWidth(category, "Helvetica", 8)
-        x += swatch_size + padding + text_width + 0.2 * inch
+        label_width = c.stringWidth(label, "Helvetica", 8.5)
+        x += swatch_size + gap + label_width + item_spacing
 
-        # Wrap to new line if needed
-        if x > PAGE_WIDTH - MARGIN_RIGHT - 1 * inch:
+        # Wrap to next line if overflowing
+        if x > PAGE_WIDTH - MARGIN_RIGHT - 1.5 * inch:
             x = MARGIN_LEFT
-            y -= 0.2 * inch
+            y -= 0.18 * inch
 
 
 def _draw_grid(c, grid_left, grid_top, grid_width, grid_height,
                visible_days, start_hour, end_hour, day_width, hour_height):
-    """Draw the time grid with day headers and hour labels."""
+    """Draw the time-of-day grid with styled day headers and hour labels."""
     num_hours = end_hour - start_hour
     num_days = len(visible_days)
 
-    # Grid background
+    # ---------- white grid background ----------
     c.setFillColor(colors.white)
+    c.setStrokeColor(colors.white)
     c.rect(grid_left, grid_top - grid_height, grid_width, grid_height, fill=1, stroke=0)
 
-    # Day headers
-    c.setFont("Helvetica-Bold", 12)
-    c.setFillColor(colors.black)
-    header_y = grid_top + 0.05 * inch
-    for i, day_idx in enumerate(visible_days):
-        x = grid_left + i * day_width + day_width / 2
-        c.drawCentredString(x, header_y, DAY_LABELS[day_idx])
+    # ---------- day header band ----------
+    DAY_HEADER_H = 0.22 * inch
+    header_band_y = grid_top - DAY_HEADER_H
 
-    # Hour labels and horizontal grid lines
-    c.setFont("Helvetica", 10)
-    c.setStrokeColor(colors.Color(0.85, 0.85, 0.85))
+    c.setFillColor(hex_to_color(_COLOR_DAY_HEADER_BG))
+    c.setStrokeColor(hex_to_color(_COLOR_DAY_HEADER_BG))
+    c.rect(grid_left, header_band_y, grid_width, DAY_HEADER_H, fill=1, stroke=0)
+
+    # Thin bottom rule on day header band
+    _draw_thin_rule(c, grid_left, header_band_y, grid_left + grid_width)
+
+    c.setFont("Helvetica-Bold", 10)
+    c.setFillColor(hex_to_color(_COLOR_DAY_HEADER_TEXT))
+    for i, day_idx in enumerate(visible_days):
+        cx = grid_left + i * day_width + day_width / 2
+        c.drawCentredString(cx, header_band_y + 5, DAY_LABELS[day_idx])
+
+    # Adjust the body region to sit below the day headers
+    body_top = header_band_y
+    body_height = grid_height - DAY_HEADER_H
+
+    # ---------- horizontal hour lines ----------
+    c.setStrokeColor(hex_to_color(_COLOR_GRID_LINE))
     c.setLineWidth(0.5)
 
     for h in range(num_hours + 1):
-        y = grid_top - h * hour_height
-
-        # Grid line
+        y = body_top - h * (body_height / num_hours if num_hours > 0 else body_height)
         c.line(grid_left, y, grid_left + grid_width, y)
 
-        # Hour label
-        if h < num_hours:
-            c.setFillColor(colors.gray)
-            hour_label = format_hour(start_hour + h)
-            label_x = MARGIN_LEFT
-            label_y = y - hour_height / 2 - 0.03 * inch
-            c.drawString(label_x, label_y, hour_label)
+    # ---------- hour labels ----------
+    c.setFont("Helvetica", 8)
+    c.setFillColor(hex_to_color(_COLOR_HOUR_LABEL))
+    slot_h = body_height / num_hours if num_hours > 0 else body_height
+    for h in range(num_hours):
+        y_slot_top = body_top - h * slot_h
+        label_y = y_slot_top - slot_h / 2 - 3
+        hour_label = format_hour(start_hour + h)
+        # Right-align within the time column
+        c.drawRightString(MARGIN_LEFT + GRID_TIME_COL_WIDTH - 4, label_y, hour_label)
 
-    # Vertical grid lines
-    for i in range(num_days + 1):
+    # ---------- vertical day dividers ----------
+    c.setStrokeColor(hex_to_color(_COLOR_GRID_LINE))
+    c.setLineWidth(0.5)
+    for i in range(1, num_days):
         x = grid_left + i * day_width
         c.line(x, grid_top, x, grid_top - grid_height)
 
-    # Grid border
-    c.setStrokeColor(colors.Color(0.7, 0.7, 0.7))
-    c.setLineWidth(1)
+    # ---------- outer border ----------
+    c.setStrokeColor(hex_to_color(_COLOR_GRID_BORDER))
+    c.setLineWidth(0.75)
     c.rect(grid_left, grid_top - grid_height, grid_width, grid_height, fill=0, stroke=1)
 
 
 def _draw_events(c, events, color_scheme, grid_left, grid_top,
                  day_width, hour_height, visible_days, start_hour):
-    """Draw all events on the grid."""
-    # Create day index to column mapping
+    """Draw events as rounded cards with a left accent bar."""
     day_to_col = {day: i for i, day in enumerate(visible_days)}
 
-    padding = 2  # pixels padding around events
+    # Account for the day-header band inside the grid
+    DAY_HEADER_H = 0.22 * inch
+    body_top = grid_top - DAY_HEADER_H
 
-    for event in events:
+    # Internal padding within the event card (points)
+    PAD_H = 2    # horizontal pad on left/right
+    PAD_V = 2    # vertical pad top/bottom
+
+    CORNER_RADIUS = 3  # rounded rect corner radius (pt)
+
+    # Sort by zIndex so lower-priority events are drawn first
+    sorted_events = sorted(events, key=lambda e: e.get('_zIndex', 5))
+
+    for event in sorted_events:
         day_idx = event.get('day', 0)
         if day_idx not in day_to_col:
             continue
 
         col = day_to_col[day_idx]
 
-        # Calculate position - events use 'start' and 'end' field names
         start_mins = parse_time_to_minutes(event.get('start', '00:00'))
         end_mins = parse_time_to_minutes(event.get('end', '00:00'))
 
-        start_offset = (start_mins / 60) - start_hour
-        end_offset = (end_mins / 60) - start_hour
+        start_offset_h = (start_mins / 60) - start_hour
+        end_offset_h = (end_mins / 60) - start_hour
 
-        x = grid_left + col * day_width + padding
-        y_start = grid_top - start_offset * hour_height
-        y_end = grid_top - end_offset * hour_height
+        x = grid_left + col * day_width + PAD_H
+        y_top_edge = body_top - start_offset_h * hour_height
+        y_bot_edge = body_top - end_offset_h * hour_height
 
-        width = day_width - 2 * padding
-        height = y_start - y_end
+        width = day_width - 2 * PAD_H
+        height = y_top_edge - y_bot_edge - PAD_V
 
-        if height <= 0:
+        if height <= 1:
             continue
 
-        # Get colors from color scheme
         event_type = event.get('type', '')
         hex_colors = get_hex_from_color_scheme(event_type, color_scheme)
 
-        # Draw event rectangle
         bg_color = hex_to_color(hex_colors['bgHex'])
         border_color = hex_to_color(hex_colors['borderHex'])
         text_color = hex_to_color(hex_colors['textHex'])
 
+        # --- rounded card background (no visible border — very light hairline) ---
         c.setFillColor(bg_color)
+        c.setStrokeColor(hex_to_color('#e5e7eb'))  # near-invisible hairline
+        c.setLineWidth(0.4)
+        card_y = y_bot_edge + PAD_V
+        c.roundRect(x, card_y, width, height, radius=CORNER_RADIUS, fill=1, stroke=1)
+
+        # --- 3pt left accent bar ---
+        accent_x = x
+        c.setFillColor(border_color)
         c.setStrokeColor(border_color)
-        c.setLineWidth(1)
-        c.rect(x, y_end, width, height, fill=1, stroke=1)
+        c.setLineWidth(0)
+        # Draw as a small rectangle over the left edge of the card
+        bar_height = height - 2 * CORNER_RADIUS
+        bar_y = card_y + CORNER_RADIUS
+        if bar_height > 0:
+            c.rect(accent_x, bar_y, _ACCENT_BAR_WIDTH, bar_height, fill=1, stroke=0)
+        # Rounded caps at top and bottom of the bar using small circles
+        c.circle(accent_x + _ACCENT_BAR_WIDTH / 2, card_y + CORNER_RADIUS,
+                 _ACCENT_BAR_WIDTH / 2, fill=1, stroke=0)
+        c.circle(accent_x + _ACCENT_BAR_WIDTH / 2, card_y + height - CORNER_RADIUS,
+                 _ACCENT_BAR_WIDTH / 2, fill=1, stroke=0)
 
-        # Draw event text
-        c.setFillColor(text_color)
+        # --- text content ---
+        # Text starts after the accent bar + padding
+        text_x = x + _ACCENT_BAR_WIDTH + 4
+        available_width = width - _ACCENT_BAR_WIDTH - 6  # room to the right
 
-        # Title - use 'title' field, not 'type'
         title = event.get('title', event.get('type', ''))
-        text_x = x + 3
-        text_y = y_start - 10
+        sub = event.get('sub', '')
+        time_str = f"{event.get('start', '')}–{event.get('end', '')}"
 
-        # Calculate available space for text elements
-        # We need: title (can be 2 lines), subtitle, time
-        # Each line is ~10px, so:
-        # - height > 55: can fit title (2 lines) + sub + time
-        # - height > 42: can fit title (1 or 2 lines) + sub + time
-        # - height > 28: can fit title + sub or time
-        # - height > 15: title only
+        # Measure what fits using 1pt ≈ char width estimates
+        def truncate(text, font, size, max_w):
+            """Truncate text to fit max_w points."""
+            while text and c.stringWidth(text, font, size) > max_w:
+                text = text[:-2] + '…'
+            return text
 
-        title_drawn_lines = 0
+        # Start drawing from just below the card top
+        ty = card_y + height - PAD_V - 8  # baseline of first line
 
-        if height > 15:
-            c.setFont("Helvetica-Bold", 10)
-            max_chars_per_line = int(width / 6)
+        if height >= 14:
+            # Title (bold)
+            c.setFont("Helvetica-Bold", 8.5)
+            c.setFillColor(text_color)
+            t = truncate(title, "Helvetica-Bold", 8.5, available_width)
+            c.drawString(text_x, ty, t)
+            ty -= 9
 
-            # Check if we have room for two lines of title
-            # We need ~55px for: title (2 lines @ 10px) + sub (10px) + time (10px) + padding
-            can_wrap_title = height > 55
+        if height >= 26 and sub:
+            # Subtitle
+            c.setFont("Helvetica", 7.5)
+            c.setFillColor(text_color)
+            s = truncate(sub, "Helvetica", 7.5, available_width)
+            c.drawString(text_x, ty, s)
+            ty -= 8
 
-            if can_wrap_title and len(title) > max_chars_per_line:
-                # Draw title on two lines
-                line1 = title[:max_chars_per_line]
-                line2 = title[max_chars_per_line:max_chars_per_line*2]
-                if len(title) > max_chars_per_line * 2:
-                    line2 = line2[:max_chars_per_line-1] + "…"
+        if height >= 36:
+            # Time string — slightly muted
+            c.setFont("Helvetica", 7)
+            c.setFillColor(hex_to_color(_COLOR_HOUR_LABEL))
+            ts = truncate(time_str, "Helvetica", 7, available_width)
+            c.drawString(text_x, ty, ts)
 
-                c.drawString(text_x, text_y, line1)
-                c.drawString(text_x, text_y - 10, line2)
-                title_drawn_lines = 2
-            else:
-                # Single line title
-                if len(title) > max_chars_per_line:
-                    title = title[:max_chars_per_line-1] + "…"
-                c.drawString(text_x, text_y, title)
-                title_drawn_lines = 1
 
-        # Calculate Y position for sub/time based on title lines
-        sub_y = text_y - (title_drawn_lines * 10)
-        time_y = sub_y - 10
+def _draw_footer(c):
+    """Draw a thin rule and a muted attribution line at the page bottom."""
+    y_rule = MARGIN_BOTTOM + 0.18 * inch
+    _draw_thin_rule(c, MARGIN_LEFT, y_rule, PAGE_WIDTH - MARGIN_RIGHT)
 
-        # Subtitle/description (if room) - use 'sub' field - make it bold
-        if height > 28 + (title_drawn_lines - 1) * 10:
-            sub = event.get('sub', '')
-            if sub:
-                c.setFont("Helvetica-Bold", 9)
-                max_chars = int(width / 5)
-                if len(sub) > max_chars:
-                    sub = sub[:max_chars-1] + "…"
-                c.drawString(text_x, sub_y, sub)
-
-        # Time (if room) - make it bold
-        if height > 42 + (title_drawn_lines - 1) * 10:
-            time_str = f"{event.get('start', '')} - {event.get('end', '')}"
-            c.setFont("Helvetica-Bold", 9)
-            c.drawString(text_x, time_y, time_str)
+    c.setFont("Helvetica", 7.5)
+    c.setFillColor(hex_to_color(_COLOR_META_TEXT))
+    c.drawString(MARGIN_LEFT, MARGIN_BOTTOM + 4, "Generated with Mango Tree Calendar")
