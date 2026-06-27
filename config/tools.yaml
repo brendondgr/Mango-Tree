@@ -124,3 +124,23 @@ tools:
     module: utils.apps.mailbox.agent.tools
     function: send_message
     description: Send a message (irreversible). Returns permission_denied unless confirm is true.
+  projectmanager_list_projects:
+    app: projectmanager
+    module: utils.apps.projectmanager.agent.tools
+    function: list_projects
+    description: List all projects with category, status, progress, and deadline.
+  projectmanager_list_goals_with_deadlines:
+    app: projectmanager
+    module: utils.apps.projectmanager.agent.tools
+    function: list_goals_with_deadlines
+    description: List all goals that have a deadline, sorted soonest first with deadline_status.
+  projectmanager_create_project:
+    app: projectmanager
+    module: utils.apps.projectmanager.agent.tools
+    function: create_project
+    description: Create a new project with title, category_name, and optional color/description/deadline/status.
+  projectmanager_create_goals:
+    app: projectmanager
+    module: utils.apps.projectmanager.agent.tools
+    function: create_goals
+    description: Add one or more goals (each with title and optional deadline) to an existing project.
