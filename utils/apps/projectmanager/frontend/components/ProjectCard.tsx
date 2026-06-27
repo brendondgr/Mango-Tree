@@ -4,15 +4,17 @@ import type { Project } from "@/types/projectmanager";
 interface ProjectCardProps {
   project: Project;
   onClick: () => void;
+  selected?: boolean;
 }
 
-export function ProjectCard({ project, onClick }: ProjectCardProps) {
+export function ProjectCard({ project, onClick, selected = false }: ProjectCardProps) {
   const catClass = project.category ? categoryClass(project.category.color) : "projectmanager-cat-blue";
   const fillClass = project.category ? progressBarClass(project.category.color) : "projectmanager-progress-bar-blue";
 
   return (
     <article
       className="projectmanager-card projectmanager-fade-in"
+      data-selected={selected}
       onClick={onClick}
       role="button"
       tabIndex={0}

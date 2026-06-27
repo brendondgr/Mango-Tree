@@ -21,17 +21,6 @@ const NAV: Array<{ id: ProjectManagerView; label: string; icon: LucideIcon }> =
     { id: "deadlines", label: "Deadlines", icon: CalendarClock },
   ];
 
-function ActiveView({ view }: { view: ProjectManagerView }) {
-  switch (view) {
-    case "timeline":
-      return <TimelineView />;
-    case "deadlines":
-      return <DeadlinesView />;
-    default:
-      return <BoardView />;
-  }
-}
-
 export function ProjectManagerWorkspace() {
   const view = useWorkspaceStore((s) => s.projectManagerView);
   const setView = useWorkspaceStore((s) => s.setProjectManagerView);
@@ -72,17 +61,21 @@ export function ProjectManagerWorkspace() {
         </div>
       </div>
 
-      {/* Scrollable content */}
-      <div className="projectmanager-scroll min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-7xl p-4 lg:p-6">
-          <ActiveView view={view} />
-        </div>
+      {/* Content. The board fills the viewport and scrolls internally; the
+          other views scroll as a centred page. */}
+      <div className="min-h-0 flex-1 overflow-hidden">
+        {view === "board" ? (
+          <BoardView />
+        ) : (
+          <div className="projectmanager-scroll h-full overflow-y-auto">
+            <div className="mx-auto w-full max-w-7xl p-4 lg:p-6">
+              {view === "timeline" ? <TimelineView /> : <DeadlinesView />}
+            </div>
+          </div>
+        )}
       </div>
 
-      <NewProjectDialog
-        open={newProjectOpen}
-        onOpenChange={setNewProjectOpen}
-      />
+      <NewProjectDialog open={newProjectOpen} onOpenChange={setNewProjectOpen} />
     </div>
   );
 }
