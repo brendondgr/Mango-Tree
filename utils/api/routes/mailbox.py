@@ -15,6 +15,7 @@ from utils.apps.mailbox.backend.api.views import (
     AccountMessageDetailView,
     AccountMessagesView,
     AccountOrganizeView,
+    AccountSyncView,
     AccountTestView,
     OAuthCallbackView,
     OAuthStartView,
@@ -29,6 +30,7 @@ urlpatterns = [
     path("accounts/<str:account_id>/test/", AccountTestView.as_view(), name="mailbox-account-test"),
     path("accounts/<str:account_id>/folders/", AccountFoldersView.as_view(), name="mailbox-account-folders"),
     path("accounts/<str:account_id>/messages/", AccountMessagesView.as_view(), name="mailbox-account-messages"),
+    path("accounts/<str:account_id>/sync/", AccountSyncView.as_view(), name="mailbox-account-sync"),
     path("accounts/<str:account_id>/messages/<str:uid>/", AccountMessageDetailView.as_view(), name="mailbox-account-message-detail"),
     path("accounts/<str:account_id>/organize/", AccountOrganizeView.as_view(), name="mailbox-account-organize"),
 ]

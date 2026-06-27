@@ -158,6 +158,36 @@ def cached_list(account_id: str, folder: str, limit: int | None = None) -> list[
     return sorted_messages(load(account_id, folder), limit)
 
 
+# --- sync status (small sidecar file, readable across workers) ----------------
+
+def status_path(account_id: str, folder: str) -> Path:
+    return cache_dir() / f"{_safe(account_id)}__{_safe(folder)}.status.json"
+
+
+def read_status(account_id: str, folder: str) -> dict[str, Any]:
+    path = status_path(account_id, folder)
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def write_status(account_id: str, folder: str, status: dict[str, Any]) -> None:
+    path = status_path(account_id, folder)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".status.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(status))
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+
+
 def stats(account_id: str, folder: str) -> dict[str, Any]:
     doc = load(account_id, folder)
     return {

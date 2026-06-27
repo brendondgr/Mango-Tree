@@ -164,6 +164,25 @@ class MessageDTO:
     def unread(self) -> bool:
         return "\\Seen" not in self.flags
 
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "MessageDTO":
+        """Rebuild a DTO from a serialized message (e.g. the local cache)."""
+        return cls(
+            uid=str(data.get("uid", "")),
+            provider=data.get("provider", ""),
+            account=data.get("account", ""),
+            subject=data.get("subject", ""),
+            from_addr=data.get("from", ""),
+            to_addr=data.get("to", ""),
+            date=data.get("date", ""),
+            snippet=data.get("snippet", ""),
+            timestamp=float(data.get("timestamp", 0.0) or 0.0),
+            message_id=data.get("message_id", ""),
+            flags=list(data.get("flags", [])),
+            body_text=data.get("body_text"),
+            body_html=data.get("body_html"),
+        )
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "uid": self.uid,

@@ -11,11 +11,14 @@ without a live server or stored credentials.
 
 from __future__ import annotations
 
+import time
 from typing import Any, Callable
 
+from utils.apps.mailbox.backend.services import cache as _cache
 from utils.apps.mailbox.backend.services import ops as _ops
 from utils.apps.mailbox.backend.services import providers as _providers
 from utils.apps.mailbox.backend.services import sync as _sync
+from utils.apps.mailbox.backend.services import syncrunner as _syncrunner
 from utils.apps.mailbox.backend.services.ops import MailAccount
 from utils.apps.mailbox.shared.schemas import MessageDTO
 
@@ -36,9 +39,39 @@ def list_messages(
     )
 
 
+def cached_messages(
+    account_id: str, *, folder: str = "INBOX", limit: int | None = None
+) -> list[dict[str, Any]]:
+    """The locally cached message list (newest first). No network; returns ``[]``
+    until the first sync has populated the cache."""
+    return _cache.cached_list(account_id, folder, limit)
+
+
+def start_sync(account_id: str, *, folder: str = "INBOX", build=None) -> dict[str, Any]:
+    """Kick a background incremental sync of ``folder`` into the cache."""
+    return _syncrunner.start_sync(account_id, folder, build=build)
+
+
+def sync_status(account_id: str, *, folder: str = "INBOX") -> dict[str, Any]:
+    return _syncrunner.get_status(account_id, folder)
+
+
 def get_message(
     account_id: str, *, uid: str, folder: str = "INBOX", build=None, imap_factory=None
 ) -> MessageDTO:
-    return _sync.get_message(
+    """Open one message. Returns the cached body when available (instant
+    re-open); otherwise fetches it over IMAP and caches the body."""
+    doc = _cache.load(account_id, folder)
+    meta = doc["messages"].get(str(uid))
+    body = doc["bodies"].get(str(uid))
+    if meta is not None and body is not None:
+        return MessageDTO.from_dict({**meta, **body})
+
+    dto = _sync.get_message(
         _resolve(account_id, build), uid=uid, folder=folder, imap_factory=imap_factory
     )
+    _cache.set_body(
+        account_id, folder, uid,
+        body_text=dto.body_text, body_html=dto.body_html, now=time.time(),
+    )
+    return dto

@@ -197,22 +197,41 @@ class AccountFoldersView(APIView):
 
 class AccountMessagesView(APIView):
     def get(self, request: Request, account_id: str) -> Response:
+        """Return the locally cached message list (newest first) plus the current
+        sync status. No network: the cache is filled by ``POST .../sync/``."""
         folder = request.query_params.get("folder", "INBOX")
         raw_limit = request.query_params.get("limit")
-        # `limit=all` (or `0`) fetches every message in the folder; otherwise a
-        # bounded count. None flows through to the service as "fetch all".
-        if raw_limit in ("all", "0"):
+        # `limit=all`/`0`/absent returns the whole cache; otherwise a bounded count.
+        if raw_limit in ("all", "0", None):
             limit: int | None = None
         else:
-            limit = _int(raw_limit, 25, lo=1, hi=2000)
+            limit = _int(raw_limit, 25, lo=1, hi=5000)
         try:
-            items = messages_service.list_messages(account_id, folder=folder, limit=limit)
+            config_store.get_account(account_id)  # 404 for an unknown account
         except MailError as exc:
             return _error_response(exc)
+        items = messages_service.cached_messages(account_id, folder=folder, limit=limit)
+        sync = messages_service.sync_status(account_id, folder=folder)
         return Response(
-            {"messages": [m.to_dict() for m in items], "count": len(items), "folder": folder},
+            {"messages": items, "count": len(items), "folder": folder, "sync": sync},
             status=status.HTTP_200_OK,
         )
+
+
+class AccountSyncView(APIView):
+    """Trigger / inspect an incremental sync of a folder into the local cache."""
+
+    def get(self, request: Request, account_id: str) -> Response:
+        folder = request.query_params.get("folder", "INBOX")
+        return Response(messages_service.sync_status(account_id, folder=folder), status=status.HTTP_200_OK)
+
+    def post(self, request: Request, account_id: str) -> Response:
+        folder = request.query_params.get("folder", "INBOX")
+        try:
+            result = messages_service.start_sync(account_id, folder=folder)
+        except MailError as exc:
+            return _error_response(exc)
+        return Response(result, status=status.HTTP_200_OK)
 
 
 class AccountMessageDetailView(APIView):
