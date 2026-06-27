@@ -29,7 +29,7 @@ def list_folders(account_id: str, *, build=None, imap_factory=None) -> dict[str,
 
 
 def list_messages(
-    account_id: str, *, folder: str = "INBOX", limit: int = 25, build=None, imap_factory=None
+    account_id: str, *, folder: str = "INBOX", limit: int | None = 25, build=None, imap_factory=None
 ) -> list[MessageDTO]:
     return _sync.list_messages(
         _resolve(account_id, build), folder=folder, limit=limit, imap_factory=imap_factory
