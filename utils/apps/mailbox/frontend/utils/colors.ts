@@ -22,6 +22,14 @@ export function accentForKey(key: string): Accent {
   return ACCENTS[hash(key) % ACCENTS.length];
 }
 
+/** Accent for an account — uses the stored color if valid, else falls back to hash. */
+export function accentForAccount(account: { id: string; color?: string | null }): Accent {
+  if (account.color && (ACCENTS as readonly string[]).includes(account.color)) {
+    return account.color as Accent;
+  }
+  return accentForKey(account.id);
+}
+
 const PROVIDER_LABELS: Record<string, string> = {
   gmail: "Gmail",
   m365: "Microsoft 365",
