@@ -3,7 +3,13 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 BASE_DIR = Path(__file__).resolve().parents[2]
+
+# Load .env from the repo root so app-specific vars (STRAVA_*, MANGO_*) are
+# available before any os.environ.get() call below.
+load_dotenv(BASE_DIR / ".env", override=False)
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-not-for-production")
 DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
@@ -35,9 +41,8 @@ DATABASES = {
     # path with MANGO_EXERCISE_DB for tests or alternate deployments.
     "exercise": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.environ.get(
-            "MANGO_EXERCISE_DB",
-            str(BASE_DIR / "data" / "exercise" / "workouttracker.db"),
+        "NAME": os.environ.get("MANGO_EXERCISE_DB") or str(
+            BASE_DIR / "data" / "exercise" / "workouttracker.db"
         ),
     },
     # Legacy ProjectManager SQLite store, bound read/write with managed=False
@@ -45,9 +50,8 @@ DATABASES = {
     # path with MANGO_PROJECTMANAGER_DB for tests or alternate deployments.
     "projectmanager": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.environ.get(
-            "MANGO_PROJECTMANAGER_DB",
-            str(BASE_DIR / "data" / "projectmanager" / "projectmanager.db"),
+        "NAME": os.environ.get("MANGO_PROJECTMANAGER_DB") or str(
+            BASE_DIR / "data" / "projectmanager" / "projectmanager.db"
         ),
     },
 }
