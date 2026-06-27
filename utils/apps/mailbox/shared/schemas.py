@@ -154,6 +154,7 @@ class MessageDTO:
     to_addr: str
     date: str
     snippet: str
+    timestamp: float = 0.0        # epoch seconds parsed from Date — for sorting
     message_id: str = ""          # RFC Message-ID — stable across a folder MOVE
     flags: list[str] = field(default_factory=list)
     body_text: str | None = None  # populated only by the message-detail fetch
@@ -173,6 +174,7 @@ class MessageDTO:
             "to": self.to_addr,
             "date": self.date,
             "snippet": self.snippet,
+            "timestamp": self.timestamp,
             "message_id": self.message_id,
             "flags": self.flags,
             "unread": self.unread,

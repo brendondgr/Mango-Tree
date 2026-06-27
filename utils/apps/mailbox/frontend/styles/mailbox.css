@@ -26,25 +26,29 @@
 .mailbox-fg { color: hsl(var(--c, var(--primary))); }
 .mailbox-bg { background: hsl(var(--c, var(--primary))); }
 
-.mailbox-dot {
-  width: 0.55rem;
-  height: 0.55rem;
-  flex-shrink: 0;
-  border-radius: var(--radius-pill);
-  background: hsl(var(--c, var(--primary)));
-}
-
-/* sender / account avatar — a tinted disc with an initial */
-.mailbox-avatar {
+/* provider badge — a colored OUTLINE around a brand logo. This is how accounts
+ * are told apart now (replacing the colored dot): the ring color is the account
+ * accent (--c), the glyph is the provider's logo. */
+.mailbox-provider {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   border-radius: var(--radius-pill);
-  font-weight: 700;
-  color: hsl(var(--c, var(--primary)));
-  background: color-mix(in srgb, hsl(var(--c, var(--primary))) 16%, transparent);
-  border: 1px solid color-mix(in srgb, hsl(var(--c, var(--primary))) 28%, transparent);
+  background: hsl(var(--card));
+  border: 2px solid color-mix(in srgb, hsl(var(--c, var(--primary))) 60%, hsl(var(--border)));
+}
+.mailbox-provider-glyph {
+  width: 60%;
+  height: 60%;
+  display: block;
+}
+/* small inline glyph used inside account chips (no ring of its own) */
+.mailbox-chip-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  display: block;
 }
 
 /* --- badges / chips (tinted by --c) ----------------------------------------- */
@@ -77,14 +81,15 @@
   white-space: nowrap;
   color: hsl(var(--muted-foreground));
   background: color-mix(in srgb, hsl(var(--foreground)) 5%, transparent);
-  border: 1px solid transparent;
+  /* always carry a faint accent OUTLINE so every account is color-coded */
+  border: 1px solid color-mix(in srgb, hsl(var(--c, var(--primary))) 30%, hsl(var(--border)));
   transition: all var(--motion-fast) var(--ease-standard);
 }
 .mailbox-chip:hover { color: hsl(var(--foreground)); }
 .mailbox-chip[data-active="true"] {
   color: hsl(var(--foreground));
   background: hsl(var(--card));
-  border-color: color-mix(in srgb, hsl(var(--c, var(--primary))) 45%, hsl(var(--border)));
+  border-color: color-mix(in srgb, hsl(var(--c, var(--primary))) 60%, hsl(var(--border)));
   box-shadow: var(--shadow-raised);
 }
 
@@ -151,8 +156,10 @@
   padding: 0.55rem 1rem 0.55rem 1.1rem;
   border-bottom: 1px solid color-mix(in srgb, hsl(var(--border)) 70%, transparent);
   cursor: pointer;
+  font-size: var(--mb-text, 0.875rem);
   transition: background var(--motion-fast) var(--ease-standard);
 }
+.mailbox-row[data-tight="true"] { padding-top: 0.28rem; padding-bottom: 0.28rem; }
 .mailbox-row::before {
   content: "";
   position: absolute;
@@ -181,11 +188,13 @@
   background: hsl(var(--card));
   cursor: pointer;
   overflow: hidden;
+  font-size: var(--mb-text, 0.875rem);
   transition:
     transform var(--motion-base) var(--ease-standard),
     box-shadow var(--motion-base) var(--ease-standard),
     border-color var(--motion-base) var(--ease-standard);
 }
+.mailbox-card[data-tight="true"] { padding: 0.55rem 0.7rem; gap: 0.6rem; }
 .mailbox-card::before {
   content: "";
   position: absolute;
@@ -208,6 +217,78 @@
 
 .mailbox-unread-strong { font-weight: 700; color: hsl(var(--foreground)); }
 .mailbox-read { color: hsl(var(--muted-foreground)); }
+
+/* --- prefs-driven list sizing (text size + compact column widths) ----------- */
+
+.mailbox-list { --mb-text: 0.875rem; }
+.mailbox-list[data-text="sm"] { --mb-text: 0.8rem; }
+.mailbox-list[data-text="md"] { --mb-text: 0.9rem; }
+.mailbox-list[data-text="lg"] { --mb-text: 1.02rem; }
+
+/* compact columns sized from the saved prefs (CSS vars set on .mailbox-list) */
+.mailbox-col-from {
+  width: var(--mb-from-w, 180px);
+  flex-shrink: 0;
+}
+.mailbox-col-subject {
+  width: var(--mb-subject-w, 280px);
+  flex-shrink: 0;
+}
+.mailbox-col-snippet {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.mailbox-col-snippet[data-capped="true"] {
+  flex: 0 1 var(--mb-snippet-w);
+  max-width: var(--mb-snippet-w);
+}
+.mailbox-col-date {
+  width: 4rem;
+  flex-shrink: 0;
+}
+
+/* modern split view: full width on small screens, configurable column at lg+ */
+.mailbox-list-pane { width: 100%; }
+@media (min-width: 1024px) {
+  .mailbox-list-pane { width: var(--mb-list-w, 440px); flex-shrink: 0; }
+}
+
+/* --- email body rendering --------------------------------------------------- */
+
+/* Sanitized HTML renders in an isolated, sandboxed iframe on a white reading
+ * surface (emails assume a light background, like Gmail/Outlook do). */
+.mailbox-email-frame {
+  width: 100%;
+  height: var(--mailbox-reading-height, 65vh);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  display: block;
+}
+
+/* privacy gate shown when an email references blocked remote content */
+.mailbox-remote-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, hsl(var(--primary)) 35%, hsl(var(--border)));
+  background: color-mix(in srgb, hsl(var(--primary)) 8%, transparent);
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+}
+
+/* cleaned plain-text bodies: preserve breaks, wrap long tokens, theme-colored */
+.mailbox-email-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  font-size: var(--mailbox-body-size, 0.875rem);
+  line-height: 1.6;
+  color: hsl(var(--foreground));
+}
 
 /* --- inputs ----------------------------------------------------------------- */
 

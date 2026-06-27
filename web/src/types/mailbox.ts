@@ -42,6 +42,7 @@ export interface MailMessage {
   from: string;
   to: string;
   date: string;
+  timestamp: number; // epoch seconds parsed from Date; 0 when unparseable
   snippet: string;
   flags: string[];
   unread: boolean;

@@ -104,7 +104,7 @@ export function startOAuth(provider: string): Promise<{ authorize_url: string }>
 export function listMessages(
   accountId: string,
   folder = "INBOX",
-  limit = 50,
+  limit: number | "all" = "all",
 ): Promise<MessagesResponse> {
   const params = new URLSearchParams({ folder, limit: String(limit) });
   return request<MessagesResponse>(`${base}/${id(accountId)}/messages/?${params}`);

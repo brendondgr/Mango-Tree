@@ -1,16 +1,18 @@
+import { type CSSProperties } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
+import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
+import { EmailBody } from "@mailbox/components/EmailBody";
+import { ProviderIcon } from "@mailbox/components/ProviderIcon";
 import type { InboxMessage } from "@mailbox/hooks/useMailbox";
 import { useMessage } from "@mailbox/hooks/useMailbox";
 import {
   type Accent,
   accentClass,
-  accentForKey,
-  initial,
   parseSender,
   providerLabel,
 } from "@mailbox/utils/colors";
@@ -35,9 +37,11 @@ export function MessageDetail({
   onBack,
   backClassName,
 }: Props) {
+  const textSize = useWorkspaceStore((s) => s.mailboxPrefs.textSize);
+  const bodySize = textSize === "sm" ? "0.85rem" : textSize === "lg" ? "1.02rem" : "0.9rem";
   const sender = parseSender(message.from);
-  // List messages arrive without a body; fetch it on open (unless sample/given).
-  const needsFetch = canFetch && message.body_text === null;
+  // List messages arrive without a body; fetch the full message on open.
+  const needsFetch = canFetch && message.body_text === null && message.body_html === null;
   const fetched = useMessage(message.accountId, message.uid, folder, needsFetch);
   const body = message.body_text ?? fetched.data?.body_text ?? "";
   const html = message.body_html ?? fetched.data?.body_html ?? null;
@@ -58,17 +62,21 @@ export function MessageDetail({
       </header>
 
       <div className="mailbox-scroll min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-3xl p-5 lg:p-7">
+        <div
+          className="mx-auto w-full max-w-3xl p-5 lg:p-7"
+          style={{ "--mailbox-body-size": bodySize } as CSSProperties}
+        >
           <h1 className="text-xl font-semibold leading-snug text-foreground">
             {message.subject || "(no subject)"}
           </h1>
 
           <div className="mt-4 flex items-center gap-3">
             <span
-              className={cn("mailbox-avatar h-10 w-10 text-sm", accentClass(accentForKey(sender.email)))}
+              className={cn("mailbox-provider h-10 w-10", accentClass(accountAccent))}
+              title={providerLabel(message.provider)}
               aria-hidden
             >
-              {initial(sender.name)}
+              <ProviderIcon provider={message.provider} className="mailbox-provider-glyph" />
             </span>
             <div className="min-w-0">
               <div className="truncate text-sm font-medium text-foreground">{sender.name}</div>
@@ -98,16 +106,8 @@ export function MessageDetail({
             <div className="text-sm text-destructive">
               {(fetched.error as Error)?.message ?? "Could not load this message."}
             </div>
-          ) : body ? (
-            <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-foreground">
-              {body}
-            </pre>
-          ) : html ? (
-            <p className="text-sm text-muted-foreground">
-              This message has only an HTML body. A rich HTML view is not enabled yet.
-            </p>
           ) : (
-            <p className="text-sm text-muted-foreground">(no text content)</p>
+            <EmailBody html={html} text={body} />
           )}
         </div>
       </div>

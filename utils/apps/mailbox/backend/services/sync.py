@@ -20,6 +20,7 @@ from __future__ import annotations
 import email
 import re
 from email.header import decode_header, make_header
+from email.utils import parsedate_to_datetime
 from typing import Any, Callable, Iterable
 
 from utils.apps.mailbox.backend.services import ops
@@ -77,6 +78,26 @@ def _snippet(text: str, limit: int = 200) -> str:
     return " ".join(text.split())[:limit]
 
 
+def _timestamp(date_str: str | None) -> float:
+    """Parse an RFC-2822 ``Date`` header to epoch seconds for sorting.
+
+    Returns ``0.0`` when the header is missing or unparseable, so a bad date
+    sorts to the bottom rather than raising.
+    """
+    if not date_str:
+        return 0.0
+    try:
+        dt = parsedate_to_datetime(date_str)
+    except (TypeError, ValueError):
+        return 0.0
+    if dt is None:
+        return 0.0
+    try:
+        return dt.timestamp()
+    except (OverflowError, OSError, ValueError):
+        return 0.0
+
+
 def parse_rfc822(
     raw: bytes,
     *,
@@ -89,6 +110,7 @@ def parse_rfc822(
     """Pure function: bytes -> MessageDTO. Fully unit-testable, no network."""
     msg = email.message_from_bytes(raw)
     text, html = _extract_bodies(msg)
+    date = _decode(msg.get("Date"))
     return MessageDTO(
         uid=uid,
         provider=provider,
@@ -96,8 +118,9 @@ def parse_rfc822(
         subject=_decode(msg.get("Subject")),
         from_addr=_decode(msg.get("From")),
         to_addr=_decode(msg.get("To")),
-        date=_decode(msg.get("Date")),
+        date=date,
         snippet=_snippet(text or html),
+        timestamp=_timestamp(msg.get("Date")),
         message_id=_decode(msg.get("Message-ID")),
         flags=list(flags),
         body_text=text if with_body else None,
@@ -129,14 +152,16 @@ def list_messages(
     account: MailAccount,
     *,
     folder: str = "INBOX",
-    limit: int = 25,
+    limit: int | None = 25,
     imap_factory: Callable[[MailAccount], ImapLike] | None = None,
 ) -> list[MessageDTO]:
-    """Fetch the most recent ``limit`` messages from ``folder`` (newest first).
+    """Fetch messages from ``folder`` (newest first).
 
-    Read-only. UID-keyed so the returned ``uid`` can be handed to organize.
+    ``limit`` caps the count to the most recent N; pass ``None`` to fetch *all*
+    messages in the folder. Read-only. UID-keyed so the returned ``uid`` can be
+    handed to organize.
     """
-    if limit < 1:
+    if limit is not None and limit < 1:
         raise ValidationError("limit must be >= 1", details={"limit": limit})
 
     client = ops.connect_imap(account, imap_factory=imap_factory)
@@ -144,7 +169,7 @@ def list_messages(
         client.select(folder, readonly=True)
         typ, data = client.uid("SEARCH", "ALL")
         ids = (data[0].split() if data and data[0] else [])
-        recent = ids[-limit:]
+        recent = ids if limit is None else ids[-limit:]
         out: list[MessageDTO] = []
         for raw_id in reversed(recent):  # newest first
             uid = raw_id.decode() if isinstance(raw_id, bytes) else str(raw_id)
@@ -226,6 +251,7 @@ def _selftest() -> None:
     assert dto.snippet.startswith("This is the body")
     assert dto.body_text.startswith("This is the body")
     assert dto.unread is False  # \\Seen present
+    assert dto.timestamp > 0  # Date header parsed to epoch seconds
 
     class FakeImap:
         def __init__(self): self.selected = None
