@@ -70,6 +70,45 @@ export const PROJECTMANAGER_TAB_LABEL = "Projects";
 export type MailboxView = "inbox" | "settings";
 export type MailboxDensity = "compact" | "modern";
 
+export type MailboxTextSize = "sm" | "md" | "lg";
+
+/** Persistent inbox display preferences — the "dynamic config" that survives
+ *  sessions (stored in localStorage alongside the rest of the workspace). */
+export interface MailboxPrefs {
+  // show / hide fields
+  showProviderIcon: boolean;
+  showSnippet: boolean; // the description / preview text
+  showDate: boolean;
+  showAccountBadge: boolean;
+  showProviderBadge: boolean;
+  showUnreadBadge: boolean;
+  // sizing
+  textSize: MailboxTextSize;
+  tightRows: boolean; // extra-compact row spacing
+  fromWidth: number; // px — "From" column width (compact)
+  subjectWidth: number; // px — "Title" column width (compact)
+  snippetWidth: number; // px — "Description" max width (compact); 0 = fill
+  listWidth: number; // px — list column width (modern split view)
+  // how many messages to load per account
+  loadLimit: number | "all";
+}
+
+export const MAILBOX_PREFS_DEFAULT: MailboxPrefs = {
+  showProviderIcon: true,
+  showSnippet: true,
+  showDate: true,
+  showAccountBadge: true,
+  showProviderBadge: true,
+  showUnreadBadge: true,
+  textSize: "md",
+  tightRows: false,
+  fromWidth: 180,
+  subjectWidth: 280,
+  snippetWidth: 0,
+  listWidth: 440,
+  loadLimit: "all",
+};
+
 export type ProjectManagerView = "board" | "timeline" | "deadlines";
 
 export type ExerciseView =
@@ -143,6 +182,7 @@ interface WorkspaceState {
   mailboxView: MailboxView;
   mailboxDensity: MailboxDensity;
   mailboxAccountId: string | null;
+  mailboxPrefs: MailboxPrefs;
   projectManagerTabOpen: boolean;
   projectManagerView: ProjectManagerView;
   sidebarMode: SidebarMode;
@@ -169,6 +209,8 @@ interface WorkspaceState {
   setMailboxView: (view: MailboxView) => void;
   setMailboxDensity: (density: MailboxDensity) => void;
   setMailboxAccountId: (accountId: string | null) => void;
+  setMailboxPrefs: (patch: Partial<MailboxPrefs>) => void;
+  resetMailboxPrefs: () => void;
   openProjectManagerTab: () => void;
   closeProjectManagerTab: () => void;
   setProjectManagerView: (view: ProjectManagerView) => void;
@@ -224,6 +266,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       mailboxView: "inbox",
       mailboxDensity: "modern",
       mailboxAccountId: null,
+      mailboxPrefs: MAILBOX_PREFS_DEFAULT,
       projectManagerTabOpen: false,
       projectManagerView: "board",
       sidebarMode: "chat",
@@ -333,6 +376,11 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       setMailboxDensity: (density) => set({ mailboxDensity: density }),
 
       setMailboxAccountId: (accountId) => set({ mailboxAccountId: accountId }),
+
+      setMailboxPrefs: (patch) =>
+        set((state) => ({ mailboxPrefs: { ...state.mailboxPrefs, ...patch } })),
+
+      resetMailboxPrefs: () => set({ mailboxPrefs: MAILBOX_PREFS_DEFAULT }),
 
       openProjectManagerTab: () =>
         set({
@@ -472,6 +520,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         exerciseView: state.exerciseView,
         mailboxView: state.mailboxView,
         mailboxDensity: state.mailboxDensity,
+        mailboxPrefs: state.mailboxPrefs,
         projectManagerView: state.projectManagerView,
       }),
       onRehydrateStorage: () => (state) => {
@@ -482,6 +531,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           state.mailboxTabOpen = false;
           state.projectManagerTabOpen = false;
           state.activeWorkspaceTab = state.activeTab;
+          // merge defaults so prefs added in later versions are populated
+          state.mailboxPrefs = { ...MAILBOX_PREFS_DEFAULT, ...(state.mailboxPrefs ?? {}) };
         }
       },
     },
