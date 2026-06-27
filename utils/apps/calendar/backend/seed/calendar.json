@@ -1,0 +1,35 @@
+{
+  "entries": [
+    {
+      "start_date": "2026-01-07",
+      "end_date": "2026-04-25",
+      "schedule_filename": "spring_2026.json"
+    }
+  ],
+  "direct_events": [
+    {
+      "date": "2025-12-01",
+      "title": "Doctor's Appointment ",
+      "type": "health",
+      "start": "11:30",
+      "end": "12:30",
+      "sub": ""
+    },
+    {
+      "date": "2026-02-14",
+      "title": "Physical Therapy",
+      "type": "health",
+      "start": "10:00",
+      "end": "11:00",
+      "sub": ""
+    },
+    {
+      "date": "2026-01-23",
+      "title": "Appointment Example",
+      "type": "health",
+      "start": "10:00",
+      "end": "11:00",
+      "sub": ""
+    }
+  ]
+}

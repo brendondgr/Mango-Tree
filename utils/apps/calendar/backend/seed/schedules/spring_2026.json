@@ -1,0 +1,529 @@
+{
+  "name": "Spring 2026",
+  "description": "Updated schedule for the Spring 2026 semester including Exercise and Piano Practice.",
+  "events": [
+    {
+      "title": "Computational Sciences II",
+      "type": "class",
+      "day": [
+        1,
+        3
+      ],
+      "start": "08:00",
+      "end": "09:15",
+      "sub": "ISC-5316 / DSL-499"
+    },
+    {
+      "title": "High Performance Computing",
+      "type": "class",
+      "day": [
+        1,
+        3
+      ],
+      "start": "09:45",
+      "end": "11:00",
+      "sub": "ISC-5318 / DSL-499"
+    },
+    {
+      "title": "Computational Sciences II Lab",
+      "type": "class",
+      "sub": "ISC-5316 / DSL-152",
+      "overwriteable": false,
+      "timestamps": [
+        {
+          "day": 3,
+          "start": "15:05",
+          "end": "17:35"
+        }
+      ]
+    },
+    {
+      "title": "Biomedical Science Seminar",
+      "type": "class",
+      "sub": "BMS-6936 / TBA",
+      "overwriteable": false,
+      "timestamps": [
+        {
+          "day": 2,
+          "start": "12:00",
+          "end": "13:00"
+        }
+      ]
+    },
+    {
+      "title": "Scientific Computing Colloquium",
+      "type": "class",
+      "day": [
+        2
+      ],
+      "start": "15:30",
+      "end": "16:30",
+      "sub": "ISC-5926 / DSL-499"
+    },
+    {
+      "title": "Artificial Intelligence Seminar",
+      "type": "meeting",
+      "sub": "DSL-499",
+      "overwriteable": false,
+      "timestamps": [
+        {
+          "day": 4,
+          "start": "12:00",
+          "end": "13:00"
+        }
+      ]
+    },
+    {
+      "title": "Data Science/Machine Learning Seminar",
+      "type": "meeting",
+      "sub": "LOV-106",
+      "overwriteable": false,
+      "timestamps": [
+        {
+          "day": 4,
+          "start": "13:20",
+          "end": "14:20"
+        }
+      ]
+    },
+    {
+      "title": "Scientific Computing Seminar",
+      "type": "class",
+      "day": [
+        4
+      ],
+      "start": "15:05",
+      "end": "16:05",
+      "sub": "ISC-5934 / DSL-499"
+    },
+    {
+      "title": "PULSE Group Meeting",
+      "type": "meeting",
+      "sub": "Research Group",
+      "overwriteable": false,
+      "timestamps": [
+        {
+          "day": 1,
+          "start": "13:30",
+          "end": "14:30"
+        }
+      ]
+    },
+    {
+      "title": "Commute",
+      "type": "commute",
+      "timestamps": [
+        {
+          "day": [
+            1,
+            3
+          ],
+          "start": "07:30",
+          "end": "08:00"
+        },
+        {
+          "day": [
+            1
+          ],
+          "start": "16:00",
+          "end": "16:30"
+        },
+        {
+          "day": [
+            2,
+            4
+          ],
+          "start": "08:30",
+          "end": "09:00"
+        },
+        {
+          "day": [
+            2
+          ],
+          "start": "16:30",
+          "end": "17:00"
+        },
+        {
+          "day": [
+            3
+          ],
+          "start": "17:35",
+          "end": "18:05"
+        },
+        {
+          "day": [
+            4
+          ],
+          "start": "16:05",
+          "end": "16:30"
+        }
+      ],
+      "sub": "To/From Campus"
+    },
+    {
+      "title": "Study/Research",
+      "type": "work",
+      "timestamps": [
+        {
+          "day": [
+            0,
+            2,
+            4,
+            5,
+            6
+          ],
+          "start": "09:00",
+          "end": "12:00"
+        },
+        {
+          "day": [
+            0,
+            5,
+            6
+          ],
+          "start": "13:00",
+          "end": "16:00"
+        },
+        {
+          "day": [
+            1,
+            3
+          ],
+          "start": "09:15",
+          "end": "09:45"
+        },
+        {
+          "day": [
+            1
+          ],
+          "start": "11:00",
+          "end": "12:00"
+        },
+        {
+          "day": [
+            1
+          ],
+          "start": "13:00",
+          "end": "13:30"
+        },
+        {
+          "day": [
+            1
+          ],
+          "start": "14:30",
+          "end": "16:00"
+        },
+        {
+          "day": [
+            2
+          ],
+          "start": "14:00",
+          "end": "15:30"
+        },
+        {
+          "day": [
+            3
+          ],
+          "start": "11:00",
+          "end": "13:00"
+        },
+        {
+          "day": [
+            3
+          ],
+          "start": "14:00",
+          "end": "15:05"
+        },
+        {
+          "day": [
+            4
+          ],
+          "start": "13:00",
+          "end": "13:20"
+        },
+        {
+          "day": [
+            4
+          ],
+          "start": "14:20",
+          "end": "15:05"
+        }
+      ],
+      "sub": "Deep Work / Focus"
+    },
+    {
+      "title": "Exercise",
+      "type": "exercise",
+      "timestamps": [
+        {
+          "day": [
+            0,
+            5,
+            6
+          ],
+          "start": "16:00",
+          "end": "17:00"
+        },
+        {
+          "day": [
+            1,
+            4,
+            2
+          ],
+          "start": "17:00",
+          "end": "18:00"
+        },
+        {
+          "day": [
+            3
+          ],
+          "start": "20:00",
+          "end": "21:00"
+        }
+      ],
+      "sub": "60-minute block"
+    },
+    {
+      "title": "Piano Practice",
+      "type": "social",
+      "timestamps": [
+        {
+          "day": [
+            0,
+            4,
+            5,
+            6,
+            1,
+            2
+          ],
+          "start": "20:30",
+          "end": "21:00"
+        },
+        {
+          "day": [
+            3
+          ],
+          "start": "21:00",
+          "end": "21:30"
+        }
+      ],
+      "sub": "Music"
+    },
+    {
+      "title": "Breakfast",
+      "type": "food",
+      "timestamps": [
+        {
+          "day": [
+            0,
+            2,
+            4
+          ],
+          "start": "07:45",
+          "end": "08:30"
+        },
+        {
+          "day": [
+            1,
+            3
+          ],
+          "start": "06:45",
+          "end": "07:30"
+        },
+        {
+          "day": [
+            5,
+            6
+          ],
+          "start": "08:30",
+          "end": "09:00"
+        }
+      ],
+      "sub": "Sustinence"
+    },
+    {
+      "title": "Lunch",
+      "type": "food",
+      "timestamps": [
+        {
+          "day": [
+            0,
+            1,
+            5,
+            6
+          ],
+          "start": "12:00",
+          "end": "13:00"
+        },
+        {
+          "day": [
+            2,
+            3
+          ],
+          "start": "13:00",
+          "end": "14:00"
+        },
+        {
+          "day": [
+            4
+          ],
+          "start": "14:20",
+          "end": "15:05"
+        }
+      ],
+      "sub": "Sustinence"
+    },
+    {
+      "title": "Dinner",
+      "type": "food",
+      "day": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "start": "18:00",
+      "end": "20:00",
+      "sub": "Sustinence"
+    },
+    {
+      "title": "Free-Time/Open",
+      "type": "other",
+      "timestamps": [
+        {
+          "day": [
+            0,
+            2
+          ],
+          "start": "07:00",
+          "end": "21:00"
+        },
+        {
+          "day": [
+            1,
+            3
+          ],
+          "start": "06:00",
+          "end": "22:00"
+        },
+        {
+          "day": [
+            4
+          ],
+          "start": "07:00",
+          "end": "23:00"
+        },
+        {
+          "day": [
+            5
+          ],
+          "start": "08:00",
+          "end": "23:00"
+        },
+        {
+          "day": [
+            6
+          ],
+          "start": "07:45",
+          "end": "22:00"
+        }
+      ],
+      "sub": "Available",
+      "overwriteable": true
+    },
+    {
+      "title": "Morning Routine",
+      "type": "life",
+      "timestamps": [
+        {
+          "day": [
+            0,
+            2,
+            4
+          ],
+          "start": "07:00",
+          "end": "07:45"
+        },
+        {
+          "day": [
+            1,
+            3
+          ],
+          "start": "06:00",
+          "end": "06:45"
+        },
+        {
+          "day": [
+            5,
+            6
+          ],
+          "start": "07:45",
+          "end": "08:30"
+        }
+      ]
+    },
+    {
+      "title": "Night Routine",
+      "type": "life",
+      "timestamps": [
+        {
+          "day": [
+            0,
+            2
+          ],
+          "start": "21:00",
+          "end": "21:45"
+        },
+        {
+          "day": [
+            1,
+            3,
+            6
+          ],
+          "start": "22:00",
+          "end": "22:45"
+        },
+        {
+          "day": [
+            4,
+            5
+          ],
+          "start": "23:00",
+          "end": "23:45"
+        }
+      ]
+    },
+    {
+      "title": "PULSE x Sang Lab",
+      "type": "meeting",
+      "day": [
+        0
+      ],
+      "start": "13:00",
+      "end": "14:00"
+    },
+    {
+      "title": "Sang/Jinfeng Meeting",
+      "type": "meeting",
+      "day": [
+        1
+      ],
+      "start": "15:00",
+      "end": "16:00"
+    }
+  ],
+  "color_mappings": {
+    "class": "purple",
+    "commute": "yellow",
+    "exercise": "teal",
+    "food": "orange",
+    "life": "kiwi",
+    "meeting": "red",
+    "other": "muted-gray",
+    "social": "light-pink",
+    "work": "blue"
+  }
+}
