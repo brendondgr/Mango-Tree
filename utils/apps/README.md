@@ -7,7 +7,7 @@ Domain app modules. Each app follows the standard layout documented in `docs/ski
 - `projects/` — Project management
 - `notes/` — Notes and rich text
 - `jobs/` — Job tracking
-- `calendar/` — Calendar events
+- `calendar/` — Calendar (implemented; weekly schedules + a dated calendar of merged schedule/direct events, themed PDF export — file-based JSON store, migrated from a standalone Flask app)
 - `recipes/` — Recipe management
 - `imdbspy/` — IMDB lookup and tracking
 - `exercise/` — Exercise tracking (implemented; workouts, routines, equipment, history, Strava import — migrated from the standalone WorkoutTracker app)

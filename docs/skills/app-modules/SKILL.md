@@ -99,7 +99,7 @@ When migrating a Flask app into `utils/apps/{name}/`:
 - projects
 - notes
 - jobs
-- calendar
+- calendar (implemented — weekly schedules + a dated calendar of merged events; file-based JSON store; migrated from a standalone Flask app)
 - recipes
 - imdbspy
 - exercise (implemented — workouts/routines/equipment/history + Strava import)
