@@ -12,6 +12,12 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 
 
+def _utcnow_naive() -> datetime:
+    """Current UTC time as a naive datetime (for comparison with parsed,
+    tz-stripped item dates)."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 def parse_date(date_val: Optional[str]) -> Optional[datetime]:
     """Parse an ISO date string into a naive-UTC datetime for comparison."""
     if not date_val:
@@ -38,7 +44,7 @@ def calculate_date_range(
         return explicit_range
 
     if not items:
-        now = datetime.utcnow()
+        now = _utcnow_naive()
         return (now - timedelta(days=30), now + timedelta(days=30))
 
     min_date = None
@@ -60,7 +66,7 @@ def calculate_date_range(
             if max_date is None or start > max_date:
                 max_date = start
 
-    now = datetime.utcnow()
+    now = _utcnow_naive()
     if min_date is None:
         min_date = now - timedelta(days=30)
     if max_date is None:
