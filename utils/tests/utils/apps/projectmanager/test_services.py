@@ -90,6 +90,40 @@ def test_update_status_rejects_unknown_status():
         project_service.update_status(1, "Frozen")
 
 
+def test_update_project_edits_title_and_description():
+    updated = project_service.update_project(
+        1, title="Renamed Project", description="New blurb"
+    )
+    assert updated.title == "Renamed Project"
+    assert updated.description == "New blurb"
+    # status untouched when not supplied
+    assert updated.status == project_service.get_project(1).status
+
+
+def test_update_project_blank_description_clears_it():
+    updated = project_service.update_project(1, description="   ")
+    assert updated.description is None
+
+
+def test_update_project_blank_title_raises():
+    with pytest.raises(ValidationError):
+        project_service.update_project(1, title="   ")
+
+
+def test_update_project_combined_title_and_status():
+    updated = project_service.update_project(
+        1, title="Combo", status="Completed"
+    )
+    assert updated.title == "Combo"
+    assert updated.status == "Completed"
+    assert updated.date_completed is not None
+
+
+def test_update_project_unknown_raises_not_found():
+    with pytest.raises(NotFoundError):
+        project_service.update_project(999999, title="x")
+
+
 def test_delete_project_removes_project_and_goals():
     goal_count = Goal.objects.filter(project_id=1).count()
     assert goal_count > 0

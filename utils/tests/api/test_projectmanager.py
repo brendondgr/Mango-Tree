@@ -63,6 +63,25 @@ def test_patch_project_status(projectmanager_db):
     assert body["status"] == "Completed"
 
 
+def test_patch_project_title_and_description(projectmanager_db):
+    client = Client()
+    res = _patch(
+        client,
+        "/api/projectmanager/projects/1/",
+        {"title": "Edited Title", "description": "Edited body"},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["title"] == "Edited Title"
+    assert body["description"] == "Edited body"
+
+
+def test_patch_project_blank_title_is_validation_error(projectmanager_db):
+    res = _patch(Client(), "/api/projectmanager/projects/1/", {"title": "   "})
+    assert res.status_code == 400
+    assert res.json()["code"] == "validation_error"
+
+
 def test_delete_project_then_get_404(projectmanager_db):
     client = Client()
     res = client.delete("/api/projectmanager/projects/1/")

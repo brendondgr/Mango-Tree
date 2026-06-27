@@ -81,6 +81,15 @@ export function useUpdateProjectStatus() {
   });
 }
 
+export function useUpdateProject() {
+  const invalidate = useInvalidateBoard();
+  return useMutation({
+    mutationFn: ({ id, ...patch }: { id: number } & api.ProjectPatch) =>
+      api.updateProject(id, patch),
+    onSuccess: invalidate,
+  });
+}
+
 export function useDeleteProject() {
   const invalidate = useInvalidateBoard();
   return useMutation({

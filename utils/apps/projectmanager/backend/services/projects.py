@@ -94,32 +94,74 @@ def create_project(new: NewProjectDTO) -> ProjectDTO:
     return _to_dto(project, goals=[])
 
 
-def update_status(project_id: int, status: str) -> ProjectDTO:
-    """Update a project's status, mirroring the legacy lifecycle-timestamp rules:
-    moving back to Active clears all lifecycle dates; a terminal status stamps its
-    own date."""
-    if status not in PROJECT_STATUSES:
-        raise ValidationError(
-            f"'status' must be one of {', '.join(PROJECT_STATUSES)}",
-            details={"field": "status"},
-        )
+# Sentinel so callers can distinguish "field omitted" from "set to None/empty".
+_UNSET: object = object()
+
+
+def update_project(
+    project_id: int,
+    *,
+    title=_UNSET,
+    description=_UNSET,
+    status=_UNSET,
+) -> ProjectDTO:
+    """Update any subset of a project's title, description, and status.
+
+    Only the fields actually supplied are written. Status changes mirror the
+    legacy lifecycle-timestamp rules: moving back to Active clears all lifecycle
+    dates; a terminal status stamps its own date. Description is normalised so an
+    empty/whitespace value clears it.
+    """
     project = _get_row(project_id)
-    project.status = status
-    now = timezone.now()
-    if status == "Completed":
-        project.date_completed = now
-    elif status == "On-Hold":
-        project.date_on_hold = now
-    elif status == "Abandoned":
-        project.date_abandoned = now
-    else:  # Active
-        project.date_completed = None
-        project.date_on_hold = None
-        project.date_abandoned = None
-    project.save(
-        update_fields=["status", "date_completed", "date_on_hold", "date_abandoned"]
-    )
+    fields: list[str] = []
+
+    if title is not _UNSET:
+        cleaned = (title or "").strip()
+        if not cleaned:
+            raise ValidationError(
+                "'title' is required and must be a non-empty string",
+                details={"field": "title"},
+            )
+        project.title = cleaned
+        fields.append("title")
+
+    if description is not _UNSET:
+        project.description = (
+            description.strip()
+            if isinstance(description, str) and description.strip()
+            else None
+        )
+        fields.append("description")
+
+    if status is not _UNSET:
+        if status not in PROJECT_STATUSES:
+            raise ValidationError(
+                f"'status' must be one of {', '.join(PROJECT_STATUSES)}",
+                details={"field": "status"},
+            )
+        project.status = status
+        now = timezone.now()
+        if status == "Completed":
+            project.date_completed = now
+        elif status == "On-Hold":
+            project.date_on_hold = now
+        elif status == "Abandoned":
+            project.date_abandoned = now
+        else:  # Active
+            project.date_completed = None
+            project.date_on_hold = None
+            project.date_abandoned = None
+        fields += ["status", "date_completed", "date_on_hold", "date_abandoned"]
+
+    if fields:
+        # dict.fromkeys preserves order while de-duplicating.
+        project.save(update_fields=list(dict.fromkeys(fields)))
     return _to_dto(project)
+
+
+def update_status(project_id: int, status: str) -> ProjectDTO:
+    """Thin wrapper over :func:`update_project` for status-only changes."""
+    return update_project(project_id, status=status)
 
 
 def delete_project(project_id: int) -> None:

@@ -61,8 +61,11 @@ class ProjectDetailView(APIView):
     def patch(self, request: Request, project_id: int) -> Response:
         try:
             payload = parse_object(request.data)
-            status_val = payload.get("status")
-            updated = projects_service.update_status(project_id, status_val)
+            kwargs: dict = {}
+            for field in ("title", "description", "status"):
+                if field in payload:
+                    kwargs[field] = payload[field]
+            updated = projects_service.update_project(project_id, **kwargs)
         except ProjectManagerError as exc:
             return _error_response(exc)
         return Response(updated.to_dict(), status=status.HTTP_200_OK)

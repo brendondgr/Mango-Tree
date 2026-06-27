@@ -75,6 +75,19 @@ export function updateProjectStatus(id: number, status: string): Promise<Project
   });
 }
 
+export interface ProjectPatch {
+  title?: string;
+  description?: string | null;
+  status?: string;
+}
+
+export function updateProject(id: number, patch: ProjectPatch): Promise<Project> {
+  return request<Project>(`${BASE}/projects/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
 export function deleteProject(id: number): Promise<void> {
   return request<void>(`${BASE}/projects/${id}/`, { method: "DELETE" });
 }
