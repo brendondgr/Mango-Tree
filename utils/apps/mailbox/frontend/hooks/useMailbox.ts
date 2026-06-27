@@ -14,8 +14,8 @@ export type InboxMessage = MailMessage & { accountId: string };
 
 export const MAILBOX_KEYS = {
   accounts: ["mailbox", "accounts"] as const,
-  messages: (accountId: string, folder: string) =>
-    ["mailbox", "messages", accountId, folder] as const,
+  messages: (accountId: string, folder: string, limit: number | "all") =>
+    ["mailbox", "messages", accountId, folder, String(limit)] as const,
   message: (accountId: string, uid: string, folder: string) =>
     ["mailbox", "message", accountId, uid, folder] as const,
 };
@@ -29,17 +29,19 @@ export function useAccounts() {
 
 /** Fetch messages for several accounts at once and merge (newest first). Each
  *  message is tagged with its `accountId`. Accounts without a stored credential
- *  are skipped (their reads would deny). */
+ *  are skipped (their reads would deny). ``limit`` defaults to "all" so the
+ *  inbox shows every message; pass a number to cap the count per account. */
 export function useAccountMessages(
   accounts: MailAccount[],
   folder = "INBOX",
   enabled = true,
+  limit: number | "all" = "all",
 ) {
   const results = useQueries({
     queries: accounts.map((account) => ({
-      queryKey: MAILBOX_KEYS.messages(account.id, folder),
+      queryKey: MAILBOX_KEYS.messages(account.id, folder, limit),
       queryFn: async (): Promise<InboxMessage[]> => {
-        const response = await api.listMessages(account.id, folder);
+        const response = await api.listMessages(account.id, folder, limit);
         return response.messages.map((message) => ({ ...message, accountId: account.id }));
       },
       enabled: enabled && account.has_credential,
@@ -47,9 +49,15 @@ export function useAccountMessages(
     })),
   });
 
+  // Newest first by parsed timestamp; fall back to the raw date string only
+  // when both timestamps are missing (0), so chronological order is correct
+  // even when accounts use different Date header formats.
   const messages = results
     .flatMap((result) => result.data ?? [])
-    .sort((a, b) => (a.date < b.date ? 1 : -1));
+    .sort((a, b) => {
+      if (a.timestamp !== b.timestamp) return b.timestamp - a.timestamp;
+      return a.date < b.date ? 1 : -1;
+    });
   const isLoading = results.some((result) => result.isLoading && result.fetchStatus !== "idle");
   const errorCount = results.filter((result) => result.isError).length;
 

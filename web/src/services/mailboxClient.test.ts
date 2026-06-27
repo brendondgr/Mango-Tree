@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { setCredential, startOAuth, testAccount } from "./mailboxClient";
+import { listMessages, setCredential, startOAuth, testAccount } from "./mailboxClient";
 
 function mockFetch() {
   const fetchMock = vi.fn().mockResolvedValue({
@@ -32,5 +32,21 @@ describe("mailboxClient URLs", () => {
     await setCredential("acc_1", "app-pw");
     expect(fetchMock.mock.calls[0][0]).toBe("/api/mailbox/accounts/acc_1/credential/");
     expect(fetchMock.mock.calls[0][1]?.body).toBe(JSON.stringify({ value: "app-pw" }));
+  });
+
+  it("listMessages defaults to limit=all so the whole folder loads", async () => {
+    const fetchMock = mockFetch();
+    await listMessages("acc_1");
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "/api/mailbox/accounts/acc_1/messages/?folder=INBOX&limit=all",
+    );
+  });
+
+  it("listMessages forwards a numeric cap when given one", async () => {
+    const fetchMock = mockFetch();
+    await listMessages("acc_1", "INBOX", 100);
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "/api/mailbox/accounts/acc_1/messages/?folder=INBOX&limit=100",
+    );
   });
 });
