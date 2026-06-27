@@ -7,6 +7,7 @@ import {
   RefreshCw,
   Rows3,
   Settings as SettingsIcon,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -14,7 +15,7 @@ import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-import { CustomizeDialog } from "@mailbox/components/CustomizeDialog";
+import { CustomizePanel } from "@mailbox/components/CustomizePanel";
 import { MessageDetail } from "@mailbox/components/MessageDetail";
 import { MessageList, messageKey } from "@mailbox/components/MessageList";
 import { ProviderIcon } from "@mailbox/components/ProviderIcon";
@@ -57,6 +58,7 @@ export function InboxView() {
   const unreadCount = messages.filter((m) => m.unread).length;
 
   const [openKey, setOpenKey] = useState<string | null>(null);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
   const openMessage = messages.find((m) => messageKey(m) === openKey) ?? null;
 
   const refresh = () => {
@@ -140,7 +142,16 @@ export function InboxView() {
               <LayoutGrid className="h-3.5 w-3.5" /> Modern
             </button>
           </div>
-          <CustomizeDialog />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9"
+            data-active={customizeOpen}
+            onClick={() => setCustomizeOpen((o) => !o)}
+            title="Customize inbox"
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-9 w-9" onClick={refresh} title="Refresh">
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -157,26 +168,29 @@ export function InboxView() {
       </div>
 
       {/* body */}
-      {density === "compact" ? (
-        <div className="mailbox-scroll min-h-0 flex-1 overflow-y-auto">
-          {openMessage ? detail : listBody}
-        </div>
-      ) : (
-        <div className="flex min-h-0 flex-1">
-          <div
-            className={cn(
-              "mailbox-scroll mailbox-list-pane min-h-0 overflow-y-auto lg:shrink-0 lg:border-r lg:border-border",
-              openMessage && "hidden lg:block",
-            )}
-            style={{ "--mb-list-w": `${prefs.listWidth}px` } as CSSProperties}
-          >
-            {listBody}
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+        {density === "compact" ? (
+          <div className="mailbox-scroll min-h-0 flex-1 overflow-y-auto">
+            {openMessage ? detail : listBody}
           </div>
-          <div className={cn("min-h-0 flex-1", openMessage ? "block" : "hidden lg:block")}>
-            {openMessage ? detail : <DetailPlaceholder />}
+        ) : (
+          <div className="flex min-h-0 flex-1">
+            <div
+              className={cn(
+                "mailbox-scroll mailbox-list-pane min-h-0 overflow-y-auto lg:shrink-0 lg:border-r lg:border-border",
+                openMessage && "hidden lg:block",
+              )}
+              style={{ "--mb-list-w": `${prefs.listWidth}px` } as CSSProperties}
+            >
+              {listBody}
+            </div>
+            <div className={cn("min-h-0 flex-1", openMessage ? "block" : "hidden lg:block")}>
+              {openMessage ? detail : <DetailPlaceholder />}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+        <CustomizePanel open={customizeOpen} onClose={() => setCustomizeOpen(false)} />
+      </div>
     </div>
   );
 }
