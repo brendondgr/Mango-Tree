@@ -18,7 +18,7 @@ import {
   today,
   weekDates,
 } from "../utils/dates";
-import type { GridEvent } from "../utils/timegrid";
+import { type GridEvent, computeHourRange } from "../utils/timegrid";
 import { ActiveDatesDialog } from "./ActiveDatesDialog";
 import { DirectEventDialog } from "./DirectEventDialog";
 import { EventChipMini } from "./EventBlock";
@@ -96,6 +96,17 @@ export function CalendarView() {
     return out;
   }, [weekDateList, week.data]);
 
+  // Week hours: default 8am–10pm, expanding outward when plans run earlier/later.
+  const weekRange = useMemo(() => {
+    const base = { startHour: 8, endHour: 22 };
+    if (weekGridEvents.length === 0) return base;
+    const auto = computeHourRange(weekGridEvents);
+    return {
+      startHour: Math.min(base.startHour, auto.startHour),
+      endHour: Math.max(base.endHour, auto.endHour),
+    };
+  }, [weekGridEvents]);
+
   function shift(delta: number) {
     setAnchor((a) => (mode === "week" ? addDays(a, delta * 7) : addMonths(a, delta)));
   }
@@ -166,6 +177,7 @@ export function CalendarView() {
               isToday: date === todayStr,
             }))}
             events={weekGridEvents}
+            range={weekRange}
             resolveColor={(type) =>
               colorForType(type, week.data?.colors, classToHex)
             }
@@ -190,13 +202,20 @@ export function CalendarView() {
               const bucket = range.data?.days?.[date];
               const events = bucket?.events ?? [];
               return (
-                <button
+                <div
                   key={date}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   className="calendar-monthcell"
                   data-outside={monthOf(date) !== anchorMonth}
                   data-today={date === todayStr}
                   onClick={() => openNew(date)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      openNew(date);
+                    }
+                  }}
                 >
                   <span className="calendar-monthcell-num text-xs font-semibold">
                     {dayNumber(date)}
@@ -216,7 +235,7 @@ export function CalendarView() {
                       </span>
                     ) : null}
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>

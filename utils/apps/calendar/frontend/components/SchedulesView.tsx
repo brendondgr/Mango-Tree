@@ -209,7 +209,7 @@ export function SchedulesView() {
             </div>
 
             {/* weekly grid (hour-by-hour timeline, honors overwriteable) */}
-            <div className="h-[26rem] min-h-0">
+            <div className="h-[calc(100vh-16rem)] min-h-[34rem]">
               <TimeGrid
                 days={DOW_LABELS.map((label) => ({ key: label, label }))}
                 events={gridEvents}

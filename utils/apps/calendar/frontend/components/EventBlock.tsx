@@ -15,7 +15,10 @@ export function EventChipMini({
     <button
       type="button"
       className="calendar-chip block"
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.();
+      }}
       style={{ background: color.bg, borderLeftColor: color.border, color: color.text }}
       title={`${event.start} · ${event.title}`}
     >
