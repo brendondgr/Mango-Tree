@@ -23,7 +23,9 @@ import {
   type InboxMessage,
   useAccountMessages,
   useAccounts,
+  useMailboxAutoSync,
 } from "@mailbox/hooks/useMailbox";
+import { syncAccount } from "@/services/mailboxClient";
 import { ACCENTS, type Accent, accentClass, accentForKey } from "@mailbox/utils/colors";
 
 const FOLDER = "INBOX";
@@ -51,6 +53,7 @@ export function InboxView() {
     accounts.find((a) => a.id === id)?.display_name ?? id;
 
   const live = useAccountMessages(credentialed, FOLDER, true, prefs.loadLimit);
+  useMailboxAutoSync(credentialed, FOLDER);
   const allMessages: InboxMessage[] = live.messages;
   const messages =
     selected === "all" ? allMessages : allMessages.filter((m) => m.accountId === selected);
@@ -62,6 +65,7 @@ export function InboxView() {
   const openMessage = messages.find((m) => messageKey(m) === openKey) ?? null;
 
   const refresh = () => {
+    for (const account of credentialed) void syncAccount(account.id, FOLDER).catch(() => {});
     queryClient.invalidateQueries({ queryKey: ["mailbox", "messages"] });
     void accountsQuery.refetch();
   };

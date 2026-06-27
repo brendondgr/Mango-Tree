@@ -8,9 +8,22 @@ import {
 
 import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import * as api from "@/services/mailboxClient";
-import type { MailAccount, MailAccountDraft, MailMessage } from "@/types/mailbox";
+import type {
+  MailAccount,
+  MailAccountDraft,
+  MailMessage,
+  MailSyncStatus,
+} from "@/types/mailbox";
 
 export type InboxMessage = MailMessage & { accountId: string };
+
+export interface InboxSyncSummary {
+  isSyncing: boolean;
+  processed: number;
+  total: number;
+  newCount: number;
+  error: string | null;
+}
 
 export const MAILBOX_KEYS = {
   accounts: ["mailbox", "accounts"] as const,
@@ -27,10 +40,15 @@ export function useAccounts() {
   });
 }
 
-/** Fetch messages for several accounts at once and merge (newest first). Each
- *  message is tagged with its `accountId`. Accounts without a stored credential
- *  are skipped (their reads would deny). ``limit`` defaults to "all" so the
- *  inbox shows every message; pass a number to cap the count per account. */
+interface AccountMessages {
+  messages: InboxMessage[];
+  sync: MailSyncStatus | null;
+}
+
+/** Read the cached messages for several accounts at once and merge (newest
+ *  first). Reads are served from the local cache (no network); call
+ *  {@link useMailboxAutoSync} to keep the cache fresh. While an account is
+ *  syncing, its query polls faster so the list and progress update live. */
 export function useAccountMessages(
   accounts: MailAccount[],
   folder = "INBOX",
@@ -40,12 +58,21 @@ export function useAccountMessages(
   const results = useQueries({
     queries: accounts.map((account) => ({
       queryKey: MAILBOX_KEYS.messages(account.id, folder, limit),
-      queryFn: async (): Promise<InboxMessage[]> => {
+      queryFn: async (): Promise<AccountMessages> => {
         const response = await api.listMessages(account.id, folder, limit);
-        return response.messages.map((message) => ({ ...message, accountId: account.id }));
+        return {
+          messages: response.messages.map((message) => ({ ...message, accountId: account.id })),
+          sync: response.sync ?? null,
+        };
       },
       enabled: enabled && account.has_credential,
       retry: 0,
+      // poll fast while that account is syncing (list fills + progress), else
+      // slowly to pick up results from the 10s auto-sync triggers.
+      refetchInterval: (query: { state: { data?: AccountMessages } }) => {
+        if (!enabled) return false;
+        return query.state.data?.sync?.state === "syncing" ? 1500 : 8000;
+      },
     })),
   });
 
@@ -53,7 +80,7 @@ export function useAccountMessages(
   // when both timestamps are missing (0), so chronological order is correct
   // even when accounts use different Date header formats.
   const messages = results
-    .flatMap((result) => result.data ?? [])
+    .flatMap((result) => result.data?.messages ?? [])
     .sort((a, b) => {
       if (a.timestamp !== b.timestamp) return b.timestamp - a.timestamp;
       return a.date < b.date ? 1 : -1;
@@ -61,7 +88,44 @@ export function useAccountMessages(
   const isLoading = results.some((result) => result.isLoading && result.fetchStatus !== "idle");
   const errorCount = results.filter((result) => result.isError).length;
 
-  return { messages, isLoading, errorCount };
+  const syncs = results
+    .map((result) => result.data?.sync)
+    .filter((s): s is MailSyncStatus => Boolean(s));
+  const sync: InboxSyncSummary = {
+    isSyncing: syncs.some((s) => s.state === "syncing"),
+    processed: syncs.reduce((n, s) => n + (s.state === "syncing" ? s.processed : 0), 0),
+    total: syncs.reduce((n, s) => n + (s.state === "syncing" ? s.total : 0), 0),
+    newCount: syncs.reduce((n, s) => n + s.new, 0),
+    error: syncs.find((s) => s.state === "error")?.error ?? null,
+  };
+
+  return { messages, isLoading, errorCount, sync };
+}
+
+/** Keep the local cache fresh: trigger an incremental background sync for each
+ *  credentialed account on mount and every `intervalMs` (default 10s). Only
+ *  runs while mounted (i.e. while the inbox is open). Fire-and-forget — results
+ *  surface through {@link useAccountMessages}'s polling. */
+export function useMailboxAutoSync(
+  accounts: MailAccount[],
+  folder = "INBOX",
+  enabled = true,
+  intervalMs = 10000,
+) {
+  const ids = accounts
+    .filter((a) => a.has_credential)
+    .map((a) => a.id)
+    .join(",");
+  useEffect(() => {
+    if (!enabled || !ids) return undefined;
+    const list = ids.split(",");
+    const run = () => {
+      for (const accountId of list) void api.syncAccount(accountId, folder).catch(() => {});
+    };
+    run();
+    const timer = setInterval(run, intervalMs);
+    return () => clearInterval(timer);
+  }, [ids, folder, enabled, intervalMs]);
 }
 
 export function useMessage(
