@@ -64,6 +64,7 @@ call `backend/services/` only.
 | `GET` | `/api/calendar/schedules/{file}/` | `schedules.get_schedule_detail` | Schedule + `{colors, stats, breakdowns}` (events expanded) |
 | `DELETE` | `/api/calendar/schedules/{file}/` | `schedules.delete_schedule` | Delete schedule; cascade-removes its entries (`{removed_mappings}`) |
 | `PUT` | `/api/calendar/schedules/{file}/color-mappings/` | `schedules.update_color_mappings` | Replace `color_mappings` (body = `{type: color_name}`) |
+| `POST` | `/api/calendar/schedules/{file}/categories/rename/` | `schedules.rename_category` | Rename a category across all events (body = `{old, new}`) → `{updated}` |
 | `POST` | `/api/calendar/schedules/{file}/events/` | `schedules.add_event` | Append an event (`{index}`) |
 | `PUT` | `/api/calendar/schedules/{file}/events/{i}/` | `schedules.update_event` | Replace the event at raw index `i` |
 | `DELETE` | `/api/calendar/schedules/{file}/events/{i}/` | `schedules.delete_event` | Delete the event at raw index `i` |
