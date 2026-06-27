@@ -49,7 +49,11 @@ Stable codes: `validation_error`, `permission_denied`, `not_found`, `conflict`, 
 
 ### Calendar
 
-`GET/POST /api/calendar/events/`
+Weekly-schedule + calendar planner over file-based JSON stores. See
+`utils/apps/calendar/README.md`. Base prefix `/api/calendar/`; DRF routes:
+`utils/api/routes/calendar.py`; views call `backend/services/` only.
+
+_Endpoints documented in Stage 5 of the migration (reserved)._
 
 ### Media Viewer (Artifacts)
 
