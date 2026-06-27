@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type CSSProperties, useState } from "react";
 import {
   Inbox,
   LayoutGrid,
@@ -14,6 +14,7 @@ import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { CustomizeDialog } from "@mailbox/components/CustomizeDialog";
 import { MessageDetail } from "@mailbox/components/MessageDetail";
 import { MessageList, messageKey } from "@mailbox/components/MessageList";
 import { ProviderIcon } from "@mailbox/components/ProviderIcon";
@@ -29,6 +30,7 @@ const FOLDER = "INBOX";
 export function InboxView() {
   const density = useWorkspaceStore((s) => s.mailboxDensity);
   const setDensity = useWorkspaceStore((s) => s.setMailboxDensity);
+  const prefs = useWorkspaceStore((s) => s.mailboxPrefs);
   const setMailboxView = useWorkspaceStore((s) => s.setMailboxView);
   const selectedRaw = useWorkspaceStore((s) => s.mailboxAccountId) ?? "all";
   const setSelectedAccount = useWorkspaceStore((s) => s.setMailboxAccountId);
@@ -47,7 +49,7 @@ export function InboxView() {
   const accountLabel = (id: string): string =>
     accounts.find((a) => a.id === id)?.display_name ?? id;
 
-  const live = useAccountMessages(credentialed, FOLDER);
+  const live = useAccountMessages(credentialed, FOLDER, true, prefs.loadLimit);
   const allMessages: InboxMessage[] = live.messages;
   const messages =
     selected === "all" ? allMessages : allMessages.filter((m) => m.accountId === selected);
@@ -89,6 +91,7 @@ export function InboxView() {
       accountAccent={accountAccent}
       accountLabel={accountLabel}
       showAccount={selected === "all"}
+      prefs={prefs}
     />
   );
 
@@ -137,6 +140,7 @@ export function InboxView() {
               <LayoutGrid className="h-3.5 w-3.5" /> Modern
             </button>
           </div>
+          <CustomizeDialog />
           <Button variant="ghost" size="icon" className="h-9 w-9" onClick={refresh} title="Refresh">
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -161,9 +165,10 @@ export function InboxView() {
         <div className="flex min-h-0 flex-1">
           <div
             className={cn(
-              "mailbox-scroll min-h-0 w-full overflow-y-auto lg:w-[440px] lg:shrink-0 lg:border-r lg:border-border",
+              "mailbox-scroll mailbox-list-pane min-h-0 overflow-y-auto lg:shrink-0 lg:border-r lg:border-border",
               openMessage && "hidden lg:block",
             )}
+            style={{ "--mb-list-w": `${prefs.listWidth}px` } as CSSProperties}
           >
             {listBody}
           </div>

@@ -1,5 +1,7 @@
+import { type CSSProperties } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
+import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -35,6 +37,8 @@ export function MessageDetail({
   onBack,
   backClassName,
 }: Props) {
+  const textSize = useWorkspaceStore((s) => s.mailboxPrefs.textSize);
+  const bodySize = textSize === "sm" ? "0.85rem" : textSize === "lg" ? "1.02rem" : "0.9rem";
   const sender = parseSender(message.from);
   // List messages arrive without a body; fetch the full message on open.
   const needsFetch = canFetch && message.body_text === null && message.body_html === null;
@@ -58,7 +62,10 @@ export function MessageDetail({
       </header>
 
       <div className="mailbox-scroll min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-3xl p-5 lg:p-7">
+        <div
+          className="mx-auto w-full max-w-3xl p-5 lg:p-7"
+          style={{ "--mailbox-body-size": bodySize } as CSSProperties}
+        >
           <h1 className="text-xl font-semibold leading-snug text-foreground">
             {message.subject || "(no subject)"}
           </h1>

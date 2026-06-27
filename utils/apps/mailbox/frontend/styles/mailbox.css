@@ -156,8 +156,10 @@
   padding: 0.55rem 1rem 0.55rem 1.1rem;
   border-bottom: 1px solid color-mix(in srgb, hsl(var(--border)) 70%, transparent);
   cursor: pointer;
+  font-size: var(--mb-text, 0.875rem);
   transition: background var(--motion-fast) var(--ease-standard);
 }
+.mailbox-row[data-tight="true"] { padding-top: 0.28rem; padding-bottom: 0.28rem; }
 .mailbox-row::before {
   content: "";
   position: absolute;
@@ -186,11 +188,13 @@
   background: hsl(var(--card));
   cursor: pointer;
   overflow: hidden;
+  font-size: var(--mb-text, 0.875rem);
   transition:
     transform var(--motion-base) var(--ease-standard),
     box-shadow var(--motion-base) var(--ease-standard),
     border-color var(--motion-base) var(--ease-standard);
 }
+.mailbox-card[data-tight="true"] { padding: 0.55rem 0.7rem; gap: 0.6rem; }
 .mailbox-card::before {
   content: "";
   position: absolute;
@@ -213,6 +217,41 @@
 
 .mailbox-unread-strong { font-weight: 700; color: hsl(var(--foreground)); }
 .mailbox-read { color: hsl(var(--muted-foreground)); }
+
+/* --- prefs-driven list sizing (text size + compact column widths) ----------- */
+
+.mailbox-list { --mb-text: 0.875rem; }
+.mailbox-list[data-text="sm"] { --mb-text: 0.8rem; }
+.mailbox-list[data-text="md"] { --mb-text: 0.9rem; }
+.mailbox-list[data-text="lg"] { --mb-text: 1.02rem; }
+
+/* compact columns sized from the saved prefs (CSS vars set on .mailbox-list) */
+.mailbox-col-from {
+  width: var(--mb-from-w, 180px);
+  flex-shrink: 0;
+}
+.mailbox-col-subject {
+  width: var(--mb-subject-w, 280px);
+  flex-shrink: 0;
+}
+.mailbox-col-snippet {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.mailbox-col-snippet[data-capped="true"] {
+  flex: 0 1 var(--mb-snippet-w);
+  max-width: var(--mb-snippet-w);
+}
+.mailbox-col-date {
+  width: 4rem;
+  flex-shrink: 0;
+}
+
+/* modern split view: full width on small screens, configurable column at lg+ */
+.mailbox-list-pane { width: 100%; }
+@media (min-width: 1024px) {
+  .mailbox-list-pane { width: var(--mb-list-w, 440px); flex-shrink: 0; }
+}
 
 /* --- email body rendering --------------------------------------------------- */
 

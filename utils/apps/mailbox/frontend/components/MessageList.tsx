@@ -1,14 +1,11 @@
+import type { CSSProperties } from "react";
+
 import { cn } from "@/lib/utils";
-import type { MailboxDensity } from "@/app/stores/workspaceStore";
+import type { MailboxDensity, MailboxPrefs } from "@/app/stores/workspaceStore";
 
 import { ProviderIcon } from "@mailbox/components/ProviderIcon";
 import type { InboxMessage } from "@mailbox/hooks/useMailbox";
-import {
-  type Accent,
-  accentClass,
-  parseSender,
-  providerLabel,
-} from "@mailbox/utils/colors";
+import { type Accent, accentClass, parseSender, providerLabel } from "@mailbox/utils/colors";
 import { formatDate } from "@mailbox/utils/format";
 
 interface ItemProps {
@@ -18,9 +15,10 @@ interface ItemProps {
   accountAccent: Accent;
   accountLabel: string;
   showAccount: boolean;
+  prefs: MailboxPrefs;
 }
 
-function CompactRow({ message, active, onSelect, accountAccent, accountLabel, showAccount }: ItemProps) {
+function CompactRow({ message, active, onSelect, accountAccent, accountLabel, showAccount, prefs }: ItemProps) {
   const sender = parseSender(message.from);
   return (
     <button
@@ -28,91 +26,98 @@ function CompactRow({ message, active, onSelect, accountAccent, accountLabel, sh
       onClick={onSelect}
       data-active={active}
       data-unread={message.unread}
+      data-tight={prefs.tightRows}
       className={cn("mailbox-row w-full text-left", accentClass(accountAccent))}
     >
-      <span className="mailbox-provider h-7 w-7" title={providerLabel(message.provider)} aria-hidden>
-        <ProviderIcon provider={message.provider} className="mailbox-provider-glyph" />
-      </span>
+      {prefs.showProviderIcon && (
+        <span className="mailbox-provider h-7 w-7" title={providerLabel(message.provider)} aria-hidden>
+          <ProviderIcon provider={message.provider} className="mailbox-provider-glyph" />
+        </span>
+      )}
       <span
-        className={cn(
-          "w-36 shrink-0 truncate text-sm",
-          message.unread ? "mailbox-unread-strong" : "mailbox-read",
-        )}
+        className={cn("mailbox-col-from truncate", message.unread ? "mailbox-unread-strong" : "mailbox-read")}
         title={sender.name}
       >
         {sender.name}
       </span>
-      <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
-        <span
-          className={cn(
-            "shrink-0 max-w-[55%] truncate text-sm",
-            message.unread ? "mailbox-unread-strong" : "text-foreground",
-          )}
-        >
-          {message.subject || "(no subject)"}
-        </span>
-        <span className="truncate text-sm text-muted-foreground">— {message.snippet}</span>
+      <span
+        className={cn(
+          "mailbox-col-subject truncate",
+          message.unread ? "mailbox-unread-strong" : "text-foreground",
+        )}
+        title={message.subject}
+      >
+        {message.subject || "(no subject)"}
       </span>
-      {showAccount && (
+      {prefs.showSnippet && (
+        <span className="mailbox-col-snippet truncate text-muted-foreground" data-capped={prefs.snippetWidth > 0}>
+          {message.snippet ? `— ${message.snippet}` : ""}
+        </span>
+      )}
+      {showAccount && prefs.showAccountBadge && (
         <span className={cn("mailbox-badge hidden sm:inline-flex", accentClass(accountAccent))}>
           {accountLabel}
         </span>
       )}
-      <span className="w-16 shrink-0 text-right text-xs text-muted-foreground">
-        {formatDate(message.date)}
-      </span>
+      {prefs.showDate && (
+        <span className="mailbox-col-date shrink-0 text-right text-xs text-muted-foreground">
+          {formatDate(message.date)}
+        </span>
+      )}
     </button>
   );
 }
 
-function ModernCard({ message, active, onSelect, accountAccent, accountLabel, showAccount }: ItemProps) {
+function ModernCard({ message, active, onSelect, accountAccent, accountLabel, showAccount, prefs }: ItemProps) {
   const sender = parseSender(message.from);
+  const showAccountBadge = showAccount && prefs.showAccountBadge;
+  const showNew = prefs.showUnreadBadge && message.unread;
+  const showBadgeRow = showAccountBadge || prefs.showProviderBadge || showNew;
   return (
     <button
       type="button"
       onClick={onSelect}
       data-active={active}
       data-unread={message.unread}
+      data-tight={prefs.tightRows}
       className={cn("mailbox-card w-full text-left", accentClass(accountAccent))}
     >
-      <span className="mailbox-provider h-10 w-10" title={providerLabel(message.provider)} aria-hidden>
-        <ProviderIcon provider={message.provider} className="mailbox-provider-glyph" />
-      </span>
+      {prefs.showProviderIcon && (
+        <span className="mailbox-provider h-10 w-10" title={providerLabel(message.provider)} aria-hidden>
+          <ProviderIcon provider={message.provider} className="mailbox-provider-glyph" />
+        </span>
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <span
-            className={cn(
-              "truncate text-sm",
-              message.unread ? "mailbox-unread-strong" : "mailbox-read",
-            )}
+            className={cn("truncate", message.unread ? "mailbox-unread-strong" : "mailbox-read")}
             title={sender.name}
           >
             {sender.name}
           </span>
-          <span className="shrink-0 text-xs text-muted-foreground">
-            {formatDate(message.date)}
-          </span>
-        </div>
-        <div
-          className={cn(
-            "mt-0.5 truncate text-sm",
-            message.unread ? "mailbox-unread-strong" : "text-foreground",
+          {prefs.showDate && (
+            <span className="shrink-0 text-xs text-muted-foreground">{formatDate(message.date)}</span>
           )}
-        >
+        </div>
+        <div className={cn("mt-0.5 truncate", message.unread ? "mailbox-unread-strong" : "text-foreground")}>
           {message.subject || "(no subject)"}
         </div>
-        <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">{message.snippet}</div>
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          {showAccount && (
-            <span className={cn("mailbox-badge", accentClass(accountAccent))}>{accountLabel}</span>
-          )}
-          <span className="mailbox-badge mailbox-c-primary opacity-80">
-            {providerLabel(message.provider)}
-          </span>
-          {message.unread && (
-            <span className={cn("mailbox-badge", accentClass(accountAccent))}>New</span>
-          )}
-        </div>
+        {prefs.showSnippet && (
+          <div className="mt-1 line-clamp-2 text-muted-foreground">{message.snippet}</div>
+        )}
+        {showBadgeRow && (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {showAccountBadge && (
+              <span className={cn("mailbox-badge", accentClass(accountAccent))}>{accountLabel}</span>
+            )}
+            {prefs.showProviderBadge && (
+              <span className="mailbox-badge mailbox-c-primary opacity-80">
+                {providerLabel(message.provider)}
+              </span>
+            )}
+            {showNew && <span className={cn("mailbox-badge", accentClass(accountAccent))}>New</span>}
+          </div>
+        )}
       </div>
     </button>
   );
@@ -130,6 +135,7 @@ interface ListProps {
   accountAccent: (accountId: string) => Accent;
   accountLabel: (accountId: string) => string;
   showAccount: boolean;
+  prefs: MailboxPrefs;
 }
 
 export function MessageList({
@@ -140,6 +146,7 @@ export function MessageList({
   accountAccent,
   accountLabel,
   showAccount,
+  prefs,
 }: ListProps) {
   if (messages.length === 0) {
     return (
@@ -149,35 +156,30 @@ export function MessageList({
     );
   }
 
-  if (density === "compact") {
-    return (
-      <div className="flex flex-col">
-        {messages.map((message) => (
-          <CompactRow
-            key={`${message.accountId}:${message.uid}`}
-            message={message}
-            active={messageKey(message) === selectedKey}
-            onSelect={() => onSelect(message)}
-            accountAccent={accountAccent(message.accountId)}
-            accountLabel={accountLabel(message.accountId)}
-            showAccount={showAccount}
-          />
-        ))}
-      </div>
-    );
-  }
+  const listStyle = {
+    "--mb-from-w": `${prefs.fromWidth}px`,
+    "--mb-subject-w": `${prefs.subjectWidth}px`,
+    "--mb-snippet-w": `${prefs.snippetWidth}px`,
+  } as CSSProperties;
+
+  const Item = density === "compact" ? CompactRow : ModernCard;
 
   return (
-    <div className="flex flex-col gap-2 p-3">
+    <div
+      className={cn("mailbox-list", density === "compact" ? "flex flex-col" : "flex flex-col gap-2 p-3")}
+      data-text={prefs.textSize}
+      style={listStyle}
+    >
       {messages.map((message) => (
-        <ModernCard
-          key={`${message.accountId}:${message.uid}`}
+        <Item
+          key={messageKey(message)}
           message={message}
           active={messageKey(message) === selectedKey}
           onSelect={() => onSelect(message)}
           accountAccent={accountAccent(message.accountId)}
           accountLabel={accountLabel(message.accountId)}
           showAccount={showAccount}
+          prefs={prefs}
         />
       ))}
     </div>
