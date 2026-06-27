@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { CalendarRange, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { DirectEvent, MergedEvent } from "@/types/calendar";
@@ -19,6 +19,7 @@ import {
   weekDates,
 } from "../utils/dates";
 import type { GridEvent } from "../utils/timegrid";
+import { ActiveDatesDialog } from "./ActiveDatesDialog";
 import { DirectEventDialog } from "./DirectEventDialog";
 import { EventChipMini } from "./EventBlock";
 import { TimeGrid } from "./TimeGrid";
@@ -41,6 +42,7 @@ export function CalendarView() {
   const [anchor, setAnchor] = useState<string>(today());
   const [mode, setMode] = useState<Mode>("week");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [activeDatesOpen, setActiveDatesOpen] = useState(false);
   const [editEvent, setEditEvent] = useState<DirectEvent | null>(null);
   const [defaultDate, setDefaultDate] = useState<string>(today());
 
@@ -137,6 +139,14 @@ export function CalendarView() {
               Month
             </button>
           </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setActiveDatesOpen(true)}
+          >
+            <CalendarRange className="h-4 w-4" />
+            Active dates
+          </Button>
           <Button size="sm" onClick={() => openNew(todayStr)}>
             <Plus className="h-4 w-4" />
             Event
@@ -219,6 +229,7 @@ export function CalendarView() {
         event={editEvent}
         defaultDate={defaultDate}
       />
+      <ActiveDatesDialog open={activeDatesOpen} onOpenChange={setActiveDatesOpen} />
     </div>
   );
 }
