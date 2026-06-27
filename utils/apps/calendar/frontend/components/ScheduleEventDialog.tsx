@@ -20,10 +20,25 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   file: string;
+  /** Prefill when opened from a grid cell (0=Mon..6=Sun). */
+  defaultDay?: number;
+  defaultStart?: string;
+}
+
+/** "HH:MM" + whole hours, clamped to 23:00. */
+function addHour(time: string): string {
+  const [h] = time.split(":").map(Number);
+  return `${String(Math.min(h + 1, 23)).padStart(2, "0")}:00`;
 }
 
 /** Add a recurring event to a schedule (one or more weekdays). */
-export function ScheduleEventDialog({ open, onOpenChange, file }: Props) {
+export function ScheduleEventDialog({
+  open,
+  onOpenChange,
+  file,
+  defaultDay = 0,
+  defaultStart = "09:00",
+}: Props) {
   const add = useAddScheduleEvent(file);
 
   const [title, setTitle] = useState("");
@@ -39,13 +54,13 @@ export function ScheduleEventDialog({ open, onOpenChange, file }: Props) {
     if (!open) return;
     setTitle("");
     setType("other");
-    setDays([0]);
-    setStart("09:00");
-    setEnd("10:00");
+    setDays([defaultDay]);
+    setStart(defaultStart);
+    setEnd(addHour(defaultStart));
     setSub("");
     setOverwriteable(false);
     setError(null);
-  }, [open]);
+  }, [open, defaultDay, defaultStart]);
 
   function toggleDay(d: number) {
     setDays((prev) =>

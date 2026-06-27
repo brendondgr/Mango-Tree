@@ -19,7 +19,9 @@ import {
 } from "../hooks/useCalendar";
 import { buildClassToHex, colorForType } from "../utils/colors";
 import { DOW_LABELS } from "../utils/dates";
+import type { GridEvent } from "../utils/timegrid";
 import { ScheduleEventDialog } from "./ScheduleEventDialog";
+import { TimeGrid } from "./TimeGrid";
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -39,6 +41,10 @@ export function SchedulesView() {
 
   const [selected, setSelected] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [addDefaults, setAddDefaults] = useState<{ day: number; start: string }>({
+    day: 0,
+    start: "09:00",
+  });
   const [entryStart, setEntryStart] = useState("");
   const [entryEnd, setEntryEnd] = useState("");
   const [busy, setBusy] = useState(false);
@@ -66,6 +72,26 @@ export function SchedulesView() {
 
   const types = detail.data ? Object.keys(detail.data.colors).sort() : [];
   const colorNames = (palette.data ?? []).map((c) => c.name);
+
+  // Expanded schedule events → timeline events (day index is 0=Mon..6=Sun).
+  const gridEvents = useMemo<GridEvent[]>(() => {
+    const events = detail.data?.schedule.events ?? [];
+    const out: GridEvent[] = [];
+    for (const ev of events) {
+      if (typeof ev.day !== "number" || !ev.start || !ev.end) continue;
+      out.push({
+        dayIndex: ev.day,
+        start: ev.start,
+        end: ev.end,
+        title: ev.title,
+        type: ev.type,
+        sub: ev.sub,
+        overwriteable: ev.overwriteable,
+        meta: ev,
+      });
+    }
+    return out;
+  }, [detail.data]);
 
   async function handlePrint() {
     if (!selected) return;
@@ -183,44 +209,21 @@ export function SchedulesView() {
               </div>
             </div>
 
-            {/* weekly grid */}
-            <div className="calendar-week">
-              {DOW_LABELS.map((label, dayIdx) => {
-                const dayEvents = detail.data!.schedule.events
-                  .filter((e) => e.day === dayIdx)
-                  .sort((a, b) => (a.start ?? "").localeCompare(b.start ?? ""));
-                return (
-                  <div key={dayIdx} className="calendar-daycol">
-                    <div className="calendar-daycol-head">
-                      <span className="text-xs font-medium text-muted-foreground">{label}</span>
-                    </div>
-                    <div className="calendar-daycol-body">
-                      {dayEvents.map((ev, i) => {
-                        const color = colorForType(ev.type, detail.data!.colors, classToHex);
-                        return (
-                          <button
-                            key={i}
-                            type="button"
-                            className="calendar-event"
-                            style={{
-                              background: color.bg,
-                              borderLeftColor: color.border,
-                              color: color.text,
-                            }}
-                            title={`${ev.start}–${ev.end} · ${ev.title} (click to delete)`}
-                            onClick={() => handleDeleteEvent(ev)}
-                          >
-                            <span className="calendar-event-time">
-                              {ev.start}–{ev.end}
-                            </span>
-                            <span className="calendar-event-title block">{ev.title}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+            {/* weekly grid (hour-by-hour timeline, honors overwriteable) */}
+            <div className="h-[26rem] min-h-0">
+              <TimeGrid
+                days={DOW_LABELS.map((label) => ({ key: label, label }))}
+                events={gridEvents}
+                resolveColor={(type) =>
+                  colorForType(type, detail.data!.colors, classToHex)
+                }
+                emptyHint="No events yet. Click a column to add one."
+                onCellClick={(dayIndex, time) => {
+                  setAddDefaults({ day: dayIndex, start: time });
+                  setAddOpen(true);
+                }}
+                onEventClick={(ev) => handleDeleteEvent(ev.meta as ScheduleEvent)}
+              />
             </div>
 
             <div className="grid gap-5 md:grid-cols-2">
@@ -349,7 +352,13 @@ export function SchedulesView() {
       </div>
 
       {selected ? (
-        <ScheduleEventDialog open={addOpen} onOpenChange={setAddOpen} file={selected} />
+        <ScheduleEventDialog
+          open={addOpen}
+          onOpenChange={setAddOpen}
+          file={selected}
+          defaultDay={addDefaults.day}
+          defaultStart={addDefaults.start}
+        />
       ) : null}
     </div>
   );
