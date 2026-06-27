@@ -15,6 +15,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "utils.apps.media_viewer.backend.apps.MediaViewerBackendConfig",
     "utils.apps.exercise.backend.apps.ExerciseBackendConfig",
+    "utils.apps.projectmanager.backend.apps.ProjectManagerBackendConfig",
 ]
 
 MIDDLEWARE = [
@@ -39,9 +40,22 @@ DATABASES = {
             str(BASE_DIR / "data" / "exercise" / "workouttracker.db"),
         ),
     },
+    # Legacy ProjectManager SQLite store, bound read/write with managed=False
+    # models. Schema and rows are preserved unchanged (Strategy A). Override the
+    # path with MANGO_PROJECTMANAGER_DB for tests or alternate deployments.
+    "projectmanager": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.environ.get(
+            "MANGO_PROJECTMANAGER_DB",
+            str(BASE_DIR / "data" / "projectmanager" / "projectmanager.db"),
+        ),
+    },
 }
 
-DATABASE_ROUTERS = ["utils.apps.exercise.backend.db_router.ExerciseRouter"]
+DATABASE_ROUTERS = [
+    "utils.apps.exercise.backend.db_router.ExerciseRouter",
+    "utils.apps.projectmanager.backend.db_router.ProjectManagerRouter",
+]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
