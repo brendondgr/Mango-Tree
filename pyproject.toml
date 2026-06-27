@@ -17,6 +17,7 @@ dependencies = [
     "msal>=1.37.0",
     "python-dotenv>=1.0",
     "stravalib>=2.5.0",
+    "reportlab>=4.0",
 ]
 
 [project.optional-dependencies]

@@ -49,11 +49,49 @@ Stable codes: `validation_error`, `permission_denied`, `not_found`, `conflict`, 
 
 ### Calendar
 
-Weekly-schedule + calendar planner over file-based JSON stores. See
-`utils/apps/calendar/README.md`. Base prefix `/api/calendar/`; DRF routes:
-`utils/api/routes/calendar.py`; views call `backend/services/` only.
+Weekly-schedule + calendar planner, migrated from a standalone Flask app. Build
+reusable weekly **schedules**, map them onto date ranges (**entries**), drop in
+one-off **direct events**, and read the merged result by day/week/range. No
+database — state lives in file-based JSON stores (`data/calendar/calendar.json`,
+`data/calendar/schedules/*.json`), seeded on first run from a committed copy. See
+`utils/apps/calendar/README.md`. DRF routes: `utils/api/routes/calendar.py`; views
+call `backend/services/` only.
 
-_Endpoints documented in Stage 5 of the migration (reserved)._
+| Method | Endpoint | Service | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/calendar/schedules/` | `schedules.list_schedules` | List schedule filenames (`{schedules, count}`) |
+| `POST` | `/api/calendar/schedules/` | `schedules.save_schedule` | Save/upload a schedule (JSON body or multipart `file`) |
+| `GET` | `/api/calendar/schedules/{file}/` | `schedules.get_schedule_detail` | Schedule + `{colors, stats, breakdowns}` (events expanded) |
+| `DELETE` | `/api/calendar/schedules/{file}/` | `schedules.delete_schedule` | Delete schedule; cascade-removes its entries (`{removed_mappings}`) |
+| `PUT` | `/api/calendar/schedules/{file}/color-mappings/` | `schedules.update_color_mappings` | Replace `color_mappings` (body = `{type: color_name}`) |
+| `POST` | `/api/calendar/schedules/{file}/events/` | `schedules.add_event` | Append an event (`{index}`) |
+| `PUT` | `/api/calendar/schedules/{file}/events/{i}/` | `schedules.update_event` | Replace the event at raw index `i` |
+| `DELETE` | `/api/calendar/schedules/{file}/events/{i}/` | `schedules.delete_event` | Delete the event at raw index `i` |
+| `POST` | `/api/calendar/schedules/{file}/print/` | `pdf.generate_schedule_pdf` | Render a themed PDF for a view (`{timeRange, daysRange, hiddenCategories}`) → `application/pdf` |
+| `GET` | `/api/calendar/colors/` | `schedules.predefined_colors` | The 16-color palette for the picker |
+| `GET` | `/api/calendar/instructions/` | `schedules.load_instructions` | LLM schema prompt (`{content}`) |
+| `GET` | `/api/calendar/config/` | `calendar.load_calendar` | Raw calendar config (`{entries, direct_events}`) |
+| `GET` | `/api/calendar/date/{date}/` | `calendar.day_view` | Merged events for a date (`{events, colors, schedule_filename}`) |
+| `GET` | `/api/calendar/week/` | `calendar.week_view` | Merged events for a week (`?date=`; default current) |
+| `GET` | `/api/calendar/range/` | `calendar.range_view` | Merged events across `?start=&end=` |
+| `POST` | `/api/calendar/entries/` | `calendar.add_calendar_entry` | Map a schedule to a date range (`{index}`; 409 on overlap) |
+| `PUT` | `/api/calendar/entries/{i}/` | `calendar.update_calendar_entry` | Update an entry |
+| `DELETE` | `/api/calendar/entries/{i}/` | `calendar.delete_calendar_entry` | Delete an entry |
+| `POST` | `/api/calendar/events/` | `calendar.add_direct_event` | Add a one-off direct event (`{index}`) |
+| `PUT` | `/api/calendar/events/{i}/` | `calendar.update_direct_event` | Update a direct event |
+| `DELETE` | `/api/calendar/events/{i}/` | `calendar.delete_direct_event` | Delete a direct event |
+| `POST` | `/api/calendar/events/delete-by-title/` | `calendar.delete_event_by_title` | Delete by `{date, title}` (404 none, 409 ambiguous) |
+| `GET` | `/api/calendar/free-slots/` | `calendar.free_slots` | Free gaps on `?date=` (`?min_duration_minutes=&start_after=&end_before=`) |
+| `GET` | `/api/calendar/upcoming/` | `calendar.upcoming` | Upcoming direct events (`?days_ahead=14&type_filter=`) |
+
+A schedule: `{name, description?, events: [...], color_mappings: {type: color_name}}`.
+An event has `title`, `type`, optional `sub`/`overwriteable`, and either legacy flat
+`day`/`start`/`end` or `timestamps: [{day, start, end}]`; `day` is `0–6` (Mon–Sun) or
+a list. A direct event: `{date, title, type, start, end, sub?}`. Merged-view events
+carry `_source` (`schedule`/`direct`) and split markers (`_split`). Indices in event
+and entry routes are raw array positions returned by the read/create calls. Errors
+use the platform schema with codes `validation_error` (400), `not_found` (404),
+`conflict` (409). Filenames are sanitized server-side to block path traversal.
 
 ### Media Viewer (Artifacts)
 
