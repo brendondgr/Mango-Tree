@@ -63,7 +63,6 @@ interface ArtifactTileProps {
 export function ArtifactTile({ artifact }: ArtifactTileProps) {
   const ephemeralTab = useWorkspaceStore((s) => s.ephemeralTab);
   const openArtifactTab = useWorkspaceStore((s) => s.openArtifactTab);
-  const setSidebarMode = useWorkspaceStore((s) => s.setSidebarMode);
   const expandSidebar = useWorkspaceStore((s) => s.expandSidebar);
   const enqueueArtifact = useComposerArtifactStore((s) => s.enqueueArtifact);
   const {
@@ -155,7 +154,6 @@ export function ArtifactTile({ artifact }: ArtifactTileProps) {
               onClick={(event) => {
                 event.stopPropagation();
                 enqueueArtifact(artifact.id);
-                setSidebarMode("chat");
                 expandSidebar();
               }}
             >

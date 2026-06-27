@@ -115,7 +115,7 @@ export function useSetCredential() {
  *  clean the URL. Mount once in an always-rendered workspace component. */
 export function useOAuthReturn() {
   const qc = useQueryClient();
-  const openMailboxTab = useWorkspaceStore((s) => s.openMailboxTab);
+  const openAppTab = useWorkspaceStore((s) => s.openAppTab);
   const setMailboxView = useWorkspaceStore((s) => s.setMailboxView);
   const setMailboxAccountId = useWorkspaceStore((s) => s.setMailboxAccountId);
 
@@ -125,7 +125,7 @@ export function useOAuthReturn() {
     const error = params.get("mailbox_error");
     if (!added && !error) return;
 
-    openMailboxTab();
+    openAppTab("mailbox");
     setMailboxView("settings");
     if (added) {
       setMailboxAccountId(added);
