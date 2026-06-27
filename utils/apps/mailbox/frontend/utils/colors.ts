@@ -49,7 +49,3 @@ export function parseSender(from: string): ParsedSender {
   return { name: email || "Unknown", email };
 }
 
-export function initial(name: string): string {
-  const char = (name || "").trim().charAt(0);
-  return char ? char.toUpperCase() : "?";
-}

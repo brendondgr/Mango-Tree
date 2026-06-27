@@ -26,25 +26,29 @@
 .mailbox-fg { color: hsl(var(--c, var(--primary))); }
 .mailbox-bg { background: hsl(var(--c, var(--primary))); }
 
-.mailbox-dot {
-  width: 0.55rem;
-  height: 0.55rem;
-  flex-shrink: 0;
-  border-radius: var(--radius-pill);
-  background: hsl(var(--c, var(--primary)));
-}
-
-/* sender / account avatar — a tinted disc with an initial */
-.mailbox-avatar {
+/* provider badge — a colored OUTLINE around a brand logo. This is how accounts
+ * are told apart now (replacing the colored dot): the ring color is the account
+ * accent (--c), the glyph is the provider's logo. */
+.mailbox-provider {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   border-radius: var(--radius-pill);
-  font-weight: 700;
-  color: hsl(var(--c, var(--primary)));
-  background: color-mix(in srgb, hsl(var(--c, var(--primary))) 16%, transparent);
-  border: 1px solid color-mix(in srgb, hsl(var(--c, var(--primary))) 28%, transparent);
+  background: hsl(var(--card));
+  border: 2px solid color-mix(in srgb, hsl(var(--c, var(--primary))) 60%, hsl(var(--border)));
+}
+.mailbox-provider-glyph {
+  width: 60%;
+  height: 60%;
+  display: block;
+}
+/* small inline glyph used inside account chips (no ring of its own) */
+.mailbox-chip-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  display: block;
 }
 
 /* --- badges / chips (tinted by --c) ----------------------------------------- */
@@ -77,14 +81,15 @@
   white-space: nowrap;
   color: hsl(var(--muted-foreground));
   background: color-mix(in srgb, hsl(var(--foreground)) 5%, transparent);
-  border: 1px solid transparent;
+  /* always carry a faint accent OUTLINE so every account is color-coded */
+  border: 1px solid color-mix(in srgb, hsl(var(--c, var(--primary))) 30%, hsl(var(--border)));
   transition: all var(--motion-fast) var(--ease-standard);
 }
 .mailbox-chip:hover { color: hsl(var(--foreground)); }
 .mailbox-chip[data-active="true"] {
   color: hsl(var(--foreground));
   background: hsl(var(--card));
-  border-color: color-mix(in srgb, hsl(var(--c, var(--primary))) 45%, hsl(var(--border)));
+  border-color: color-mix(in srgb, hsl(var(--c, var(--primary))) 60%, hsl(var(--border)));
   box-shadow: var(--shadow-raised);
 }
 

@@ -1,12 +1,11 @@
 import { cn } from "@/lib/utils";
 import type { MailboxDensity } from "@/app/stores/workspaceStore";
 
+import { ProviderIcon } from "@mailbox/components/ProviderIcon";
 import type { InboxMessage } from "@mailbox/hooks/useMailbox";
 import {
   type Accent,
   accentClass,
-  accentForKey,
-  initial,
   parseSender,
   providerLabel,
 } from "@mailbox/utils/colors";
@@ -31,11 +30,8 @@ function CompactRow({ message, active, onSelect, accountAccent, accountLabel, sh
       data-unread={message.unread}
       className={cn("mailbox-row w-full text-left", accentClass(accountAccent))}
     >
-      <span
-        className={cn("mailbox-avatar h-7 w-7 text-[0.7rem]", accentClass(accentForKey(sender.email)))}
-        aria-hidden
-      >
-        {initial(sender.name)}
+      <span className="mailbox-provider h-7 w-7" title={providerLabel(message.provider)} aria-hidden>
+        <ProviderIcon provider={message.provider} className="mailbox-provider-glyph" />
       </span>
       <span
         className={cn(
@@ -79,11 +75,8 @@ function ModernCard({ message, active, onSelect, accountAccent, accountLabel, sh
       data-unread={message.unread}
       className={cn("mailbox-card w-full text-left", accentClass(accountAccent))}
     >
-      <span
-        className={cn("mailbox-avatar h-10 w-10 text-sm", accentClass(accentForKey(sender.email)))}
-        aria-hidden
-      >
-        {initial(sender.name)}
+      <span className="mailbox-provider h-10 w-10" title={providerLabel(message.provider)} aria-hidden>
+        <ProviderIcon provider={message.provider} className="mailbox-provider-glyph" />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">

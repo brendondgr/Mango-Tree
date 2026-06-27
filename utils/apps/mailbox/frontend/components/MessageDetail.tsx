@@ -4,13 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
+import { ProviderIcon } from "@mailbox/components/ProviderIcon";
 import type { InboxMessage } from "@mailbox/hooks/useMailbox";
 import { useMessage } from "@mailbox/hooks/useMailbox";
 import {
   type Accent,
   accentClass,
-  accentForKey,
-  initial,
   parseSender,
   providerLabel,
 } from "@mailbox/utils/colors";
@@ -65,10 +64,11 @@ export function MessageDetail({
 
           <div className="mt-4 flex items-center gap-3">
             <span
-              className={cn("mailbox-avatar h-10 w-10 text-sm", accentClass(accentForKey(sender.email)))}
+              className={cn("mailbox-provider h-10 w-10", accentClass(accountAccent))}
+              title={providerLabel(message.provider)}
               aria-hidden
             >
-              {initial(sender.name)}
+              <ProviderIcon provider={message.provider} className="mailbox-provider-glyph" />
             </span>
             <div className="min-w-0">
               <div className="truncate text-sm font-medium text-foreground">{sender.name}</div>

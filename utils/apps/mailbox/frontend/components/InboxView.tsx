@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 
 import { MessageDetail } from "@mailbox/components/MessageDetail";
 import { MessageList, messageKey } from "@mailbox/components/MessageList";
+import { ProviderIcon } from "@mailbox/components/ProviderIcon";
 import {
   type InboxMessage,
   useAccountMessages,
@@ -106,6 +107,7 @@ export function InboxView() {
             <AccountChip
               key={account.id}
               label={account.display_name}
+              provider={account.provider}
               active={selected === account.id}
               accent={accountAccent(account.id)}
               onClick={() => setSelectedAccount(account.id)}
@@ -178,11 +180,13 @@ function AccountChip({
   label,
   active,
   accent,
+  provider,
   onClick,
 }: {
   label: string;
   active: boolean;
   accent: Accent | "primary";
+  provider?: string;
   onClick: () => void;
 }) {
   return (
@@ -192,7 +196,11 @@ function AccountChip({
       data-active={active}
       className={cn("mailbox-chip", accent === "primary" ? "mailbox-c-primary" : accentClass(accent))}
     >
-      <span className="mailbox-dot" aria-hidden />
+      {provider ? (
+        <ProviderIcon provider={provider} className="mailbox-chip-icon" />
+      ) : (
+        <Inbox className="h-4 w-4 shrink-0" aria-hidden />
+      )}
       {label}
     </button>
   );

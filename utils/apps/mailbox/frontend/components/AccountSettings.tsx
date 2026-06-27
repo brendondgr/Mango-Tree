@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { startOAuth } from "@/services/mailboxClient";
 
+import { ProviderIcon } from "@mailbox/components/ProviderIcon";
 import {
   useAccounts,
   useCreateAccount,
@@ -192,7 +193,9 @@ export function AccountSettings() {
                   accentClass(accentOf(account.id, index)),
                 )}
               >
-                <span className="mailbox-dot" aria-hidden />
+                <span className="mailbox-provider h-7 w-7" aria-hidden>
+                  <ProviderIcon provider={account.provider} className="mailbox-provider-glyph" />
+                </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-foreground">
                     {account.display_name}
@@ -239,6 +242,7 @@ export function AccountSettings() {
                     )}
                     data-active={form.provider === provider}
                   >
+                    <ProviderIcon provider={provider} className="mailbox-chip-icon" />
                     {providerLabel(provider)}
                   </button>
                 ))}
