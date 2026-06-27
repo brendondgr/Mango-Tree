@@ -74,9 +74,18 @@ class MailAccount:
 
 
 def build_xoauth2(user: str, access_token: str) -> str:
-    """Base64 XOAUTH2 SASL string used by Gmail and M365 (IMAP and SMTP)."""
+    """Base64 XOAUTH2 SASL string used by Gmail and M365 SMTP (AUTH command)."""
     raw = f"user={user}\x01auth=Bearer {access_token}\x01\x01"
     return base64.b64encode(raw.encode("utf-8")).decode("ascii")
+
+
+def _xoauth2_raw(user: str, access_token: str) -> bytes:
+    """Raw (un-encoded) SASL bytes for imaplib.authenticate.
+
+    imaplib's _Authenticator.encode() will base64-encode the callback return
+    value itself, so we must NOT pre-encode here (unlike the SMTP path).
+    """
+    return f"user={user}\x01auth=Bearer {access_token}\x01\x01".encode("utf-8")
 
 
 # --- injectable client seams --------------------------------------------------
@@ -118,8 +127,8 @@ def connect_imap(
     account.require_credentials()
     client = (imap_factory or _default_imap_factory)(account)
     if account.access_token and account.auth in ("oauth2", "either"):
-        auth_str = build_xoauth2(account.email, account.access_token)
-        client.authenticate("XOAUTH2", lambda _c: auth_str.encode("ascii"))
+        raw = _xoauth2_raw(account.email, account.access_token)
+        client.authenticate("XOAUTH2", lambda _c: raw)
     elif account.app_password:
         client.login(account.email, account.app_password)
     else:  # pragma: no cover - guarded by require_credentials

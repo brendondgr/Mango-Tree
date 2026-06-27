@@ -17,6 +17,7 @@ export interface MailAccount {
   smtp_host: string | null;
   smtp_port: number | null;
   has_credential: boolean;
+  color: string | null;
 }
 
 // Draft used by the Settings form before an id exists.
@@ -31,6 +32,7 @@ export interface MailAccountDraft {
   imap_port?: number | null;
   smtp_host?: string | null;
   smtp_port?: number | null;
+  color?: string | null;
 }
 
 export interface MailMessage {

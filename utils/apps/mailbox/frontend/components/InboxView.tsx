@@ -27,7 +27,7 @@ import {
   useMailboxAutoSync,
 } from "@mailbox/hooks/useMailbox";
 import { syncAccount } from "@/services/mailboxClient";
-import { ACCENTS, type Accent, accentClass, accentForKey } from "@mailbox/utils/colors";
+import { type Accent, accentClass, accentForAccount } from "@mailbox/utils/colors";
 
 const FOLDER = "INBOX";
 
@@ -48,8 +48,8 @@ export function InboxView() {
     selectedRaw !== "all" && !accounts.some((a) => a.id === selectedRaw) ? "all" : selectedRaw;
 
   const accentByAccount = new Map<string, Accent>();
-  accounts.forEach((account, index) => accentByAccount.set(account.id, ACCENTS[index % ACCENTS.length]));
-  const accountAccent = (id: string): Accent => accentByAccount.get(id) ?? accentForKey(id);
+  accounts.forEach((account) => accentByAccount.set(account.id, accentForAccount(account)));
+  const accountAccent = (id: string): Accent => accentByAccount.get(id) ?? accentForAccount({ id });
   const accountLabel = (id: string): string =>
     accounts.find((a) => a.id === id)?.display_name ?? id;
 
