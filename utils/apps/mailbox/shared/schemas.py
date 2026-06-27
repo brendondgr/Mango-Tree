@@ -17,6 +17,7 @@ from utils.apps.mailbox.shared.errors import ValidationError
 
 VALID_PROVIDERS = ("gmail", "m365", "exchange", "yahoo")
 VALID_STATUS = ("untested", "ok", "error")
+VALID_COLORS = ("sky", "mint", "coral", "lavender", "tangerine")
 
 # Keys that look like a secret and must never be accepted into account settings.
 # The config store asserts against this set as a defensive secret-leak guard.
@@ -82,6 +83,7 @@ class AccountConfig:
     imap_port: int | None = None
     smtp_host: str | None = None
     smtp_port: int | None = None
+    color: str | None = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "AccountConfig":
@@ -110,6 +112,13 @@ class AccountConfig:
                 details={"field": "imap_host"},
             )
 
+        color = _opt_str(data, "color")
+        if color is not None and color not in VALID_COLORS:
+            raise ValidationError(
+                f"invalid color '{color}'",
+                details={"field": "color", "valid": list(VALID_COLORS)},
+            )
+
         return cls(
             id=_req_str(data, "id"),
             provider=provider,
@@ -123,6 +132,7 @@ class AccountConfig:
             imap_port=_opt_int(data, "imap_port"),
             smtp_host=_opt_str(data, "smtp_host"),
             smtp_port=_opt_int(data, "smtp_port"),
+            color=color,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -139,6 +149,7 @@ class AccountConfig:
             "imap_port": self.imap_port,
             "smtp_host": self.smtp_host,
             "smtp_port": self.smtp_port,
+            "color": self.color,
         }
 
 

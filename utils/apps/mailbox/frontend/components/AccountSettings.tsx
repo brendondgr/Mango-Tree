@@ -26,7 +26,7 @@ import {
   useTestAccount,
   useUpdateAccount,
 } from "@mailbox/hooks/useMailbox";
-import { type Accent, accentClass, accentForKey, providerLabel } from "@mailbox/utils/colors";
+import { ACCENTS, type Accent, accentClass, accentForAccount, providerLabel } from "@mailbox/utils/colors";
 import type { MailAccount, MailAccountDraft, MailProvider } from "@/types/mailbox";
 
 const PROVIDERS: MailProvider[] = ["gmail", "m365", "exchange", "yahoo"];
@@ -41,6 +41,7 @@ interface FormState {
   imap_port: string;
   smtp_host: string;
   smtp_port: string;
+  color: Accent | null;
 }
 
 const EMPTY: FormState = {
@@ -52,6 +53,7 @@ const EMPTY: FormState = {
   imap_port: "",
   smtp_host: "",
   smtp_port: "",
+  color: null,
 };
 
 function toForm(account: MailAccount): FormState {
@@ -64,6 +66,7 @@ function toForm(account: MailAccount): FormState {
     imap_port: account.imap_port ? String(account.imap_port) : "",
     smtp_host: account.smtp_host ?? "",
     smtp_port: account.smtp_port ? String(account.smtp_port) : "",
+    color: (account.color as Accent) ?? null,
   };
 }
 
@@ -77,6 +80,7 @@ function toDraft(form: FormState): MailAccountDraft {
     imap_port: form.imap_port ? Number(form.imap_port) : null,
     smtp_host: form.smtp_host.trim() || null,
     smtp_port: form.smtp_port ? Number(form.smtp_port) : null,
+    color: form.color,
   };
 }
 
@@ -111,8 +115,7 @@ export function AccountSettings() {
     }
   }, [selectedId, editing?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const accentOf = (id: string, index: number): Accent =>
-    (["sky", "mint", "coral", "lavender", "tangerine"] as Accent[])[index % 5] ?? accentForKey(id);
+  const accentOf = (account: MailAccount): Accent => accentForAccount(account);
 
   const onConnect = async (provider: MailProvider) => {
     setError(null);
@@ -182,7 +185,7 @@ export function AccountSettings() {
           {accounts.length === 0 ? (
             <p className="px-2 py-3 text-xs text-muted-foreground">No accounts yet. Add one to start.</p>
           ) : (
-            accounts.map((account, index) => (
+            accounts.map((account) => (
               <button
                 key={account.id}
                 type="button"
@@ -190,7 +193,7 @@ export function AccountSettings() {
                 className={cn(
                   "flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-left transition-colors",
                   selectedId === account.id ? "bg-secondary" : "hover:bg-muted",
-                  accentClass(accentOf(account.id, index)),
+                  accentClass(accentOf(account)),
                 )}
               >
                 <span className="mailbox-provider h-7 w-7" aria-hidden>
@@ -270,6 +273,36 @@ export function AccountSettings() {
                     placeholder="Work, Personal, Team…"
                   />
                 </Field>
+
+                <div className="space-y-1.5">
+                  <Label>Inbox color</Label>
+                  <div className="flex gap-2">
+                    {ACCENTS.map((accent) => (
+                      <button
+                        key={accent}
+                        type="button"
+                        title={accent}
+                        onClick={() => setForm((f) => ({ ...f, color: f.color === accent ? null : accent }))}
+                        className={cn(
+                          "mailbox-color-swatch",
+                          accentClass(accent),
+                          form.color === accent && "mailbox-color-swatch-active",
+                        )}
+                        aria-pressed={form.color === accent}
+                        aria-label={accent}
+                      />
+                    ))}
+                    {form.color && (
+                      <button
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, color: null }))}
+                        className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                      >
+                        Auto
+                      </button>
+                    )}
+                  </div>
+                </div>
 
                 <Field label="Email address">
                   <Input
