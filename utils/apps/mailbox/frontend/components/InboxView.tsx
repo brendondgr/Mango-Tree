@@ -1,5 +1,6 @@
 import { type CSSProperties, useState } from "react";
 import {
+  AlertCircle,
   Inbox,
   LayoutGrid,
   Loader2,
@@ -87,7 +88,16 @@ export function InboxView() {
       <Loader2 className="h-4 w-4 animate-spin" /> Loading inbox…
     </div>
   ) : messages.length === 0 ? (
-    <EmptyInbox onOpenSettings={() => setMailboxView("settings")} />
+    live.sync.isSyncing ? (
+      <div className="flex flex-col items-center justify-center gap-2 p-10 text-sm text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        {live.sync.total > 0
+          ? `Fetching your mail… ${live.sync.processed}/${live.sync.total}`
+          : "Fetching your mail…"}
+      </div>
+    ) : (
+      <EmptyInbox onOpenSettings={() => setMailboxView("settings")} />
+    )
   ) : (
     <MessageList
       messages={messages}
@@ -125,6 +135,18 @@ export function InboxView() {
         </div>
 
         <div className="flex items-center gap-1.5">
+          {live.sync.isSyncing ? (
+            <span className="mailbox-sync">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              {live.sync.total > 0
+                ? `Syncing ${live.sync.processed}/${live.sync.total}…`
+                : "Syncing…"}
+            </span>
+          ) : live.sync.error ? (
+            <span className="mailbox-sync text-destructive" title={live.sync.error}>
+              <AlertCircle className="h-3.5 w-3.5" /> Sync failed
+            </span>
+          ) : null}
           <span className="hidden px-1 text-xs text-muted-foreground sm:inline">
             {messages.length} · {unreadCount} unread
           </span>
