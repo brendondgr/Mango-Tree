@@ -9,5 +9,6 @@ urlpatterns = [
     path("api/media-viewer/", include("utils.api.routes.media_viewer")),
     path("api/mailbox/", include("utils.api.routes.mailbox")),
     path("api/exercise/", include("utils.api.routes.exercise")),
+    path("api/projectmanager/", include("utils.api.routes.projectmanager")),
     path("api/agent/", include("utils.api.routes.agent")),
 ]
