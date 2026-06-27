@@ -1,4 +1,5 @@
 import {
+  CALENDAR_WORKSPACE_TAB,
   EXERCISE_WORKSPACE_TAB,
   MAILBOX_WORKSPACE_TAB,
   PROJECTMANAGER_WORKSPACE_TAB,
@@ -7,6 +8,7 @@ import {
   useWorkspaceStore,
 } from "@/app/stores/workspaceStore";
 import { getWorkspaceTab } from "@/features/workspace/components/workspaceTabs";
+import { CalendarWorkspace } from "@calendar/pages/CalendarWorkspace";
 import { ExerciseWorkspace } from "@exercise/pages/ExerciseWorkspace";
 import { useOAuthReturn } from "@mailbox/hooks/useMailbox";
 import { MailboxWorkspace } from "@mailbox/pages/MailboxWorkspace";
@@ -39,6 +41,14 @@ export function WorkspaceMainBody() {
     return (
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <ProjectManagerWorkspace />
+      </div>
+    );
+  }
+
+  if (activeWorkspaceTab === CALENDAR_WORKSPACE_TAB) {
+    return (
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <CalendarWorkspace />
       </div>
     );
   }

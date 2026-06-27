@@ -22,6 +22,7 @@
       "@exercise/*": ["../utils/apps/exercise/frontend/*"],
       "@mailbox/*": ["../utils/apps/mailbox/frontend/*"],
       "@projectmanager/*": ["../utils/apps/projectmanager/frontend/*"],
+      "@calendar/*": ["../utils/apps/calendar/frontend/*"],
       "lucide-react": ["./node_modules/lucide-react"],
       "react": ["./node_modules/@types/react"],
       "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],

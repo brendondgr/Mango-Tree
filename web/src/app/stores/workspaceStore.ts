@@ -67,10 +67,15 @@ export const MAILBOX_TAB_LABEL = "Mailbox";
 export const PROJECTMANAGER_WORKSPACE_TAB = "app:projectmanager";
 export const PROJECTMANAGER_TAB_LABEL = "Projects";
 
+export const CALENDAR_WORKSPACE_TAB = "app:calendar";
+export const CALENDAR_TAB_LABEL = "Calendar";
+
 export type MailboxView = "inbox" | "settings";
 export type MailboxDensity = "compact" | "modern";
 
 export type ProjectManagerView = "board" | "timeline" | "deadlines";
+
+export type CalendarView = "calendar" | "schedules";
 
 export type ExerciseView =
   | "dashboard"
@@ -104,7 +109,8 @@ export type WorkspaceTabValue =
   | `ephemeral:${string}`
   | typeof EXERCISE_WORKSPACE_TAB
   | typeof MAILBOX_WORKSPACE_TAB
-  | typeof PROJECTMANAGER_WORKSPACE_TAB;
+  | typeof PROJECTMANAGER_WORKSPACE_TAB
+  | typeof CALENDAR_WORKSPACE_TAB;
 
 export const VIEWER_MEDIA_FRACTION_DEFAULT = 0.5;
 export const VIEWER_MEDIA_FRACTION_MIN = 0.2;
@@ -145,6 +151,8 @@ interface WorkspaceState {
   mailboxAccountId: string | null;
   projectManagerTabOpen: boolean;
   projectManagerView: ProjectManagerView;
+  calendarTabOpen: boolean;
+  calendarView: CalendarView;
   sidebarMode: SidebarMode;
   artifactGridColumns: number;
   viewerMediaFraction: number;
@@ -172,6 +180,9 @@ interface WorkspaceState {
   openProjectManagerTab: () => void;
   closeProjectManagerTab: () => void;
   setProjectManagerView: (view: ProjectManagerView) => void;
+  openCalendarTab: () => void;
+  closeCalendarTab: () => void;
+  setCalendarView: (view: CalendarView) => void;
   startExerciseSession: (session: ExerciseSession) => void;
   updateSessionExercise: (index: number, changes: Partial<SessionExercise>) => void;
   endExerciseSession: () => void;
@@ -226,6 +237,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       mailboxAccountId: null,
       projectManagerTabOpen: false,
       projectManagerView: "board",
+      calendarTabOpen: false,
+      calendarView: "calendar",
       sidebarMode: "chat",
       artifactGridColumns: ARTIFACT_GRID_COLUMNS_DEFAULT,
       viewerMediaFraction: VIEWER_MEDIA_FRACTION_DEFAULT,
@@ -263,7 +276,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           isEphemeralWorkspaceTab(tab) ||
           tab === EXERCISE_WORKSPACE_TAB ||
           tab === MAILBOX_WORKSPACE_TAB ||
-          tab === PROJECTMANAGER_WORKSPACE_TAB
+          tab === PROJECTMANAGER_WORKSPACE_TAB ||
+          tab === CALENDAR_WORKSPACE_TAB
         ) {
           set({ activeWorkspaceTab: tab });
           return;
@@ -352,6 +366,25 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       },
 
       setProjectManagerView: (view) => set({ projectManagerView: view }),
+
+      openCalendarTab: () =>
+        set({
+          calendarTabOpen: true,
+          activeWorkspaceTab: CALENDAR_WORKSPACE_TAB,
+        }),
+
+      closeCalendarTab: () => {
+        const { activeWorkspaceTab, activeTab } = get();
+        set({
+          calendarTabOpen: false,
+          activeWorkspaceTab:
+            activeWorkspaceTab === CALENDAR_WORKSPACE_TAB
+              ? activeTab
+              : activeWorkspaceTab,
+        });
+      },
+
+      setCalendarView: (view) => set({ calendarView: view }),
 
       startExerciseSession: (session) => set({ exerciseSession: session }),
 
@@ -473,6 +506,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         mailboxView: state.mailboxView,
         mailboxDensity: state.mailboxDensity,
         projectManagerView: state.projectManagerView,
+        calendarView: state.calendarView,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
@@ -481,6 +515,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           state.exerciseTabOpen = false;
           state.mailboxTabOpen = false;
           state.projectManagerTabOpen = false;
+          state.calendarTabOpen = false;
           state.activeWorkspaceTab = state.activeTab;
         }
       },

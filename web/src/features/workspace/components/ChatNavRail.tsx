@@ -1,6 +1,14 @@
-import { Dumbbell, FolderKanban, Mail, MessageSquare, FolderOpen } from "lucide-react";
+import {
+  CalendarDays,
+  Dumbbell,
+  FolderKanban,
+  Mail,
+  MessageSquare,
+  FolderOpen,
+} from "lucide-react";
 
 import {
+  CALENDAR_WORKSPACE_TAB,
   EXERCISE_WORKSPACE_TAB,
   MAILBOX_WORKSPACE_TAB,
   PROJECTMANAGER_WORKSPACE_TAB,
@@ -28,6 +36,7 @@ export function ChatNavRail() {
   const openExerciseTab = useWorkspaceStore((s) => s.openExerciseTab);
   const openMailboxTab = useWorkspaceStore((s) => s.openMailboxTab);
   const openProjectManagerTab = useWorkspaceStore((s) => s.openProjectManagerTab);
+  const openCalendarTab = useWorkspaceStore((s) => s.openCalendarTab);
   const activeWorkspaceTab = useWorkspaceStore((s) => s.activeWorkspaceTab);
 
   const handleSelect = (mode: SidebarMode) => {
@@ -38,6 +47,7 @@ export function ChatNavRail() {
   const exerciseActive = activeWorkspaceTab === EXERCISE_WORKSPACE_TAB;
   const mailboxActive = activeWorkspaceTab === MAILBOX_WORKSPACE_TAB;
   const projectManagerActive = activeWorkspaceTab === PROJECTMANAGER_WORKSPACE_TAB;
+  const calendarActive = activeWorkspaceTab === CALENDAR_WORKSPACE_TAB;
 
   return (
     <nav
@@ -114,6 +124,21 @@ export function ChatNavRail() {
         onClick={() => openProjectManagerTab()}
       >
         <FolderKanban className="h-5 w-5" />
+      </Button>
+      <Button
+        type="button"
+        variant={calendarActive ? "secondary" : "ghost"}
+        size="icon"
+        className={cn(
+          "h-10 w-10 rounded-[var(--radius-md)]",
+          calendarActive && "bg-secondary text-foreground",
+        )}
+        aria-label="Calendar"
+        aria-current={calendarActive ? "page" : undefined}
+        title="Calendar"
+        onClick={() => openCalendarTab()}
+      >
+        <CalendarDays className="h-5 w-5" />
       </Button>
     </nav>
   );

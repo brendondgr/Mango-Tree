@@ -22,6 +22,7 @@ export default defineConfig({
         __dirname,
         "../utils/apps/projectmanager/frontend",
       ),
+      "@calendar": path.resolve(__dirname, "../utils/apps/calendar/frontend"),
       react: path.resolve(__dirname, "./node_modules/react"),
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
       "lucide-react": path.resolve(__dirname, "./node_modules/lucide-react"),
