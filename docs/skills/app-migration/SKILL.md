@@ -329,15 +329,42 @@ layout, accessibility). Do not imitate the legacy app's look or markup.
 1. Build UI fragments under `utils/apps/{name}/frontend/{components,pages,hooks}/`
    using the platform stack (React/Vite, TanStack Query, shadcn/Tailwind) as specified
    by the two frontend skills above, with an API client in
-   `web/src/services/{name}Client.ts` (request/response only, no logic).
+   `web/src/services/{name}Client.ts` (request/response only, no logic). The app's
+   top-level surface should be a single page component (e.g.
+   `frontend/pages/{Name}Workspace.tsx`) that fills the workspace body.
 2. Import the fragments into the shell via a Vite alias (e.g. `@{name}` →
-   `utils/apps/{name}/frontend/`), following how `@media-viewer` is wired.
-3. Surface the app as a tab. Either a pinned route in TanStack Router (like `/notes`,
-   `/projects`) once its endpoints exist in `docs/api.md`, or an ephemeral workspace
-   tab in `WorkspaceHeader` for `/chat`-scoped surfaces — match what the app is for.
+   `utils/apps/{name}/frontend/`) in `web/vite.config.ts`, following how
+   `@media-viewer` is wired.
+3. **Register the app in the Apps menu.** Add one entry to `WORKSPACE_APPS` in
+   `web/src/features/workspace/apps/appRegistry.tsx`:
+
+   ```tsx
+   import { {Name}Workspace } from "@{name}/pages/{Name}Workspace";
+   // ...
+   {
+     id: "{name}",                 // stable id; the tab value is `app:{name}`
+     label: "{Label}",             // tab + launcher label
+     description: "One line describing what the app does.",
+     icon: SomeLucideIcon,
+     Component: {Name}Workspace,   // rendered in the workspace body
+   }
+   ```
+
+   That single entry auto-wires the app everywhere — the Apps overview launcher
+   (`AppsOverview`), the header tab strip with open/close and active state
+   (`WorkspaceHeader`), the left nav-rail quick-launch icon (`ChatNavRail`), and
+   main-body routing (`WorkspaceMainBody`). Do **not** hand-wire tabs into those
+   components; they read the registry. App-specific view state (sub-tabs, density,
+   etc.) still lives in `workspaceStore`, but tab open/close is generic
+   (`openAppTab(id)` / `closeAppTab(id)`).
+
+   A pinned TanStack Router route (like `/notes`, `/projects`) is only for a
+   standalone surface that must be linkable by URL; the default for a `/chat`-scoped
+   app is the registry tab above.
 4. Do not invent endpoints; the frontend may only call what `docs/api.md` lists.
 
-**Validate:** `cd web && npm run build` succeeds; the tab renders and reads through the
+**Validate:** `cd web && npm run build` succeeds; the app appears as a card in the
+Apps overview, opens in a tab, closes back to the overview, and reads through the
 API client.
 **Commit:** `feat({name}): add frontend fragments and workspace tab`.
 

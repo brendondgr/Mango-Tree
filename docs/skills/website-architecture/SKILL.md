@@ -58,7 +58,7 @@ No business logic in the frontend beyond API client calls. App-specific UI may l
 
 ### `/chat` workspace tabs
 
-App surfaces (starting with `media_viewer` artifacts) open as **ephemeral tabs** in `WorkspaceHeader` alongside pinned tabs (Overview, Assets, History). Selecting a pinned tab closes any ephemeral tab. Ephemeral tabs are not persisted. See `docs/platform.md` for lifecycle details.
+`WorkspaceHeader` shows a single pinned **Apps** home tab plus a closeable **app tab** for each open app. The apps come from the registry at `web/src/features/workspace/apps/appRegistry.tsx` — one entry (`id`, `label`, `description`, `icon`, `Component`) wires an app into the Apps overview launcher, header tabs, nav-rail quick-launch, and main-body routing. When no app tab is active the Apps overview is shown. Selecting/opening an artifact from the Artifacts tab spawns a single non-persisted **ephemeral tab** for the viewer. See `docs/platform.md` for lifecycle details.
 
 ## Commands
 

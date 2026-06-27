@@ -39,8 +39,8 @@ utils/apps/{app_name}/
 ## Frontend Integration (web/ shell)
 
 App UI in `utils/apps/{name}/frontend/` is imported by the `web/` SPA but lives
-**outside** `web/`. Three wiring steps are mandatory or the module silently
-renders wrong:
+**outside** `web/`. Four wiring steps are mandatory or the module silently
+renders wrong (or never appears):
 
 1. **Path alias** — add `@{name}` to both `web/vite.config.ts`
    (`resolve.alias`) and `web/tsconfig.json` (`compilerOptions.paths`), pointing
@@ -56,6 +56,16 @@ renders wrong:
    (`.{name}-card`, `.{name}-glass`) and wrap the root element in `.{name}-app`.
    Build the visual identity on theme tokens (`hsl(var(--primary))`, `--card`,
    category tokens), never raw hex, so it tracks the theme chosen in Settings.
+4. **Apps-menu registration** — add one entry to `WORKSPACE_APPS` in
+   `web/src/features/workspace/apps/appRegistry.tsx` with `{ id, label,
+   description, icon, Component }`, where `Component` is the app's top-level page
+   (e.g. `frontend/pages/{Name}Workspace.tsx`). The registry is the single source
+   of truth: that entry alone wires the app into the Apps overview launcher, the
+   header tab strip (open/close + active state), the nav-rail quick-launch icon,
+   and main-body routing. The tab value is `app:{id}`; tabs open/close through the
+   generic store actions `openAppTab(id)` / `closeAppTab(id)` (app-specific view
+   state still lives in `workspaceStore`). Without this step the app has no way to
+   be opened.
 
 ## Agent Tool Registration
 
