@@ -1,0 +1,553 @@
+/**
+ * Project Manager workspace styles — scoped under `.projectmanager-app`.
+ *
+ * All hand-authored classes carry the `projectmanager-` prefix.
+ * CSS custom properties introduced here are also prefixed `--projectmanager-*`.
+ *
+ * Chrome surfaces (cards, tabs, headers) use theme tokens so the UI tracks
+ * whatever theme the user picks. Distinct category colours appear ONLY on:
+ *   - category badges (.projectmanager-cat-<colour>)
+ *   - progress bar fills (.projectmanager-progress-bar-<colour>)
+ *   - timeline bars (background via inline CSS var or category class)
+ */
+
+/* === Category palette variables =========================================== */
+
+.projectmanager-app {
+  width: 100%;
+  color: hsl(var(--foreground));
+
+  /* Blue */
+  --projectmanager-cat-blue-bg:     #dbeafe;
+  --projectmanager-cat-blue-border: #3b82f6;
+  --projectmanager-cat-blue-text:   #1e3a8a;
+
+  /* Green */
+  --projectmanager-cat-green-bg:     #d1fae5;
+  --projectmanager-cat-green-border: #10b981;
+  --projectmanager-cat-green-text:   #064e3b;
+
+  /* Purple */
+  --projectmanager-cat-purple-bg:     #f3e8ff;
+  --projectmanager-cat-purple-border: #a855f7;
+  --projectmanager-cat-purple-text:   #581c87;
+
+  /* Orange */
+  --projectmanager-cat-orange-bg:     #ffedd5;
+  --projectmanager-cat-orange-border: #f97316;
+  --projectmanager-cat-orange-text:   #7c2d12;
+
+  /* Red */
+  --projectmanager-cat-red-bg:     #fee2e2;
+  --projectmanager-cat-red-border: #ef4444;
+  --projectmanager-cat-red-text:   #7f1d1d;
+
+  /* Teal */
+  --projectmanager-cat-teal-bg:     #ccfbf1;
+  --projectmanager-cat-teal-border: #14b8a6;
+  --projectmanager-cat-teal-text:   #134e4a;
+
+  /* Yellow */
+  --projectmanager-cat-yellow-bg:     #fef9c3;
+  --projectmanager-cat-yellow-border: #eab308;
+  --projectmanager-cat-yellow-text:   #713f12;
+
+  /* Pink */
+  --projectmanager-cat-pink-bg:     #fce7f3;
+  --projectmanager-cat-pink-border: #f472b6;
+  --projectmanager-cat-pink-text:   #831843;
+}
+
+/* === Category badge classes =============================================== */
+
+.projectmanager-cat-blue,
+.projectmanager-cat-green,
+.projectmanager-cat-purple,
+.projectmanager-cat-orange,
+.projectmanager-cat-red,
+.projectmanager-cat-teal,
+.projectmanager-cat-yellow,
+.projectmanager-cat-pink {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.projectmanager-cat-blue {
+  background: var(--projectmanager-cat-blue-bg);
+  border-color: var(--projectmanager-cat-blue-border);
+  color: var(--projectmanager-cat-blue-text);
+}
+.projectmanager-cat-green {
+  background: var(--projectmanager-cat-green-bg);
+  border-color: var(--projectmanager-cat-green-border);
+  color: var(--projectmanager-cat-green-text);
+}
+.projectmanager-cat-purple {
+  background: var(--projectmanager-cat-purple-bg);
+  border-color: var(--projectmanager-cat-purple-border);
+  color: var(--projectmanager-cat-purple-text);
+}
+.projectmanager-cat-orange {
+  background: var(--projectmanager-cat-orange-bg);
+  border-color: var(--projectmanager-cat-orange-border);
+  color: var(--projectmanager-cat-orange-text);
+}
+.projectmanager-cat-red {
+  background: var(--projectmanager-cat-red-bg);
+  border-color: var(--projectmanager-cat-red-border);
+  color: var(--projectmanager-cat-red-text);
+}
+.projectmanager-cat-teal {
+  background: var(--projectmanager-cat-teal-bg);
+  border-color: var(--projectmanager-cat-teal-border);
+  color: var(--projectmanager-cat-teal-text);
+}
+.projectmanager-cat-yellow {
+  background: var(--projectmanager-cat-yellow-bg);
+  border-color: var(--projectmanager-cat-yellow-border);
+  color: var(--projectmanager-cat-yellow-text);
+}
+.projectmanager-cat-pink {
+  background: var(--projectmanager-cat-pink-bg);
+  border-color: var(--projectmanager-cat-pink-border);
+  color: var(--projectmanager-cat-pink-text);
+}
+
+/* === Top tab navigation =================================================== */
+
+.projectmanager-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: hsl(var(--muted-foreground));
+  transition: all var(--motion-fast, 120ms) ease;
+}
+
+.projectmanager-tab:hover {
+  color: hsl(var(--foreground));
+  background: color-mix(in srgb, hsl(var(--foreground)) 5%, transparent);
+}
+
+.projectmanager-tab[data-active="true"] {
+  color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary));
+  box-shadow: var(--shadow-raised, 0 2px 6px rgba(0,0,0,0.15));
+}
+
+/* === Scroll region ======================================================== */
+
+.projectmanager-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.projectmanager-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, hsl(var(--foreground)) 18%, transparent);
+  border-radius: var(--radius-pill, 9999px);
+}
+.projectmanager-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* === Board layout ========================================================= */
+
+.projectmanager-board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .projectmanager-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .projectmanager-board {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* === Board column ========================================================= */
+
+.projectmanager-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, hsl(var(--muted)) 40%, transparent);
+  border: 1px solid hsl(var(--border));
+  overflow: hidden;
+}
+
+.projectmanager-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid hsl(var(--border));
+  background: color-mix(in srgb, hsl(var(--card)) 60%, transparent);
+}
+
+.projectmanager-column-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: hsl(var(--muted-foreground));
+}
+
+.projectmanager-column-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding: 0 0.35rem;
+  border-radius: var(--radius-pill, 9999px);
+  background: color-mix(in srgb, hsl(var(--foreground)) 10%, transparent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: hsl(var(--muted-foreground));
+}
+
+.projectmanager-column-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  min-height: 3rem;
+}
+
+/* === Project card ========================================================= */
+
+.projectmanager-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  cursor: pointer;
+  transition:
+    transform var(--motion-base, 200ms) ease,
+    box-shadow var(--motion-base, 200ms) ease,
+    border-color var(--motion-base, 200ms) ease;
+}
+
+.projectmanager-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover, 0 6px 18px rgba(0,0,0,0.12));
+  border-color: color-mix(in srgb, hsl(var(--primary)) 40%, transparent);
+}
+
+.projectmanager-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.projectmanager-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  line-height: 1.3;
+  margin: 0;
+}
+
+.projectmanager-card-desc {
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* === Progress bar ========================================================= */
+
+.projectmanager-progress {
+  position: relative;
+  height: 10px;
+  border-radius: var(--radius-pill, 9999px);
+  background: color-mix(in srgb, hsl(var(--muted)) 80%, transparent);
+  overflow: hidden;
+  border: 1px solid hsl(var(--border));
+}
+
+.projectmanager-progress-bar {
+  height: 100%;
+  border-radius: var(--radius-pill, 9999px);
+  background: hsl(var(--primary));
+  transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Per-colour progress fills */
+.projectmanager-progress-bar-blue   { background: var(--projectmanager-cat-blue-border); }
+.projectmanager-progress-bar-green  { background: var(--projectmanager-cat-green-border); }
+.projectmanager-progress-bar-purple { background: var(--projectmanager-cat-purple-border); }
+.projectmanager-progress-bar-orange { background: var(--projectmanager-cat-orange-border); }
+.projectmanager-progress-bar-red    { background: var(--projectmanager-cat-red-border); }
+.projectmanager-progress-bar-teal   { background: var(--projectmanager-cat-teal-border); }
+.projectmanager-progress-bar-yellow { background: var(--projectmanager-cat-yellow-border); }
+.projectmanager-progress-bar-pink   { background: var(--projectmanager-cat-pink-border); }
+
+/* === Deadline pills ======================================================= */
+
+.projectmanager-deadline-overdue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: var(--projectmanager-cat-red-bg);
+  border: 1px solid var(--projectmanager-cat-red-border);
+  color: var(--projectmanager-cat-red-text);
+}
+
+.projectmanager-deadline-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: var(--projectmanager-cat-yellow-bg);
+  border: 1px solid var(--projectmanager-cat-yellow-border);
+  color: var(--projectmanager-cat-yellow-text);
+}
+
+.projectmanager-deadline-normal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: color-mix(in srgb, hsl(var(--muted)) 60%, transparent);
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+}
+
+/* === Glass surface (shared) =============================================== */
+
+.projectmanager-glass {
+  background: color-mix(in srgb, hsl(var(--card)) 82%, transparent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid hsl(var(--border));
+  box-shadow: var(--shadow-raised, 0 2px 6px rgba(0,0,0,0.08));
+}
+
+/* === Timeline ============================================================= */
+
+.projectmanager-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow-x: auto;
+}
+
+.projectmanager-timeline-axis {
+  display: flex;
+  position: relative;
+  height: 2rem;
+  border-bottom: 1px solid hsl(var(--border));
+  margin-left: 12rem;
+}
+
+.projectmanager-timeline-axis-label {
+  position: absolute;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  transform: translateX(-50%);
+  white-space: nowrap;
+  top: 0.5rem;
+}
+
+.projectmanager-timeline-row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid color-mix(in srgb, hsl(var(--border)) 40%, transparent);
+  min-height: 2.5rem;
+}
+
+.projectmanager-timeline-label {
+  flex-shrink: 0;
+  width: 12rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  color: hsl(var(--foreground));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectmanager-timeline-track {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  min-height: 2.5rem;
+}
+
+.projectmanager-timeline-bar {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 1.25rem;
+  border-radius: var(--radius-pill, 9999px);
+  opacity: 0.85;
+  min-width: 4px;
+}
+
+/* Timeline bar colours (use border token for saturation) */
+.projectmanager-timeline-bar-blue   { background: var(--projectmanager-cat-blue-border); }
+.projectmanager-timeline-bar-green  { background: var(--projectmanager-cat-green-border); }
+.projectmanager-timeline-bar-purple { background: var(--projectmanager-cat-purple-border); }
+.projectmanager-timeline-bar-orange { background: var(--projectmanager-cat-orange-border); }
+.projectmanager-timeline-bar-red    { background: var(--projectmanager-cat-red-border); }
+.projectmanager-timeline-bar-teal   { background: var(--projectmanager-cat-teal-border); }
+.projectmanager-timeline-bar-yellow { background: var(--projectmanager-cat-yellow-border); }
+.projectmanager-timeline-bar-pink   { background: var(--projectmanager-cat-pink-border); }
+
+/* === Goal rows ============================================================ */
+
+.projectmanager-goal-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, hsl(var(--muted)) 30%, transparent);
+  border: 1px solid transparent;
+  transition: border-color 0.15s ease;
+}
+
+.projectmanager-goal-item:hover {
+  border-color: hsl(var(--border));
+}
+
+.projectmanager-goal-checkbox {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 4px;
+  border: 2px solid hsl(var(--border));
+  background: hsl(var(--background));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: transparent;
+}
+
+.projectmanager-goal-checkbox:hover {
+  border-color: hsl(var(--primary));
+  background: color-mix(in srgb, hsl(var(--primary)) 10%, transparent);
+}
+
+.projectmanager-goal-checkbox[data-done="true"] {
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.projectmanager-goal-title {
+  flex: 1;
+  font-size: 0.9rem;
+  color: hsl(var(--foreground));
+}
+
+.projectmanager-goal-title[data-done="true"] {
+  text-decoration: line-through;
+  color: hsl(var(--muted-foreground));
+}
+
+/* === Colour swatch grid (new project form) ================================ */
+
+.projectmanager-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 2rem);
+  gap: 0.5rem;
+}
+
+.projectmanager-swatch {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.projectmanager-swatch:hover {
+  transform: scale(1.1);
+}
+
+.projectmanager-swatch[data-selected="true"] {
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground));
+}
+
+/* === Fade-in animation ==================================================== */
+
+@keyframes projectmanager-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.projectmanager-fade-in {
+  animation: projectmanager-fade-in var(--motion-base, 200ms) ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .projectmanager-card,
+  .projectmanager-card:hover { transform: none; transition: none; }
+  .projectmanager-fade-in    { animation: none; }
+}
+
+/* === Input (native) ======================================================= */
+
+.projectmanager-input {
+  width: 100%;
+  background: color-mix(in srgb, hsl(var(--muted)) 45%, transparent);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  color: hsl(var(--foreground));
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.projectmanager-input:focus {
+  outline: none;
+  border-color: hsl(var(--primary));
+  box-shadow: var(--focus-ring, 0 0 0 3px color-mix(in srgb, hsl(var(--primary)) 20%, transparent));
+}
+
+.projectmanager-input::placeholder {
+  color: hsl(var(--muted-foreground));
+}

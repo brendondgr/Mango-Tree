@@ -1,8 +1,9 @@
-import { Dumbbell, Mail, MessageSquare, FolderOpen } from "lucide-react";
+import { Dumbbell, FolderKanban, Mail, MessageSquare, FolderOpen } from "lucide-react";
 
 import {
   EXERCISE_WORKSPACE_TAB,
   MAILBOX_WORKSPACE_TAB,
+  PROJECTMANAGER_WORKSPACE_TAB,
   useWorkspaceStore,
   type SidebarMode,
 } from "@/app/stores/workspaceStore";
@@ -26,6 +27,7 @@ export function ChatNavRail() {
   const expandSidebar = useWorkspaceStore((s) => s.expandSidebar);
   const openExerciseTab = useWorkspaceStore((s) => s.openExerciseTab);
   const openMailboxTab = useWorkspaceStore((s) => s.openMailboxTab);
+  const openProjectManagerTab = useWorkspaceStore((s) => s.openProjectManagerTab);
   const activeWorkspaceTab = useWorkspaceStore((s) => s.activeWorkspaceTab);
 
   const handleSelect = (mode: SidebarMode) => {
@@ -35,6 +37,7 @@ export function ChatNavRail() {
 
   const exerciseActive = activeWorkspaceTab === EXERCISE_WORKSPACE_TAB;
   const mailboxActive = activeWorkspaceTab === MAILBOX_WORKSPACE_TAB;
+  const projectManagerActive = activeWorkspaceTab === PROJECTMANAGER_WORKSPACE_TAB;
 
   return (
     <nav
@@ -96,6 +99,21 @@ export function ChatNavRail() {
         onClick={() => openExerciseTab()}
       >
         <Dumbbell className="h-5 w-5" />
+      </Button>
+      <Button
+        type="button"
+        variant={projectManagerActive ? "secondary" : "ghost"}
+        size="icon"
+        className={cn(
+          "h-10 w-10 rounded-[var(--radius-md)]",
+          projectManagerActive && "bg-secondary text-foreground",
+        )}
+        aria-label="Projects"
+        aria-current={projectManagerActive ? "page" : undefined}
+        title="Project Manager"
+        onClick={() => openProjectManagerTab()}
+      >
+        <FolderKanban className="h-5 w-5" />
       </Button>
     </nav>
   );

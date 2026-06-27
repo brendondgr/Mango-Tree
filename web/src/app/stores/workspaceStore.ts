@@ -64,8 +64,13 @@ export const EXERCISE_TAB_LABEL = "Exercise";
 export const MAILBOX_WORKSPACE_TAB = "app:mailbox";
 export const MAILBOX_TAB_LABEL = "Mailbox";
 
+export const PROJECTMANAGER_WORKSPACE_TAB = "app:projectmanager";
+export const PROJECTMANAGER_TAB_LABEL = "Projects";
+
 export type MailboxView = "inbox" | "settings";
 export type MailboxDensity = "compact" | "modern";
+
+export type ProjectManagerView = "board" | "timeline" | "deadlines";
 
 export type ExerciseView =
   | "dashboard"
@@ -98,7 +103,8 @@ export type WorkspaceTabValue =
   | WorkspaceTabId
   | `ephemeral:${string}`
   | typeof EXERCISE_WORKSPACE_TAB
-  | typeof MAILBOX_WORKSPACE_TAB;
+  | typeof MAILBOX_WORKSPACE_TAB
+  | typeof PROJECTMANAGER_WORKSPACE_TAB;
 
 export const VIEWER_MEDIA_FRACTION_DEFAULT = 0.5;
 export const VIEWER_MEDIA_FRACTION_MIN = 0.2;
@@ -137,6 +143,8 @@ interface WorkspaceState {
   mailboxView: MailboxView;
   mailboxDensity: MailboxDensity;
   mailboxAccountId: string | null;
+  projectManagerTabOpen: boolean;
+  projectManagerView: ProjectManagerView;
   sidebarMode: SidebarMode;
   artifactGridColumns: number;
   viewerMediaFraction: number;
@@ -161,6 +169,9 @@ interface WorkspaceState {
   setMailboxView: (view: MailboxView) => void;
   setMailboxDensity: (density: MailboxDensity) => void;
   setMailboxAccountId: (accountId: string | null) => void;
+  openProjectManagerTab: () => void;
+  closeProjectManagerTab: () => void;
+  setProjectManagerView: (view: ProjectManagerView) => void;
   startExerciseSession: (session: ExerciseSession) => void;
   updateSessionExercise: (index: number, changes: Partial<SessionExercise>) => void;
   endExerciseSession: () => void;
@@ -213,6 +224,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       mailboxView: "inbox",
       mailboxDensity: "modern",
       mailboxAccountId: null,
+      projectManagerTabOpen: false,
+      projectManagerView: "board",
       sidebarMode: "chat",
       artifactGridColumns: ARTIFACT_GRID_COLUMNS_DEFAULT,
       viewerMediaFraction: VIEWER_MEDIA_FRACTION_DEFAULT,
@@ -249,7 +262,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         if (
           isEphemeralWorkspaceTab(tab) ||
           tab === EXERCISE_WORKSPACE_TAB ||
-          tab === MAILBOX_WORKSPACE_TAB
+          tab === MAILBOX_WORKSPACE_TAB ||
+          tab === PROJECTMANAGER_WORKSPACE_TAB
         ) {
           set({ activeWorkspaceTab: tab });
           return;
@@ -319,6 +333,25 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       setMailboxDensity: (density) => set({ mailboxDensity: density }),
 
       setMailboxAccountId: (accountId) => set({ mailboxAccountId: accountId }),
+
+      openProjectManagerTab: () =>
+        set({
+          projectManagerTabOpen: true,
+          activeWorkspaceTab: PROJECTMANAGER_WORKSPACE_TAB,
+        }),
+
+      closeProjectManagerTab: () => {
+        const { activeWorkspaceTab, activeTab } = get();
+        set({
+          projectManagerTabOpen: false,
+          activeWorkspaceTab:
+            activeWorkspaceTab === PROJECTMANAGER_WORKSPACE_TAB
+              ? activeTab
+              : activeWorkspaceTab,
+        });
+      },
+
+      setProjectManagerView: (view) => set({ projectManagerView: view }),
 
       startExerciseSession: (session) => set({ exerciseSession: session }),
 
@@ -439,6 +472,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         exerciseView: state.exerciseView,
         mailboxView: state.mailboxView,
         mailboxDensity: state.mailboxDensity,
+        projectManagerView: state.projectManagerView,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
@@ -446,6 +480,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           state.ephemeralTab = null;
           state.exerciseTabOpen = false;
           state.mailboxTabOpen = false;
+          state.projectManagerTabOpen = false;
           state.activeWorkspaceTab = state.activeTab;
         }
       },

@@ -1,4 +1,12 @@
-import { ChevronDown, Dumbbell, FileText, Mail, Menu, X } from "lucide-react";
+import {
+  ChevronDown,
+  Dumbbell,
+  FileText,
+  FolderKanban,
+  Mail,
+  Menu,
+  X,
+} from "lucide-react";
 
 import {
   EPHEMERAL_ARTIFACT_TAB_LABEL,
@@ -6,6 +14,8 @@ import {
   EXERCISE_WORKSPACE_TAB,
   MAILBOX_TAB_LABEL,
   MAILBOX_WORKSPACE_TAB,
+  PROJECTMANAGER_TAB_LABEL,
+  PROJECTMANAGER_WORKSPACE_TAB,
   ephemeralTabValue,
   isEphemeralWorkspaceTab,
   selectSidebarCollapsed,
@@ -46,6 +56,9 @@ function getActiveLabel(
   if (activeWorkspaceTab === MAILBOX_WORKSPACE_TAB) {
     return MAILBOX_TAB_LABEL;
   }
+  if (activeWorkspaceTab === PROJECTMANAGER_WORKSPACE_TAB) {
+    return PROJECTMANAGER_TAB_LABEL;
+  }
   if (isEphemeralWorkspaceTab(activeWorkspaceTab) && hasEphemeralTab) {
     return EPHEMERAL_ARTIFACT_TAB_LABEL;
   }
@@ -61,6 +74,8 @@ export function WorkspaceHeader() {
   const closeExerciseTab = useWorkspaceStore((s) => s.closeExerciseTab);
   const mailboxTabOpen = useWorkspaceStore((s) => s.mailboxTabOpen);
   const closeMailboxTab = useWorkspaceStore((s) => s.closeMailboxTab);
+  const projectManagerTabOpen = useWorkspaceStore((s) => s.projectManagerTabOpen);
+  const closeProjectManagerTab = useWorkspaceStore((s) => s.closeProjectManagerTab);
   const setActiveWorkspaceTab = useWorkspaceStore((s) => s.setActiveWorkspaceTab);
   const sidebarWidth = useWorkspaceStore((s) => s.sidebarWidth);
   const mobileDrawerOpen = useWorkspaceStore((s) => s.mobileDrawerOpen);
@@ -202,6 +217,40 @@ export function WorkspaceHeader() {
                 </span>
               </TabsTrigger>
             )}
+            {projectManagerTabOpen && (
+              <TabsTrigger
+                value={PROJECTMANAGER_WORKSPACE_TAB}
+                role="tab"
+                className={cn(workspaceTabTriggerClass, "pr-2")}
+              >
+                <FolderKanban className="h-4 w-4 shrink-0" />
+                {PROJECTMANAGER_TAB_LABEL}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Close Projects tab"
+                  className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-[var(--radius-sm)] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
+                    event.preventDefault();
+                  }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    closeProjectManagerTab();
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.stopPropagation();
+                      event.preventDefault();
+                      closeProjectManagerTab();
+                    }
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </span>
+              </TabsTrigger>
+            )}
           </TabsList>
         </Tabs>
 
@@ -297,6 +346,35 @@ export function WorkspaceHeader() {
                         event.preventDefault();
                         event.stopPropagation();
                         closeExerciseTab();
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </span>
+                  </DropdownMenuItem>
+                </>
+              )}
+              {projectManagerTabOpen && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className={cn(
+                      activeWorkspaceTab === PROJECTMANAGER_WORKSPACE_TAB &&
+                        "bg-primary/5 text-primary",
+                    )}
+                    onSelect={() =>
+                      setActiveWorkspaceTab(PROJECTMANAGER_WORKSPACE_TAB)
+                    }
+                  >
+                    <FolderKanban className="h-4 w-4" />
+                    <span className="flex-1">{PROJECTMANAGER_TAB_LABEL}</span>
+                    <span
+                      role="button"
+                      aria-label="Close Projects tab"
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] text-muted-foreground hover:bg-muted hover:text-foreground"
+                      onPointerDown={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        closeProjectManagerTab();
                       }}
                     >
                       <X className="h-3.5 w-3.5" />

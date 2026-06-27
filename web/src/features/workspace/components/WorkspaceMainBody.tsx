@@ -1,6 +1,7 @@
 import {
   EXERCISE_WORKSPACE_TAB,
   MAILBOX_WORKSPACE_TAB,
+  PROJECTMANAGER_WORKSPACE_TAB,
   ephemeralTabValue,
   isEphemeralWorkspaceTab,
   useWorkspaceStore,
@@ -10,6 +11,7 @@ import { ExerciseWorkspace } from "@exercise/pages/ExerciseWorkspace";
 import { useOAuthReturn } from "@mailbox/hooks/useMailbox";
 import { MailboxWorkspace } from "@mailbox/pages/MailboxWorkspace";
 import { MediaViewerShell } from "@media-viewer/components/MediaViewerShell";
+import { ProjectManagerWorkspace } from "@projectmanager/pages/ProjectManagerWorkspace";
 
 export function WorkspaceMainBody() {
   useOAuthReturn();
@@ -29,6 +31,14 @@ export function WorkspaceMainBody() {
     return (
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <MailboxWorkspace />
+      </div>
+    );
+  }
+
+  if (activeWorkspaceTab === PROJECTMANAGER_WORKSPACE_TAB) {
+    return (
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <ProjectManagerWorkspace />
       </div>
     );
   }
