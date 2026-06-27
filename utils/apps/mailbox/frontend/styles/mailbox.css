@@ -214,6 +214,43 @@
 .mailbox-unread-strong { font-weight: 700; color: hsl(var(--foreground)); }
 .mailbox-read { color: hsl(var(--muted-foreground)); }
 
+/* --- email body rendering --------------------------------------------------- */
+
+/* Sanitized HTML renders in an isolated, sandboxed iframe on a white reading
+ * surface (emails assume a light background, like Gmail/Outlook do). */
+.mailbox-email-frame {
+  width: 100%;
+  height: var(--mailbox-reading-height, 65vh);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  display: block;
+}
+
+/* privacy gate shown when an email references blocked remote content */
+.mailbox-remote-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, hsl(var(--primary)) 35%, hsl(var(--border)));
+  background: color-mix(in srgb, hsl(var(--primary)) 8%, transparent);
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+}
+
+/* cleaned plain-text bodies: preserve breaks, wrap long tokens, theme-colored */
+.mailbox-email-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  font-size: var(--mailbox-body-size, 0.875rem);
+  line-height: 1.6;
+  color: hsl(var(--foreground));
+}
+
 /* --- inputs ----------------------------------------------------------------- */
 
 .mailbox-input {

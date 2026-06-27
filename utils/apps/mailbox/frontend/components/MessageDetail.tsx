@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
+import { EmailBody } from "@mailbox/components/EmailBody";
 import { ProviderIcon } from "@mailbox/components/ProviderIcon";
 import type { InboxMessage } from "@mailbox/hooks/useMailbox";
 import { useMessage } from "@mailbox/hooks/useMailbox";
@@ -35,8 +36,8 @@ export function MessageDetail({
   backClassName,
 }: Props) {
   const sender = parseSender(message.from);
-  // List messages arrive without a body; fetch it on open (unless sample/given).
-  const needsFetch = canFetch && message.body_text === null;
+  // List messages arrive without a body; fetch the full message on open.
+  const needsFetch = canFetch && message.body_text === null && message.body_html === null;
   const fetched = useMessage(message.accountId, message.uid, folder, needsFetch);
   const body = message.body_text ?? fetched.data?.body_text ?? "";
   const html = message.body_html ?? fetched.data?.body_html ?? null;
@@ -98,16 +99,8 @@ export function MessageDetail({
             <div className="text-sm text-destructive">
               {(fetched.error as Error)?.message ?? "Could not load this message."}
             </div>
-          ) : body ? (
-            <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-foreground">
-              {body}
-            </pre>
-          ) : html ? (
-            <p className="text-sm text-muted-foreground">
-              This message has only an HTML body. A rich HTML view is not enabled yet.
-            </p>
           ) : (
-            <p className="text-sm text-muted-foreground">(no text content)</p>
+            <EmailBody html={html} text={body} />
           )}
         </div>
       </div>
