@@ -56,8 +56,8 @@ function CompactRow({ message, active, onSelect, accountAccent, accountLabel, sh
         </span>
       )}
       {showAccount && prefs.showAccountBadge && (
-        <span className={cn("mailbox-badge hidden sm:inline-flex", accentClass(accountAccent))}>
-          {accountLabel}
+        <span className="mailbox-col-account hidden sm:flex">
+          <span className={cn("mailbox-badge truncate", accentClass(accountAccent))}>{accountLabel}</span>
         </span>
       )}
       {prefs.showDate && (
@@ -133,9 +133,11 @@ type ResizableColumn = keyof typeof COLUMN_BOUNDS;
 
 function CompactColumnHeader({
   prefs,
+  showAccount,
   listRef,
 }: {
   prefs: MailboxPrefs;
+  showAccount: boolean;
   listRef: RefObject<HTMLDivElement | null>;
 }) {
   const setPrefs = useWorkspaceStore((s) => s.setMailboxPrefs);
@@ -196,6 +198,9 @@ function CompactColumnHeader({
       {prefs.showSnippet && (
         <span className="mailbox-col-snippet mailbox-col-header-cell">Content</span>
       )}
+      {showAccount && prefs.showAccountBadge && (
+        <span className="mailbox-col-account mailbox-col-header-cell hidden sm:flex">Account</span>
+      )}
       {prefs.showDate && (
         <span className="mailbox-col-date mailbox-col-header-cell justify-end">Date</span>
       )}
@@ -253,7 +258,9 @@ export function MessageList({
       data-text={prefs.textSize}
       style={listStyle}
     >
-      {density === "compact" && <CompactColumnHeader prefs={prefs} listRef={listRef} />}
+      {density === "compact" && (
+        <CompactColumnHeader prefs={prefs} showAccount={showAccount} listRef={listRef} />
+      )}
       {messages.map((message) => (
         <Item
           key={messageKey(message)}

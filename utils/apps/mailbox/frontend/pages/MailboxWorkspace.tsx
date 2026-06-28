@@ -18,7 +18,7 @@ export function MailboxWorkspace() {
   const setView = useWorkspaceStore((s) => s.setMailboxView);
 
   return (
-    <div className="mailbox-app flex min-h-0 flex-1 flex-col bg-background">
+    <div className="mailbox-app flex min-h-0 min-w-0 flex-1 flex-col bg-background">
       <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2.5">
         <nav className="flex items-center gap-1.5" aria-label="Mailbox sections">
           {NAV.map((item) => {
@@ -41,7 +41,7 @@ export function MailboxWorkspace() {
         </nav>
       </div>
 
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
         {view === "settings" ? <AccountSettings /> : <InboxView />}
       </div>
     </div>
