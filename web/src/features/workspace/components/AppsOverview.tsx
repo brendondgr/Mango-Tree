@@ -34,16 +34,16 @@ export function AppsOverview() {
                   className="group flex h-full w-full items-start gap-3 rounded-[var(--radius-lg)] border border-border bg-card p-4 text-left transition-colors hover:border-primary/50 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-border bg-muted text-muted-foreground transition-colors group-hover:border-primary/40 group-hover:text-primary"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-border bg-muted text-muted-foreground transition-colors group-hover:border-accent-foreground/30 group-hover:bg-accent-foreground/10 group-hover:text-accent-foreground"
                     aria-hidden
                   >
                     <Icon className="h-5 w-5" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-sm font-semibold text-foreground">
+                    <span className="block text-sm font-semibold text-foreground group-hover:text-accent-foreground">
                       {app.label}
                     </span>
-                    <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+                    <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground group-hover:text-accent-foreground/80">
                       {app.description}
                     </span>
                   </span>
