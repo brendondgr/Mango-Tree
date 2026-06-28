@@ -259,11 +259,11 @@
 
 /* compact columns sized from the saved prefs (CSS vars set on .mailbox-list) */
 .mailbox-col-from {
-  width: var(--mb-from-w, 180px);
+  width: var(--mb-from-w, 140px);
   flex-shrink: 0;
 }
 .mailbox-col-subject {
-  width: var(--mb-subject-w, 280px);
+  width: var(--mb-subject-w, 200px);
   flex-shrink: 0;
 }
 .mailbox-col-snippet {
@@ -277,6 +277,65 @@
 .mailbox-col-date {
   width: 4rem;
   flex-shrink: 0;
+}
+
+/* --- compact column header with drag-to-resize handles --------------------- */
+
+.mailbox-col-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 1rem 0.3rem 1.1rem;
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+
+/* header cells share the same width classes as data cells */
+.mailbox-col-header-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: visible;
+}
+
+/* drag handle — invisible wide hit-target centered on the column boundary */
+.mailbox-col-resize {
+  position: absolute;
+  right: -0.375rem;
+  top: -0.6rem;
+  bottom: -0.6rem;
+  width: 0.75rem;
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
+/* visual divider line */
+.mailbox-col-resize::after {
+  content: "";
+  width: 2px;
+  height: 55%;
+  background: hsl(var(--border));
+  border-radius: 1px;
+  transition:
+    background var(--motion-fast) var(--ease-standard),
+    height var(--motion-fast) var(--ease-standard);
+}
+
+.mailbox-col-resize:hover::after {
+  background: hsl(var(--primary));
+  height: 80%;
 }
 
 /* modern split view: full width on small screens, configurable column at lg+ */

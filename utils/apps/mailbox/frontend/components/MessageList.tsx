@@ -1,7 +1,8 @@
-import type { CSSProperties } from "react";
+import { type CSSProperties, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 import type { MailboxDensity, MailboxPrefs } from "@/app/stores/workspaceStore";
+import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 
 import { ProviderIcon } from "@mailbox/components/ProviderIcon";
 import type { InboxMessage } from "@mailbox/hooks/useMailbox";
@@ -123,6 +124,72 @@ function ModernCard({ message, active, onSelect, accountAccent, accountLabel, sh
   );
 }
 
+function CompactColumnHeader({ prefs }: { prefs: MailboxPrefs }) {
+  const setPrefs = useWorkspaceStore((s) => s.setMailboxPrefs);
+  const dragRef = useRef<{
+    col: "from" | "subject";
+    startX: number;
+    startWidth: number;
+  } | null>(null);
+
+  const startDrag = (col: "from" | "subject", e: React.MouseEvent) => {
+    e.preventDefault();
+    dragRef.current = {
+      col,
+      startX: e.clientX,
+      startWidth: col === "from" ? prefs.fromWidth : prefs.subjectWidth,
+    };
+
+    const onMove = (me: MouseEvent) => {
+      if (!dragRef.current) return;
+      const delta = me.clientX - dragRef.current.startX;
+      const raw = dragRef.current.startWidth + delta;
+      const [min, max] = col === "from" ? [80, 360] : [120, 560];
+      const newWidth = Math.max(min, Math.min(max, raw));
+      setPrefs(col === "from" ? { fromWidth: newWidth } : { subjectWidth: newWidth });
+    };
+
+    const onUp = () => {
+      dragRef.current = null;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  return (
+    <div className="mailbox-col-header">
+      {prefs.showProviderIcon && <span className="mailbox-provider h-7 w-7" aria-hidden />}
+      <span className="mailbox-col-from mailbox-col-header-cell">
+        From
+        <span
+          className="mailbox-col-resize"
+          onMouseDown={(e) => startDrag("from", e)}
+          title="Drag to resize"
+          aria-hidden
+        />
+      </span>
+      <span className="mailbox-col-subject mailbox-col-header-cell">
+        Subject
+        <span
+          className="mailbox-col-resize"
+          onMouseDown={(e) => startDrag("subject", e)}
+          title="Drag to resize"
+          aria-hidden
+        />
+      </span>
+      {prefs.showSnippet && (
+        <span className="mailbox-col-snippet mailbox-col-header-cell">Preview</span>
+      )}
+      {prefs.showDate && (
+        <span className="mailbox-col-date text-right">Date</span>
+      )}
+    </div>
+  );
+}
+
 export function messageKey(message: InboxMessage): string {
   return `${message.accountId}:${message.uid}`;
 }
@@ -170,6 +237,7 @@ export function MessageList({
       data-text={prefs.textSize}
       style={listStyle}
     >
+      {density === "compact" && <CompactColumnHeader prefs={prefs} />}
       {messages.map((message) => (
         <Item
           key={messageKey(message)}
