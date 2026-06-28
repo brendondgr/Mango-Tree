@@ -1,4 +1,4 @@
-import { type CSSProperties, useRef } from "react";
+import { type CSSProperties, type RefObject, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 import type { MailboxDensity, MailboxPrefs } from "@/app/stores/workspaceStore";
@@ -124,35 +124,48 @@ function ModernCard({ message, active, onSelect, accountAccent, accountLabel, sh
   );
 }
 
-function CompactColumnHeader({ prefs }: { prefs: MailboxPrefs }) {
-  const setPrefs = useWorkspaceStore((s) => s.setMailboxPrefs);
-  const dragRef = useRef<{
-    col: "from" | "subject";
-    startX: number;
-    startWidth: number;
-  } | null>(null);
+const COLUMN_BOUNDS = {
+  from: { cssVar: "--mb-from-w", min: 80, max: 360 },
+  subject: { cssVar: "--mb-subject-w", min: 120, max: 560 },
+} as const;
 
-  const startDrag = (col: "from" | "subject", e: React.MouseEvent) => {
+type ResizableColumn = keyof typeof COLUMN_BOUNDS;
+
+function CompactColumnHeader({
+  prefs,
+  listRef,
+}: {
+  prefs: MailboxPrefs;
+  listRef: RefObject<HTMLDivElement | null>;
+}) {
+  const setPrefs = useWorkspaceStore((s) => s.setMailboxPrefs);
+  // Latest width during a drag, committed to the store only on mouse-up so the
+  // whole list doesn't re-render (and localStorage isn't written) on every move.
+  const liveWidth = useRef(0);
+
+  const startDrag = (col: ResizableColumn, e: React.MouseEvent) => {
     e.preventDefault();
-    dragRef.current = {
-      col,
-      startX: e.clientX,
-      startWidth: col === "from" ? prefs.fromWidth : prefs.subjectWidth,
-    };
+    const { cssVar, min, max } = COLUMN_BOUNDS[col];
+    const startX = e.clientX;
+    const startWidth = col === "from" ? prefs.fromWidth : prefs.subjectWidth;
+    liveWidth.current = startWidth;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
 
     const onMove = (me: MouseEvent) => {
-      if (!dragRef.current) return;
-      const delta = me.clientX - dragRef.current.startX;
-      const raw = dragRef.current.startWidth + delta;
-      const [min, max] = col === "from" ? [80, 360] : [120, 560];
-      const newWidth = Math.max(min, Math.min(max, raw));
-      setPrefs(col === "from" ? { fromWidth: newWidth } : { subjectWidth: newWidth });
+      const next = Math.max(min, Math.min(max, startWidth + (me.clientX - startX)));
+      liveWidth.current = next;
+      // Mutate the CSS variable directly — instant, no React render.
+      listRef.current?.style.setProperty(cssVar, `${next}px`);
     };
 
     const onUp = () => {
-      dragRef.current = null;
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      // Persist the final width a single time.
+      setPrefs(col === "from" ? { fromWidth: liveWidth.current } : { subjectWidth: liveWidth.current });
     };
 
     window.addEventListener("mousemove", onMove);
@@ -181,10 +194,10 @@ function CompactColumnHeader({ prefs }: { prefs: MailboxPrefs }) {
         />
       </span>
       {prefs.showSnippet && (
-        <span className="mailbox-col-snippet mailbox-col-header-cell">Preview</span>
+        <span className="mailbox-col-snippet mailbox-col-header-cell">Content</span>
       )}
       {prefs.showDate && (
-        <span className="mailbox-col-date text-right">Date</span>
+        <span className="mailbox-col-date mailbox-col-header-cell justify-end">Date</span>
       )}
     </div>
   );
@@ -215,6 +228,8 @@ export function MessageList({
   showAccount,
   prefs,
 }: ListProps) {
+  const listRef = useRef<HTMLDivElement>(null);
+
   if (messages.length === 0) {
     return (
       <div className="flex h-full items-center justify-center p-8 text-sm text-muted-foreground">
@@ -233,11 +248,12 @@ export function MessageList({
 
   return (
     <div
+      ref={listRef}
       className={cn("mailbox-list", density === "compact" ? "flex flex-col" : "flex flex-col gap-2 p-3")}
       data-text={prefs.textSize}
       style={listStyle}
     >
-      {density === "compact" && <CompactColumnHeader prefs={prefs} />}
+      {density === "compact" && <CompactColumnHeader prefs={prefs} listRef={listRef} />}
       {messages.map((message) => (
         <Item
           key={messageKey(message)}
