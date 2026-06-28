@@ -77,6 +77,13 @@ class AccountDetailView(APIView):
         try:
             body = parse_object(request.data)
             body["id"] = account_id  # upsert on the URL id
+            # Merge on top of the existing record so fields the client omits
+            # (credential_ref, status) are not silently wiped.
+            try:
+                existing = config_store.get_account(account_id)
+                body = {**existing.to_dict(), **body}
+            except MailError:
+                pass
             account = config_store.save_account(body)
         except MailError as exc:
             return _error_response(exc)
