@@ -2,7 +2,11 @@
 // senders, and parse sender display names. Chrome stays on theme tokens; only
 // these data categories get distinct colors.
 
-export const ACCENTS = ["sky", "mint", "coral", "lavender", "tangerine"] as const;
+export const ACCENTS = [
+  "sky", "mint", "coral", "lavender", "tangerine",
+  "rose", "violet", "teal", "amber", "lime",
+  "indigo", "peach", "sage", "crimson", "slate",
+] as const;
 export type Accent = (typeof ACCENTS)[number];
 
 export function accentClass(accent: Accent): string {

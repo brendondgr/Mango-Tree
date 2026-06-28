@@ -21,6 +21,16 @@
 .mailbox-c-coral { --c: var(--category-coral); }
 .mailbox-c-lavender { --c: var(--category-lavender); }
 .mailbox-c-tangerine { --c: var(--category-tangerine); }
+.mailbox-c-rose { --c: var(--category-rose); }
+.mailbox-c-violet { --c: var(--category-violet); }
+.mailbox-c-teal { --c: var(--category-teal); }
+.mailbox-c-amber { --c: var(--category-amber); }
+.mailbox-c-lime { --c: var(--category-lime); }
+.mailbox-c-indigo { --c: var(--category-indigo); }
+.mailbox-c-peach { --c: var(--category-peach); }
+.mailbox-c-sage { --c: var(--category-sage); }
+.mailbox-c-crimson { --c: var(--category-crimson); }
+.mailbox-c-slate { --c: var(--category-slate); }
 .mailbox-c-primary { --c: var(--primary); }
 
 .mailbox-fg { color: hsl(var(--c, var(--primary))); }
