@@ -17,7 +17,11 @@ from utils.apps.mailbox.shared.errors import ValidationError
 
 VALID_PROVIDERS = ("gmail", "m365", "exchange", "yahoo")
 VALID_STATUS = ("untested", "ok", "error")
-VALID_COLORS = ("sky", "mint", "coral", "lavender", "tangerine")
+VALID_COLORS = (
+    "sky", "mint", "coral", "lavender", "tangerine",
+    "rose", "violet", "teal", "amber", "lime",
+    "indigo", "peach", "sage", "crimson", "slate",
+)
 
 # Keys that look like a secret and must never be accepted into account settings.
 # The config store asserts against this set as a defensive secret-leak guard.
