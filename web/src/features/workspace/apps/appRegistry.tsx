@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  ChefHat,
   Dumbbell,
   FolderKanban,
   FolderOpen,
@@ -13,6 +14,7 @@ import { ExerciseWorkspace } from "@exercise/pages/ExerciseWorkspace";
 import { MailboxWorkspace } from "@mailbox/pages/MailboxWorkspace";
 import { ArtifactsWorkspace } from "@media-viewer/pages/ArtifactsWorkspace";
 import { ProjectManagerWorkspace } from "@projectmanager/pages/ProjectManagerWorkspace";
+import { RecipesWorkspace } from "@recipes/pages/RecipesWorkspace";
 
 /**
  * Single source of truth for the apps that can be opened as workspace tabs.
@@ -66,6 +68,13 @@ export const WORKSPACE_APPS: WorkspaceApp[] = [
     description: "Plan weekly schedules and a dated calendar of merged events.",
     icon: CalendarDays,
     Component: CalendarWorkspace,
+  },
+  {
+    id: "recipes",
+    label: "Recipes",
+    description: "Browse recipes, match them to your pantry, and add your own.",
+    icon: ChefHat,
+    Component: RecipesWorkspace,
   },
   {
     id: "mediaviewer",
