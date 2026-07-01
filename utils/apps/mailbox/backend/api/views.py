@@ -269,3 +269,47 @@ class AccountOrganizeView(APIView):
         except MailError as exc:
             return _error_response(exc)
         return Response(result, status=status.HTTP_200_OK)
+
+
+def _uids(body: dict) -> list[str]:
+    """Accept ``uids: [...]`` or a single ``uid`` for convenience."""
+    raw = body.get("uids")
+    if raw is None and body.get("uid") is not None:
+        raw = [body["uid"]]
+    return [str(u) for u in raw] if isinstance(raw, list) else []
+
+
+class AccountMoveView(APIView):
+    """Batch-move messages by UID. Reversible, so not confirm-gated."""
+
+    def post(self, request: Request, account_id: str) -> Response:
+        body = parse_object(request.data) if isinstance(request.data, dict) else {}
+        try:
+            result = mailops_service.move(
+                account_id,
+                uids=_uids(body),
+                dest=str(body.get("dest", "")),
+                source=str(body.get("source", "INBOX")),
+                create_if_missing=bool(body.get("create_if_missing", True)),
+            )
+        except MailError as exc:
+            return _error_response(exc)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class AccountMarkView(APIView):
+    """Mark messages read/unread and/or starred. Reversible, so not gated."""
+
+    def post(self, request: Request, account_id: str) -> Response:
+        body = parse_object(request.data) if isinstance(request.data, dict) else {}
+        try:
+            result = mailops_service.mark(
+                account_id,
+                uids=_uids(body),
+                read=body.get("read"),
+                starred=body.get("starred"),
+                source=str(body.get("source", "INBOX")),
+            )
+        except MailError as exc:
+            return _error_response(exc)
+        return Response(result, status=status.HTTP_200_OK)

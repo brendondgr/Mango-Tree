@@ -18,9 +18,14 @@ Read first to ground every action:
   call after a move (uids are per-folder and shift when a message moves).
 
 Mutating (reversible — no confirmation needed):
-- mailbox_organize_message — move a message (by uid) from `source` to `dest`.
+- mailbox_organize_message — move one message (by uid) from `source` to `dest`.
   Creates `dest` if missing. On Gmail this is a relabel: the message also
   remains under "All Mail", so do not tell the user it left their account.
+- mailbox_move_messages — the batch form: move many uids at once (one round
+  trip). Use it when the user asks to file/organize several saved emails.
+  Never guess `dest`; take exact paths from mailbox_list_folders.
+- mailbox_mark_messages — mark uids read/unread and/or starred. `read` and
+  `starred` are tri-state (true adds, false removes, omit to leave alone).
 - mailbox_create_folder — create a folder/label (idempotent).
 
 Gated (irreversible — require explicit user approval, then confirm: true):

@@ -12,8 +12,10 @@ from utils.apps.mailbox.backend.api.views import (
     AccountDetailView,
     AccountFoldersView,
     AccountListCreateView,
+    AccountMarkView,
     AccountMessageDetailView,
     AccountMessagesView,
+    AccountMoveView,
     AccountOrganizeView,
     AccountSyncView,
     AccountTestView,
@@ -33,4 +35,6 @@ urlpatterns = [
     path("accounts/<str:account_id>/sync/", AccountSyncView.as_view(), name="mailbox-account-sync"),
     path("accounts/<str:account_id>/messages/<str:uid>/", AccountMessageDetailView.as_view(), name="mailbox-account-message-detail"),
     path("accounts/<str:account_id>/organize/", AccountOrganizeView.as_view(), name="mailbox-account-organize"),
+    path("accounts/<str:account_id>/move/", AccountMoveView.as_view(), name="mailbox-account-move"),
+    path("accounts/<str:account_id>/mark/", AccountMarkView.as_view(), name="mailbox-account-mark"),
 ]

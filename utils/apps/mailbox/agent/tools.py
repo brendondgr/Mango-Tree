@@ -110,6 +110,43 @@ def organize_message(
         return _error(exc)
 
 
+def move_messages(
+    *,
+    account: str,
+    uids: list[str],
+    dest: str,
+    source: str = "INBOX",
+    create_if_missing: bool = True,
+    service=None,
+) -> dict[str, Any]:
+    """Move a batch of messages (by uid) from ``source`` to ``dest`` in one call."""
+    svc = service or _mailops
+    try:
+        return svc.move(
+            account, uids=uids, dest=dest, source=source, create_if_missing=create_if_missing
+        )
+    except MailError as exc:
+        return _error(exc)
+
+
+def mark_messages(
+    *,
+    account: str,
+    uids: list[str],
+    read: bool | None = None,
+    starred: bool | None = None,
+    source: str = "INBOX",
+    service=None,
+) -> dict[str, Any]:
+    """Mark messages read/unread and/or starred. Tri-state: True adds, False
+    removes, None leaves the flag untouched."""
+    svc = service or _mailops
+    try:
+        return svc.mark(account, uids=uids, read=read, starred=starred, source=source)
+    except MailError as exc:
+        return _error(exc)
+
+
 def create_folder(*, account: str, name: str, service=None) -> dict[str, Any]:
     svc = service or _mailops
     try:

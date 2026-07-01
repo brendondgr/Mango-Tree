@@ -65,6 +65,24 @@ def test_organize_delegates_with_defaults():
     )
 
 
+def test_move_messages_batch_delegates():
+    mock = MagicMock()
+    mock.move.return_value = {"uids": ["2", "3"], "moved_to": "Archive", "method": "MOVE"}
+    payload = tools.move_messages(account="a1", uids=["2", "3"], dest="Archive", service=mock)
+    assert payload["uids"] == ["2", "3"]
+    mock.move.assert_called_once_with(
+        "a1", uids=["2", "3"], dest="Archive", source="INBOX", create_if_missing=True
+    )
+
+
+def test_mark_messages_delegates_tristate():
+    mock = MagicMock()
+    mock.mark.return_value = {"uids": ["2"], "added": ["\\Seen"], "removed": []}
+    payload = tools.mark_messages(account="a1", uids=["2"], read=True, service=mock)
+    assert payload["added"] == ["\\Seen"]
+    mock.mark.assert_called_once_with("a1", uids=["2"], read=True, starred=None, source="INBOX")
+
+
 def test_create_folder_delegates():
     mock = MagicMock()
     mock.create_folder.return_value = {"folder": "Work", "created": True}
@@ -117,7 +135,7 @@ def test_tools_yaml_entries_resolve():
         for name, meta in config["tools"].items()
         if meta.get("app") == "mailbox"
     }
-    assert len(mailbox_tools) == 6
+    assert len(mailbox_tools) == 8
     for meta in mailbox_tools.values():
         module = importlib.import_module(meta["module"])
         assert callable(getattr(module, meta["function"]))

@@ -114,6 +114,16 @@ tools:
     module: utils.apps.mailbox.agent.tools
     function: organize_message
     description: Move a message by uid from source to dest (reversible; creates dest if missing).
+  mailbox_move_messages:
+    app: mailbox
+    module: utils.apps.mailbox.agent.tools
+    function: move_messages
+    description: Batch-move messages by uid from source to dest in one round trip (reversible).
+  mailbox_mark_messages:
+    app: mailbox
+    module: utils.apps.mailbox.agent.tools
+    function: mark_messages
+    description: Mark messages read/unread and/or starred (tri-state; reversible).
   mailbox_create_folder:
     app: mailbox
     module: utils.apps.mailbox.agent.tools

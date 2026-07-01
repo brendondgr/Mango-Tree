@@ -74,6 +74,8 @@ Single source of truth. `agent/tools.py`, `agent/prompts.py`, and
 | `mailbox_list_folders` | `account` | `{tree, flat, count}` | read | none |
 | `mailbox_list_messages` | `account`, `folder="INBOX"`, `limit=25` | `{messages: [MessageDTO], count}` | read | none |
 | `mailbox_organize_message` | `account`, `uid`, `source="INBOX"`, `dest`, `create_if_missing=true` | `{uid, moved_to, method}` | mutating | none (reversible) |
+| `mailbox_move_messages` | `account`, `uids[]`, `dest`, `source="INBOX"`, `create_if_missing=true` | `{uids, moved_to, method}` | mutating | none (reversible) |
+| `mailbox_mark_messages` | `account`, `uids[]`, `read?`, `starred?`, `source="INBOX"` | `{uids, added, removed}` | mutating | none (reversible) |
 | `mailbox_create_folder` | `account`, `name` | `{folder, created}` | mutating | none |
 | `mailbox_send_message` | `account`, `to[]`, `subject`, `body`, `cc[]?`, `html?`, `confirm=false` | `{sent, accepted[], refused[]}` | irreversible | **`confirm: true`** |
 
@@ -89,7 +91,7 @@ Single source of truth. `agent/tools.py`, `agent/prompts.py`, and
 `tools.py`; account scoping and network/filesystem scope are enforced by the
 registry + `config/permissions.yaml`.
 
-## Resolved decisions (D1–D5)
+## Resolved decisions (D1–D9)
 
 - **D1 — Account scoping.** No `ExecutionContext` exists in this codebase; tools
   are plain functions with injectable services. `account` is always an id
@@ -104,6 +106,19 @@ registry + `config/permissions.yaml`.
 - **D5 — Secret store.** A `0600` `data/mailbox/secrets.json`, with an interface
   small enough to later swap to an OS keychain. The secret never enters
   `accounts.json`.
+- **D6 — Well-known folders.** Trash/Sent/Junk/Archive/Drafts names vary per
+  provider. `ops.well_known_folder(account, kind)` prefers the server's RFC 6154
+  SPECIAL-USE flags from the `LIST` response, then falls back to a per-provider
+  name map seeded on the account by the registry — the agent never guesses paths.
+- **D8 — Cache consistency.** `mailops` best-effort updates the local cache on a
+  successful mutation (`cache.remove_uids` after a move/delete out of a folder,
+  `cache.update_flags` after a flag change) so a user-driven change shows up
+  immediately; the next incremental sync stays the source of truth.
+- **D9 — Batch + handle stability.** The write primitives are batch-native: they
+  take a `uids[]` set and issue one IMAP round trip (`"1,2,5"`). UIDs are
+  per-folder and shift on MOVE (D2), so a batch resolves all UIDs against one
+  `source` folder within a grounded turn; `message_id` remains the stable
+  cross-folder handle.
 
 ## HTTP API
 
