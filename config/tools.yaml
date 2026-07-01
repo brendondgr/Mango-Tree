@@ -124,6 +124,11 @@ tools:
     module: utils.apps.mailbox.agent.tools
     function: mark_messages
     description: Mark messages read/unread and/or starred (tri-state; reversible).
+  mailbox_delete_messages:
+    app: mailbox
+    module: utils.apps.mailbox.agent.tools
+    function: delete_messages
+    description: Delete messages by uid; soft (move to Trash, reversible) or permanent (confirm required).
   mailbox_create_folder:
     app: mailbox
     module: utils.apps.mailbox.agent.tools

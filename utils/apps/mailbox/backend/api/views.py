@@ -313,3 +313,32 @@ class AccountMarkView(APIView):
         except MailError as exc:
             return _error_response(exc)
         return Response(result, status=status.HTTP_200_OK)
+
+
+class AccountDeleteView(APIView):
+    """Delete messages by UID. Soft delete (default) moves them to Trash and is
+    reversible; the irreversible ``permanent: true`` path requires ``confirm:
+    true`` in the body, mirroring the agent tool's gate."""
+
+    def post(self, request: Request, account_id: str) -> Response:
+        body = parse_object(request.data) if isinstance(request.data, dict) else {}
+        permanent = bool(body.get("permanent", False))
+        if permanent and body.get("confirm") is not True:
+            return Response(
+                {
+                    "code": "permission_denied",
+                    "message": "Permanently deleting messages requires confirm: true",
+                    "details": {},
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        try:
+            result = mailops_service.delete(
+                account_id,
+                uids=_uids(body),
+                source=str(body.get("source", "INBOX")),
+                permanent=permanent,
+            )
+        except MailError as exc:
+            return _error_response(exc)
+        return Response(result, status=status.HTTP_200_OK)

@@ -177,3 +177,28 @@ def send_message(
         return svc.send(account, to=to, subject=subject, body=body, cc=cc, html=html)
     except MailError as exc:
         return _error(exc)
+
+
+def delete_messages(
+    *,
+    account: str,
+    uids: list[str],
+    source: str = "INBOX",
+    permanent: bool = False,
+    confirm: bool = False,
+    service=None,
+) -> dict[str, Any]:
+    """Delete messages by uid.
+
+    Soft delete (default) moves them to the account's Trash and is reversible, so
+    it is ungated. Permanent delete is irreversible and returns
+    ``permission_denied`` unless ``confirm is True`` — the gate is enforced here,
+    not in the prompt.
+    """
+    if permanent and confirm is not True:
+        return _denied("Permanently deleting messages requires confirm: true")
+    svc = service or _mailops
+    try:
+        return svc.delete(account, uids=uids, source=source, permanent=permanent)
+    except MailError as exc:
+        return _error(exc)

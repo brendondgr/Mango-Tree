@@ -175,7 +175,10 @@ derived `has_credential` boolean; the credential endpoint is write-only.
 | `GET` | `/api/mailbox/accounts/{id}/messages/` | `messages.cached_messages` | Cached messages, newest first (`?folder=INBOX&limit=25`; `limit=all`/absent returns the whole cache). No network — see `/sync/` |
 | `GET`/`POST` | `/api/mailbox/accounts/{id}/sync/` | `messages.sync_status` / `messages.start_sync` | Inspect / trigger an incremental background sync into the local cache |
 | `GET` | `/api/mailbox/accounts/{id}/messages/{uid}/` | `messages.get_message` | One message with decoded body (cached after first open) |
-| `POST` | `/api/mailbox/accounts/{id}/organize/` | `mailops.organize` | Move a message by UID (reversible) |
+| `POST` | `/api/mailbox/accounts/{id}/organize/` | `mailops.organize` | Move one message by UID (reversible) |
+| `POST` | `/api/mailbox/accounts/{id}/move/` | `mailops.move` | Batch-move messages: body `{uids[], dest, source?, create_if_missing?}` (reversible) |
+| `POST` | `/api/mailbox/accounts/{id}/mark/` | `mailops.mark` | Mark read/unread and/or starred: body `{uids[], read?, starred?, source?}` (tri-state; reversible) |
+| `POST` | `/api/mailbox/accounts/{id}/delete/` | `mailops.delete` | Delete messages: body `{uids[], source?, permanent?, confirm?}`. Soft (Trash) is reversible; `permanent: true` needs `confirm: true` (else 403) |
 
 **Gmail/M365 use the OAuth portal, not a token field.** `GET /oauth/start/?provider=gmail` returns `{authorize_url}`; the SPA opens it, the user signs in on the provider's own page, and the provider redirects to `/oauth/callback/`, which validates the one-time `state`, exchanges the code (Authorization Code + PKCE), stores the **refresh token** in the secret store, upserts the account from the verified email, and redirects the browser to the SPA with `?mailbox_added=<id>`. Short-lived access tokens are minted from the refresh token on demand. Requires `OAUTH_GMAIL_CLIENT_ID`/`OAUTH_M365_CLIENT_ID` (and secrets) in the environment. The `PUT .../credential/` endpoint is for **app passwords only** (Yahoo/Exchange): body `{"value": "<app password>"}`, write-only, echoes only `{id, credential_ref, has_credential}`.
 

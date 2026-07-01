@@ -149,6 +149,32 @@ def mark(
     return result
 
 
+def delete(
+    account_id: str,
+    *,
+    uids: Sequence[str],
+    source: str = "INBOX",
+    permanent: bool = False,
+    build=None,
+    imap_factory=None,
+) -> dict[str, Any]:
+    """Delete a batch of messages: soft (move to Trash, reversible) or permanent.
+
+    Either way the messages leave the source folder, so they are dropped from its
+    cache (D8). The confirm gate for the irreversible permanent path lives in the
+    agent tool, not here — enforcement is in code, never in the prompt.
+    """
+    result = _ops.delete_message(
+        _resolve(account_id, build),
+        uids=uids,
+        source_folder=source,
+        permanent=permanent,
+        imap_factory=imap_factory,
+    )
+    _drop_cache_uids(account_id, source, result["uids"])
+    return result
+
+
 def create_folder(account_id: str, *, name: str, build=None, imap_factory=None) -> dict[str, Any]:
     account = _resolve(account_id, build)
     client = _ops.connect_imap(account, imap_factory=imap_factory)

@@ -110,6 +110,37 @@ def test_send_with_confirm_delegates():
     )
 
 
+# --- delete: soft ungated, permanent confirm-gated ----------------------------
+
+def test_soft_delete_is_ungated_and_delegates():
+    mock = MagicMock()
+    mock.delete.return_value = {"uids": ["2"], "deleted": True, "permanent": False,
+                                "moved_to": "[Gmail]/Trash", "method": "MOVE"}
+    payload = tools.delete_messages(account="a1", uids=["2"], service=mock)
+    assert payload["permanent"] is False
+    mock.delete.assert_called_once_with("a1", uids=["2"], source="INBOX", permanent=False)
+
+
+def test_permanent_delete_without_confirm_is_denied():
+    mock = MagicMock()
+    payload = tools.delete_messages(
+        account="a1", uids=["2"], source="Trash", permanent=True, service=mock
+    )
+    assert payload["error"]["code"] == "permission_denied"
+    mock.delete.assert_not_called()
+
+
+def test_permanent_delete_with_confirm_delegates():
+    mock = MagicMock()
+    mock.delete.return_value = {"uids": ["2"], "deleted": True, "permanent": True,
+                                "source": "Trash"}
+    payload = tools.delete_messages(
+        account="a1", uids=["2"], source="Trash", permanent=True, confirm=True, service=mock
+    )
+    assert payload["permanent"] is True
+    mock.delete.assert_called_once_with("a1", uids=["2"], source="Trash", permanent=True)
+
+
 # --- error surfacing ----------------------------------------------------------
 
 def test_missing_credentials_surface_permission_denied():
@@ -135,7 +166,7 @@ def test_tools_yaml_entries_resolve():
         for name, meta in config["tools"].items()
         if meta.get("app") == "mailbox"
     }
-    assert len(mailbox_tools) == 8
+    assert len(mailbox_tools) == 9
     for meta in mailbox_tools.values():
         module = importlib.import_module(meta["module"])
         assert callable(getattr(module, meta["function"]))

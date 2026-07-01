@@ -73,6 +73,29 @@ def test_move_drops_moved_uids_from_cache(cached_inbox):
     assert "2" not in remaining and "3" in remaining  # D8: cache reflects the move
 
 
+# --- delete (soft + permanent) ------------------------------------------------
+
+def test_delete_soft_moves_to_trash_and_drops_cache(cached_inbox):
+    fake = FakeImap()
+    result = mailops.delete(
+        cached_inbox, uids=["2"],
+        build=lambda _id: _account(), imap_factory=lambda a: fake,
+    )
+    assert result["permanent"] is False and result["moved_to"] == "[Gmail]/Trash"
+    remaining = cache.load(cached_inbox, "INBOX")["messages"]
+    assert "2" not in remaining and "3" in remaining  # D8
+
+
+def test_delete_permanent_drops_cache(cached_inbox):
+    fake = FakeImap()
+    result = mailops.delete(
+        cached_inbox, uids=["3"], source="INBOX", permanent=True,
+        build=lambda _id: _account(), imap_factory=lambda a: fake,
+    )
+    assert result["permanent"] is True
+    assert "3" not in cache.load(cached_inbox, "INBOX")["messages"]  # D8
+
+
 # --- mark (flags) -------------------------------------------------------------
 
 def test_mark_read_updates_cache_flags(cached_inbox):

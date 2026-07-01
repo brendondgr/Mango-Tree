@@ -187,6 +187,30 @@ def test_move_empty_uids_is_validation_error(client):
     assert res.json()["code"] == "validation_error"
 
 
+def test_soft_delete_without_credentials_denied(client):
+    account_id = _create(client).json()["id"]
+    res = client.post(
+        f"/api/mailbox/accounts/{account_id}/delete/",
+        data=json.dumps({"uids": ["1"]}),
+        content_type="application/json",
+    )
+    assert res.status_code == 403
+    assert res.json()["code"] == "permission_denied"
+
+
+def test_permanent_delete_without_confirm_denied_before_network(client):
+    # The confirm gate fires in the view before any account/network work.
+    account_id = _create(client).json()["id"]
+    res = client.post(
+        f"/api/mailbox/accounts/{account_id}/delete/",
+        data=json.dumps({"uids": ["1"], "permanent": True}),
+        content_type="application/json",
+    )
+    assert res.status_code == 403
+    assert res.json()["code"] == "permission_denied"
+    assert "confirm" in res.json()["message"].lower()
+
+
 def test_messages_for_unknown_account_404(client):
     res = client.get("/api/mailbox/accounts/ghost/messages/")
     assert res.status_code == 404

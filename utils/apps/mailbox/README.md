@@ -76,14 +76,17 @@ Single source of truth. `agent/tools.py`, `agent/prompts.py`, and
 | `mailbox_organize_message` | `account`, `uid`, `source="INBOX"`, `dest`, `create_if_missing=true` | `{uid, moved_to, method}` | mutating | none (reversible) |
 | `mailbox_move_messages` | `account`, `uids[]`, `dest`, `source="INBOX"`, `create_if_missing=true` | `{uids, moved_to, method}` | mutating | none (reversible) |
 | `mailbox_mark_messages` | `account`, `uids[]`, `read?`, `starred?`, `source="INBOX"` | `{uids, added, removed}` | mutating | none (reversible) |
+| `mailbox_delete_messages` | `account`, `uids[]`, `source="INBOX"`, `permanent=false`, `confirm=false` | `{uids, deleted, permanent, moved_to?, method?}` | mutating / irreversible | **`confirm: true` only when `permanent`** |
 | `mailbox_create_folder` | `account`, `name` | `{folder, created}` | mutating | none |
 | `mailbox_send_message` | `account`, `to[]`, `subject`, `body`, `cc[]?`, `html?`, `confirm=false` | `{sent, accepted[], refused[]}` | irreversible | **`confirm: true`** |
 
 - `account` is an **account id** resolved against the config store by the provider
   registry. `mailbox_list_accounts` reads from the config store, never env, and
   returns only configured accounts.
-- `mailbox_organize_message` is mutating but reversible, so it is not gated;
-  `mailbox_send_message` is irreversible and **is** gated.
+- `mailbox_organize_message`/`mailbox_move_messages`/`mailbox_mark_messages` and
+  soft `mailbox_delete_messages` are reversible, so they are not gated;
+  `mailbox_send_message` and **permanent** `mailbox_delete_messages` are
+  irreversible and **are** gated on `confirm: true`.
 - Every tool can return the platform error envelope with a stable `code`
   (`validation_error`, `permission_denied`, `provider_error`, `not_found`).
 
@@ -110,6 +113,11 @@ registry + `config/permissions.yaml`.
   provider. `ops.well_known_folder(account, kind)` prefers the server's RFC 6154
   SPECIAL-USE flags from the `LIST` response, then falls back to a per-provider
   name map seeded on the account by the registry — the agent never guesses paths.
+- **D7 — Gating.** Reversible = ungated, irreversible = confirm-gated in code.
+  Move/organize, flag changes, and soft delete (a move to Trash you can undo) are
+  ungated; permanent delete and reply/send are confirm-gated. On Gmail, "delete"
+  moves to `[Gmail]/Trash` and strips other labels but the message survives in
+  All Mail until a permanent delete.
 - **D8 — Cache consistency.** `mailops` best-effort updates the local cache on a
   successful mutation (`cache.remove_uids` after a move/delete out of a folder,
   `cache.update_flags` after a flag change) so a user-driven change shows up
