@@ -112,13 +112,14 @@ def add_media(urls: Any, *, scraper: Any = None) -> dict[str, Any]:
     links, so per-item failures are collected (with a stable ``code``) rather
     than aborting the whole batch.
     """
-    if scraper is None:
-        scraper = _default_scraper()
-
     if isinstance(urls, str):
         urls = [urls]
     if not urls or not isinstance(urls, (list, tuple)):
         raise ValidationError("No URLs provided", details={"urls": urls})
+
+    # Construct the (network-touching) default scraper only after input passes.
+    if scraper is None:
+        scraper = _default_scraper()
 
     added: list[MediaItem] = []
     errors: list[dict[str, str]] = []

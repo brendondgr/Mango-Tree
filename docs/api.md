@@ -240,7 +240,25 @@ at `data/imdbspy/imdbtracker.db` (`managed = True` models, Django owns the schem
 with images cached under `data/imdbspy/media/`. DRF routes:
 `utils/api/routes/imdbspy.py`; views call `backend/services/` only.
 
-_Endpoints are documented in Stage 5 of the migration; this block is reserved._
+| Method | Endpoint | Service | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/imdbspy/media/` | `media_items.list_media` | List titles (`{items, total, has_more}`); query `status`, `kind` (`movie`/`tv`), `search`, `limit`, `offset` |
+| `POST` | `/api/imdbspy/media/add/` | `media_items.add_media` | Scrape + add titles (body `{urls: [...]}`); returns `{added, errors}` (per-item `errors` carry a `code`) |
+| `POST` | `/api/imdbspy/media/refresh/` | `media_items.refresh_all` | Refresh metadata for all titles (no image re-download) |
+| `POST` | `/api/imdbspy/media/{id}/status/` | `media_items.set_status` | Set status (body `{status}`: `seen`/`not_seen`/`abandoned`) |
+| `PUT` | `/api/imdbspy/media/{id}/review/` | `media_items.update_review` | Weighted rating + review + seasons (body `{scale_type, *_rating, user_review?, seasons_seen?}`) |
+| `PUT` | `/api/imdbspy/media/{id}/seasons/` | `media_items.update_seasons_seen` | Set watched-seasons count (TV only) |
+| `DELETE` | `/api/imdbspy/media/{id}/` | `media_items.delete_media` | Delete a title (`204`) |
+| `GET` | `/api/imdbspy/weights/` | `weights.get_weights` | List the three scales' criterion weights |
+| `PUT` | `/api/imdbspy/weights/` | `weights.update_weights` | Update weights (body = array of `{scale_type, *_weight}`); recalculates affected titles |
+| `GET` | `/api/imdbspy/assets/{path}` | `media.resolve_asset` | Serve a cached poster/headshot (path sanitized against traversal) |
+
+The list endpoint returns a lightweight `{items, total, has_more}` envelope (not
+the standard paginated envelope), preserving the original app's contract. `id` is
+an integer. Statuses: `seen`/`not_seen`/`abandoned`; scales: `fun`/`grit`/
+`comfort`. Errors use the platform schema with codes `validation_error` (400),
+`not_found` (404), `conflict` (409). Rating-weights are an **API-only**
+configuration surface (no agent tool).
 
 ### Reserved (TBD)
 

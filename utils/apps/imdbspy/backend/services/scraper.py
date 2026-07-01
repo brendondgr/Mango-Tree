@@ -13,6 +13,7 @@ pass a fake, never this class.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -79,7 +80,20 @@ class IMDbScraper:
         self.webp_quality = webp_quality
         self.verbose = verbose
 
-        self._ia = Cinemagoer()
+        # Cinemagoer is only a metadata *fallback* (the primary path is the
+        # mobile-site JSON-LD/HTML scrape via requests). Its construction can
+        # fail depending on the installed access system, so tolerate that and
+        # fall back to the requests path alone. Mute the library's own logger
+        # during construction so a failed access system does not spam CRITICAL.
+        _imdb_logger = logging.getLogger("imdbpy")
+        _was_disabled = _imdb_logger.disabled
+        _imdb_logger.disabled = True
+        try:
+            self._ia = Cinemagoer()
+        except Exception:
+            self._ia = None
+        finally:
+            _imdb_logger.disabled = _was_disabled
 
         self.mobile_headers = {
             "User-Agent": (
@@ -250,12 +264,13 @@ class IMDbScraper:
         page_data, cast_list, raw_html = self._fetch_imdb_page_data(imdb_id)
 
         show: dict = {}
-        try:
-            show_obj = self._ia.get_movie(imdb_id, info=["main"])
-            if show_obj:
-                show = show_obj.data
-        except Exception as e:
-            self._log(f"  Warning: Cinemagoer fallback failed: {e}")
+        if self._ia is not None:
+            try:
+                show_obj = self._ia.get_movie(imdb_id, info=["main"])
+                if show_obj:
+                    show = show_obj.data
+            except Exception as e:
+                self._log(f"  Warning: Cinemagoer fallback failed: {e}")
 
         result = MediaResult(imdb_id=imdb_id, title="Unknown", description="")
 
@@ -409,12 +424,13 @@ class IMDbScraper:
         page_data, cast_list, raw_html = self._fetch_imdb_page_data(imdb_id)
 
         show: dict = {}
-        try:
-            show_obj = self._ia.get_movie(imdb_id, info=["main"])
-            if show_obj:
-                show = show_obj.data
-        except Exception as e:
-            self._log(f"  Warning: Cinemagoer fallback failed: {e}")
+        if self._ia is not None:
+            try:
+                show_obj = self._ia.get_movie(imdb_id, info=["main"])
+                if show_obj:
+                    show = show_obj.data
+            except Exception as e:
+                self._log(f"  Warning: Cinemagoer fallback failed: {e}")
 
         result: dict = {}
 
