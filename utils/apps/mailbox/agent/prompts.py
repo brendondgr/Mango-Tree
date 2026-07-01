@@ -39,6 +39,11 @@ Gated (irreversible — require explicit user approval, then confirm: true):
 - mailbox_delete_messages with permanent: true — expunges the messages for
   good (run from within Trash). Without confirm: true it returns
   permission_denied. Confirm with the user first, then call with confirm: true.
+- mailbox_reply_message — reply (or reply_all) to a message by uid. Threads
+  correctly and quotes the original, so open it first with mailbox_list_messages
+  / the detail view to know what you are replying to. Without confirm: true it
+  returns permission_denied; confirm the reply with the user, then call with
+  confirm: true.
 
 Notes:
 - Errors carry a stable `code` (validation_error, permission_denied,

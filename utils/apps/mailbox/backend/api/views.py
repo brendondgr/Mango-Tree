@@ -342,3 +342,32 @@ class AccountDeleteView(APIView):
         except MailError as exc:
             return _error_response(exc)
         return Response(result, status=status.HTTP_200_OK)
+
+
+class AccountReplyView(APIView):
+    """Reply / reply-all to a message. Irreversible, so it requires ``confirm:
+    true`` in the body, mirroring the agent tool's gate."""
+
+    def post(self, request: Request, account_id: str) -> Response:
+        body = parse_object(request.data) if isinstance(request.data, dict) else {}
+        if body.get("confirm") is not True:
+            return Response(
+                {
+                    "code": "permission_denied",
+                    "message": "Replying to a message requires confirm: true",
+                    "details": {},
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        try:
+            result = mailops_service.reply(
+                account_id,
+                uid=str(body.get("uid", "")),
+                body=str(body.get("body", "")),
+                html=body.get("html"),
+                reply_all=bool(body.get("reply_all", False)),
+                source=str(body.get("source", "INBOX")),
+            )
+        except MailError as exc:
+            return _error_response(exc)
+        return Response(result, status=status.HTTP_200_OK)

@@ -26,12 +26,15 @@ typed errors and ``FolderNode`` now come from ``shared/``.
 from __future__ import annotations
 
 import base64
+import email
 import smtplib
 from dataclasses import dataclass, field
+from email.header import decode_header, make_header
 from email.message import EmailMessage
 from typing import Any, Callable, Protocol, Sequence
 
 from utils.apps.mailbox.shared.errors import (
+    NotFoundError,
     PermissionDeniedError,
     ProviderError,
     ValidationError,
@@ -105,6 +108,7 @@ class ImapLike(Protocol):
     def uid(self, command: str, *args: Any) -> Any: ...
     def copy(self, message_set: str, new_mailbox: str) -> Any: ...
     def store(self, message_set: str, command: str, flags: str) -> Any: ...
+    def append(self, mailbox: str, flags: Any, date_time: Any, message: bytes) -> Any: ...
     def expunge(self) -> Any: ...
     def capabilities(self) -> Any: ...
     def logout(self) -> Any: ...
@@ -436,6 +440,23 @@ def send_message(
         msg.add_alternative(html, subtype="html")
 
     all_rcpts = list(to) + list(cc or []) + list(bcc or [])
+    refused = _smtp_send(account, msg, all_rcpts, smtp_factory=smtp_factory)
+    return {
+        "sent": True,
+        "accepted": [r for r in all_rcpts if r not in refused],
+        "refused": list(refused.keys()),
+    }
+
+
+def _smtp_send(
+    account: MailAccount,
+    msg: EmailMessage,
+    all_rcpts: list[str],
+    *,
+    smtp_factory: Callable[[MailAccount], Any] | None = None,
+) -> dict:
+    """Authenticate (XOAUTH2 or AUTH LOGIN) and submit ``msg``; return the refused
+    map. Shared by :func:`send_message` and :func:`reply_message`."""
     smtp = (smtp_factory or _default_smtp_factory)(account)
     try:
         if account.access_token and account.auth in ("oauth2", "either"):
@@ -448,18 +469,156 @@ def send_message(
                 )
         else:
             smtp.login(account.email, account.app_password)
-
-        refused = smtp.send_message(msg, from_addr=account.email, to_addrs=all_rcpts)
-        return {
-            "sent": True,
-            "accepted": [r for r in all_rcpts if r not in (refused or {})],
-            "refused": list((refused or {}).keys()),
-        }
+        return smtp.send_message(msg, from_addr=account.email, to_addrs=all_rcpts) or {}
     finally:
         try:
             smtp.quit()
         except Exception:
             pass
+
+
+# =============================================================================
+# 2b. REPLY — reply / reply-all to an existing message (threaded)
+# =============================================================================
+
+def _plain_text_body(msg: "email.message.Message") -> str:  # type: ignore[name-defined]
+    """Best-effort text/plain body of a message, for quoting in a reply."""
+    if msg.is_multipart():
+        for part in msg.walk():
+            if part.get_content_type() != "text/plain":
+                continue
+            if "attachment" in str(part.get("Content-Disposition", "")).lower():
+                continue
+            try:
+                return (part.get_payload(decode=True) or b"").decode(
+                    part.get_content_charset() or "utf-8", errors="replace"
+                )
+            except Exception:
+                return ""
+        return ""
+    try:
+        return (msg.get_payload(decode=True) or b"").decode(
+            msg.get_content_charset() or "utf-8", errors="replace"
+        )
+    except Exception:
+        return ""
+
+
+def _reply_recipients(original, account_email: str, reply_all: bool) -> tuple[list[str], list[str]]:
+    """Compute (to, cc) for a reply. ``to`` is the original Reply-To or From;
+    reply-all adds the original To+Cc, minus the account's own address."""
+    import email.utils as _eu
+
+    def addrs(headers: list[str]) -> list[str]:
+        return [a for _n, a in _eu.getaddresses([h for h in headers if h]) if a]
+
+    target = original.get("Reply-To") or original.get("From") or ""
+    to_list: list[str] = []
+    seen: set[str] = set()
+    for a in addrs([target]):
+        if a.lower() not in seen:
+            to_list.append(a)
+            seen.add(a.lower())
+    cc_list: list[str] = []
+    if reply_all:
+        seen.add(account_email.lower())
+        for a in addrs([original.get("To", ""), original.get("Cc", "")]):
+            if a.lower() not in seen:
+                cc_list.append(a)
+                seen.add(a.lower())
+    return to_list, cc_list
+
+
+def reply_message(
+    account: MailAccount,
+    *,
+    uid: str,
+    body: str,
+    html: str | None = None,
+    reply_all: bool = False,
+    source_folder: str = "INBOX",
+    imap_factory: Callable[[MailAccount], ImapLike] | None = None,
+    smtp_factory: Callable[[MailAccount], Any] | None = None,
+) -> dict[str, Any]:
+    """Reply (or reply-all) to the message ``uid`` in ``source_folder``.
+
+    Fetches the original to thread correctly (``In-Reply-To``/``References``,
+    ``Re:`` subject, quoted body) and to compute recipients, sends via SMTP, then
+    IMAP-APPENDs the sent copy to the resolved Sent folder with ``\\Seen`` —
+    unless the provider files it automatically (Gmail, D10).
+    """
+    if not uid:
+        raise ValidationError("uid is required", details={"uid": uid})
+    if not (body or "").strip():
+        raise ValidationError("reply body is required", details={"body": body})
+
+    client = connect_imap(account, imap_factory=imap_factory)
+    try:
+        client.select(source_folder, readonly=True)
+        typ, fetched = client.uid("FETCH", uid, "(RFC822)")
+        item = fetched[0] if fetched else None
+        raw = item[1] if isinstance(item, (tuple, list)) and len(item) >= 2 else None
+        if not raw:
+            raise NotFoundError(
+                f"message {uid} not found in {source_folder}",
+                details={"uid": uid, "folder": source_folder},
+            )
+        original = email.message_from_bytes(raw if isinstance(raw, bytes) else str(raw).encode())
+
+        to_list, cc_list = _reply_recipients(original, account.email, reply_all)
+        if not to_list:
+            raise ValidationError(
+                "could not determine a reply recipient (no From/Reply-To)",
+                details={"uid": uid},
+            )
+
+        orig_subject = str(make_header(decode_header(original.get("Subject", "") or "")))
+        subject = orig_subject if orig_subject.lower().startswith("re:") else f"Re: {orig_subject}"
+        orig_id = (original.get("Message-ID", "") or "").strip()
+        orig_refs = (original.get("References", "") or "").strip()
+        references = f"{orig_refs} {orig_id}".strip() if orig_refs else orig_id
+
+        quoted = "\n".join("> " + line for line in _plain_text_body(original).splitlines())
+        attribution = f"On {original.get('Date', '')}, {original.get('From', '')} wrote:".strip()
+        text_body = f"{body}\n\n{attribution}\n{quoted}\n" if quoted else f"{body}\n"
+
+        msg = EmailMessage()
+        msg["From"] = account.email
+        msg["To"] = ", ".join(to_list)
+        if cc_list:
+            msg["Cc"] = ", ".join(cc_list)
+        msg["Subject"] = subject
+        if orig_id:
+            msg["In-Reply-To"] = orig_id
+        if references:
+            msg["References"] = references
+        msg.set_content(text_body)
+        if html:
+            msg.add_alternative(html, subtype="html")
+
+        all_rcpts = to_list + cc_list
+        refused = _smtp_send(account, msg, all_rcpts, smtp_factory=smtp_factory)
+
+        filed_to_sent = False
+        if not account.files_sent_automatically:
+            try:
+                sent_folder = well_known_folder(account, "sent", client=client)
+                client.append(sent_folder, "(\\Seen)", None, msg.as_bytes())
+                filed_to_sent = True
+            except Exception:
+                filed_to_sent = False  # best-effort; a failed APPEND never fails the reply
+
+        return {
+            "sent": True,
+            "replied_to": uid,
+            "reply_all": reply_all,
+            "to": [r for r in to_list if r not in refused],
+            "cc": [r for r in cc_list if r not in refused],
+            "subject": subject,
+            "filed_to_sent": filed_to_sent,
+        }
+    finally:
+        _safe_logout(client)
 
 
 # =============================================================================

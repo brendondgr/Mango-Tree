@@ -184,3 +184,129 @@ def test_registry_seeds_well_known_and_sent_flag():
     )
     assert yahoo.files_sent_automatically is False
     assert yahoo.well_known_names["sent"] == "Sent"
+
+
+# --- reply / reply-all --------------------------------------------------------
+
+_ORIGINAL = (
+    b"From: Alice <alice@example.com>\r\n"
+    b"To: bob@example.com, team@example.com\r\n"
+    b"Cc: carol@example.com\r\n"
+    b"Subject: Project update\r\n"
+    b"Message-ID: <orig@example.com>\r\n"
+    b"References: <root@example.com>\r\n"
+    b"Date: Mon, 22 Jun 2026 09:00:00 +0000\r\n"
+    b"Content-Type: text/plain; charset=utf-8\r\n\r\n"
+    b"Here is the original body.\r\n"
+)
+
+
+class ReplyImap:
+    def __init__(self, raw):
+        self.raw = raw
+        self.appended: list[tuple] = []
+
+    def authenticate(self, mech, fn):
+        fn(b"")
+
+    def login(self, u, p):
+        pass
+
+    def select(self, mb, readonly=False):
+        return ("OK", [b"1"])
+
+    def uid(self, cmd, *args):
+        if cmd == "FETCH":
+            return ("OK", [(b"1 (UID 1 RFC822 {%d}" % len(self.raw), self.raw), b")"])
+        return ("OK", [b"ok"])
+
+    def list(self, directory="", pattern="*"):
+        return ("OK", [b'(\\Sent) "/" "Sent"'])
+
+    def append(self, mailbox, flags, date_time, message):
+        self.appended.append((mailbox, flags, message))
+        return ("OK", [b"ok"])
+
+    def logout(self):
+        pass
+
+
+class ReplySmtp:
+    def __init__(self):
+        self.sent = None
+
+    def docmd(self, cmd, arg):
+        return (235, b"ok")
+
+    def login(self, u, p):
+        pass
+
+    def send_message(self, msg, from_addr=None, to_addrs=None):
+        self.sent = {"msg": msg, "from": from_addr, "to": to_addrs}
+        return {}
+
+    def quit(self):
+        pass
+
+
+def _reply_account(files_sent=False):
+    return MailAccount("yahoo", "bob@example.com", "imap.mail.yahoo.com", 993,
+                       "smtp.mail.yahoo.com", 587, "password", app_password="pw",
+                       files_sent_automatically=files_sent,
+                       well_known_names={"sent": "Sent"})
+
+
+def test_reply_threads_quotes_and_files_to_sent():
+    imap, smtp = ReplyImap(_ORIGINAL), ReplySmtp()
+    result = ops.reply_message(_reply_account(), uid="1", body="Thanks!",
+                               imap_factory=lambda a: imap, smtp_factory=lambda a: smtp)
+    msg = smtp.sent["msg"]
+    assert msg["Subject"] == "Re: Project update"
+    assert msg["In-Reply-To"] == "<orig@example.com>"
+    assert msg["References"] == "<root@example.com> <orig@example.com>"
+    assert smtp.sent["to"] == ["alice@example.com"]        # reply target = From
+    assert "> Here is the original body." in msg.get_content()  # quoted
+    assert result["filed_to_sent"] is True and imap.appended[0][0] == "Sent"
+
+
+def test_reply_does_not_double_prefix_re():
+    raw = _ORIGINAL.replace(b"Subject: Project update", b"Subject: RE: Project update")
+    imap, smtp = ReplyImap(raw), ReplySmtp()
+    ops.reply_message(_reply_account(), uid="1", body="ok",
+                      imap_factory=lambda a: imap, smtp_factory=lambda a: smtp)
+    assert smtp.sent["msg"]["Subject"] == "RE: Project update"
+
+
+def test_reply_all_adds_others_and_excludes_self():
+    imap, smtp = ReplyImap(_ORIGINAL), ReplySmtp()
+    ops.reply_message(_reply_account(), uid="1", body="Thanks all", reply_all=True,
+                      imap_factory=lambda a: imap, smtp_factory=lambda a: smtp)
+    msg = smtp.sent["msg"]
+    assert msg["To"] == "alice@example.com"
+    assert "team@example.com" in msg["Cc"] and "carol@example.com" in msg["Cc"]
+    assert "bob@example.com" not in (msg["To"] + msg["Cc"])  # own address dropped
+
+
+def test_reply_skips_sent_append_when_provider_files_it():
+    gmail = MailAccount("gmail", "bob@gmail.com", "imap.gmail.com", 993,
+                        "smtp.gmail.com", 587, "oauth2", access_token="TOK",
+                        files_sent_automatically=True)
+    imap, smtp = ReplyImap(_ORIGINAL), ReplySmtp()
+    result = ops.reply_message(gmail, uid="1", body="ok",
+                               imap_factory=lambda a: imap, smtp_factory=lambda a: smtp)
+    assert result["filed_to_sent"] is False and imap.appended == []
+
+
+def test_reply_without_recipient_raises():
+    raw = b"Subject: x\r\nMessage-ID: <a@b>\r\n\r\nbody\r\n"  # no From / Reply-To
+    with pytest.raises(ValidationError):
+        ops.reply_message(_reply_account(), uid="1", body="hi",
+                          imap_factory=lambda a: ReplyImap(raw),
+                          smtp_factory=lambda a: ReplySmtp())
+
+
+def test_reply_empty_body_raises():
+    with pytest.raises(ValidationError):
+        ops.reply_message(_reply_account(), uid="1", body="   ",
+                          imap_factory=lambda a: ReplyImap(_ORIGINAL),
+                          smtp_factory=lambda a: ReplySmtp())

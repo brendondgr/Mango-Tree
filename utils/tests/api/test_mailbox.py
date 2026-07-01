@@ -211,6 +211,30 @@ def test_permanent_delete_without_confirm_denied_before_network(client):
     assert "confirm" in res.json()["message"].lower()
 
 
+def test_reply_without_confirm_denied_before_network(client):
+    account_id = _create(client).json()["id"]
+    res = client.post(
+        f"/api/mailbox/accounts/{account_id}/reply/",
+        data=json.dumps({"uid": "1", "body": "hi"}),
+        content_type="application/json",
+    )
+    assert res.status_code == 403
+    assert res.json()["code"] == "permission_denied"
+    assert "confirm" in res.json()["message"].lower()
+
+
+def test_reply_with_confirm_without_credentials_denied(client):
+    # Past the confirm gate, a missing credential still denies (no network).
+    account_id = _create(client).json()["id"]
+    res = client.post(
+        f"/api/mailbox/accounts/{account_id}/reply/",
+        data=json.dumps({"uid": "1", "body": "hi", "confirm": True}),
+        content_type="application/json",
+    )
+    assert res.status_code == 403
+    assert res.json()["code"] == "permission_denied"
+
+
 def test_messages_for_unknown_account_404(client):
     res = client.get("/api/mailbox/accounts/ghost/messages/")
     assert res.status_code == 404

@@ -79,14 +79,15 @@ Single source of truth. `agent/tools.py`, `agent/prompts.py`, and
 | `mailbox_delete_messages` | `account`, `uids[]`, `source="INBOX"`, `permanent=false`, `confirm=false` | `{uids, deleted, permanent, moved_to?, method?}` | mutating / irreversible | **`confirm: true` only when `permanent`** |
 | `mailbox_create_folder` | `account`, `name` | `{folder, created}` | mutating | none |
 | `mailbox_send_message` | `account`, `to[]`, `subject`, `body`, `cc[]?`, `html?`, `confirm=false` | `{sent, accepted[], refused[]}` | irreversible | **`confirm: true`** |
+| `mailbox_reply_message` | `account`, `uid`, `body`, `html?`, `reply_all=false`, `source="INBOX"`, `confirm=false` | `{sent, replied_to, to[], cc[], subject, filed_to_sent}` | irreversible | **`confirm: true`** |
 
 - `account` is an **account id** resolved against the config store by the provider
   registry. `mailbox_list_accounts` reads from the config store, never env, and
   returns only configured accounts.
 - `mailbox_organize_message`/`mailbox_move_messages`/`mailbox_mark_messages` and
   soft `mailbox_delete_messages` are reversible, so they are not gated;
-  `mailbox_send_message` and **permanent** `mailbox_delete_messages` are
-  irreversible and **are** gated on `confirm: true`.
+  `mailbox_send_message`, `mailbox_reply_message`, and **permanent**
+  `mailbox_delete_messages` are irreversible and **are** gated on `confirm: true`.
 - Every tool can return the platform error envelope with a stable `code`
   (`validation_error`, `permission_denied`, `provider_error`, `not_found`).
 
@@ -94,7 +95,7 @@ Single source of truth. `agent/tools.py`, `agent/prompts.py`, and
 `tools.py`; account scoping and network/filesystem scope are enforced by the
 registry + `config/permissions.yaml`.
 
-## Resolved decisions (D1–D9)
+## Resolved decisions (D1–D10)
 
 - **D1 — Account scoping.** No `ExecutionContext` exists in this codebase; tools
   are plain functions with injectable services. `account` is always an id
@@ -104,8 +105,9 @@ registry + `config/permissions.yaml`.
   organize stays keyed on `uid` within a grounded turn (UIDs shift on MOVE).
 - **D3 — M365 path.** IMAP now; the registry honors a future `use_graph` toggle.
   Graph tools exist in `providers/m365.py` but are not registered.
-- **D4 — Send copy-to-Sent.** The IMAP send path does not APPEND to Sent
-  (provider-neutral); the Graph path sets `saveToSentItems`.
+- **D4 — Send copy-to-Sent.** The bare IMAP `send_message` does not APPEND to
+  Sent (provider-neutral); the Graph path sets `saveToSentItems`. Replies do file
+  a copy — see D10.
 - **D5 — Secret store.** A `0600` `data/mailbox/secrets.json`, with an interface
   small enough to later swap to an OS keychain. The secret never enters
   `accounts.json`.
@@ -127,6 +129,14 @@ registry + `config/permissions.yaml`.
   per-folder and shift on MOVE (D2), so a batch resolves all UIDs against one
   `source` folder within a grounded turn; `message_id` remains the stable
   cross-folder handle.
+- **D10 — Sent copy on reply.** `reply_message` fetches the original to thread
+  correctly (`In-Reply-To`/`References`, `Re:` subject, quoted body) and to
+  compute recipients (reply → original `Reply-To`/`From`; reply-all → also its
+  `To`+`Cc` minus the account's own address). After sending, it IMAP-`APPEND`s
+  the copy to the resolved Sent folder with `\Seen`, **unless**
+  `account.files_sent_automatically` (Gmail files it itself, so we skip to avoid a
+  duplicate). The APPEND is best-effort — a failed file-to-Sent never fails the
+  reply.
 
 ## HTTP API
 

@@ -141,6 +141,29 @@ def test_permanent_delete_with_confirm_delegates():
     mock.delete.assert_called_once_with("a1", uids=["2"], source="Trash", permanent=True)
 
 
+# --- irreversible reply (confirm-gated in code) -------------------------------
+
+def test_reply_without_confirm_is_denied():
+    mock = MagicMock()
+    payload = tools.reply_message(account="a1", uid="2", body="hi", service=mock)
+    assert payload["error"]["code"] == "permission_denied"
+    mock.reply.assert_not_called()
+
+
+def test_reply_with_confirm_delegates():
+    mock = MagicMock()
+    mock.reply.return_value = {"sent": True, "replied_to": "2", "reply_all": True,
+                               "to": ["a@x.com"], "cc": [], "subject": "Re: Hi",
+                               "filed_to_sent": True}
+    payload = tools.reply_message(
+        account="a1", uid="2", body="thanks", reply_all=True, confirm=True, service=mock
+    )
+    assert payload["sent"] is True and payload["reply_all"] is True
+    mock.reply.assert_called_once_with(
+        "a1", uid="2", body="thanks", html=None, reply_all=True, source="INBOX"
+    )
+
+
 # --- error surfacing ----------------------------------------------------------
 
 def test_missing_credentials_surface_permission_denied():
@@ -166,7 +189,7 @@ def test_tools_yaml_entries_resolve():
         for name, meta in config["tools"].items()
         if meta.get("app") == "mailbox"
     }
-    assert len(mailbox_tools) == 9
+    assert len(mailbox_tools) == 10
     for meta in mailbox_tools.values():
         module = importlib.import_module(meta["module"])
         assert callable(getattr(module, meta["function"]))

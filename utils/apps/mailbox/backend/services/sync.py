@@ -126,6 +126,9 @@ def parse_rfc822(
         snippet=_snippet(text or html),
         timestamp=_timestamp(msg.get("Date")),
         message_id=_decode(msg.get("Message-ID")),
+        references=_decode(msg.get("References")),
+        reply_to=_decode(msg.get("Reply-To")),
+        cc_addr=_decode(msg.get("Cc")),
         flags=list(flags),
         body_text=text if with_body else None,
         body_html=html if with_body else None,
@@ -366,19 +369,26 @@ def _selftest() -> None:
     raw = (
         b"From: Alice <alice@example.com>\r\n"
         b"To: bob@example.com\r\n"
+        b"Cc: carol@example.com\r\n"
+        b"Reply-To: alice-list@example.com\r\n"
         b"Subject: Hello =?utf-8?q?=E2=9C=93?=\r\n"
         b"Message-ID: <abc123@example.com>\r\n"
+        b"References: <root@example.com> <prev@example.com>\r\n"
         b"Date: Mon, 22 Jun 2026 09:00:00 +0000\r\n"
         b"Content-Type: text/plain; charset=utf-8\r\n\r\n"
         b"This is the body of the message.\r\n"
     )
 
-    # 1. parse_rfc822 is pure and correct (subject decode, message-id, snippet)
+    # 1. parse_rfc822 is pure and correct (subject decode, message-id, snippet,
+    #    plus the reply-threading headers References/Reply-To/Cc)
     dto = parse_rfc822(raw, uid="42", provider="yahoo", account="bob@example.com",
                        flags=["\\Seen"], with_body=True)
     assert dto.subject == "Hello ✓", dto.subject
     assert dto.from_addr == "Alice <alice@example.com>"
     assert dto.message_id == "<abc123@example.com>"
+    assert dto.references == "<root@example.com> <prev@example.com>", dto.references
+    assert dto.reply_to == "alice-list@example.com", dto.reply_to
+    assert dto.cc_addr == "carol@example.com", dto.cc_addr
     assert dto.snippet.startswith("This is the body")
     assert dto.body_text.startswith("This is the body")
     assert dto.unread is False  # \\Seen present

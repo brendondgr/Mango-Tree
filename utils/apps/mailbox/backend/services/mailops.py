@@ -204,3 +204,29 @@ def send(
         html=html,
         smtp_factory=smtp_factory,
     )
+
+
+def reply(
+    account_id: str,
+    *,
+    uid: str,
+    body: str,
+    html: str | None = None,
+    reply_all: bool = False,
+    source: str = "INBOX",
+    build=None,
+    imap_factory=None,
+    smtp_factory=None,
+) -> dict[str, Any]:
+    """Reply / reply-all to a message. The irreversible-send confirm gate lives in
+    the agent tool; this orchestrator resolves the account and calls the core."""
+    return _ops.reply_message(
+        _resolve(account_id, build),
+        uid=uid,
+        body=body,
+        html=html,
+        reply_all=reply_all,
+        source_folder=source,
+        imap_factory=imap_factory,
+        smtp_factory=smtp_factory,
+    )

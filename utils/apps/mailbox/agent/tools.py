@@ -202,3 +202,27 @@ def delete_messages(
         return svc.delete(account, uids=uids, source=source, permanent=permanent)
     except MailError as exc:
         return _error(exc)
+
+
+def reply_message(
+    *,
+    account: str,
+    uid: str,
+    body: str,
+    html: str | None = None,
+    reply_all: bool = False,
+    source: str = "INBOX",
+    confirm: bool = False,
+    service=None,
+) -> dict[str, Any]:
+    """Reply (or reply-all) to a message. Irreversible: without ``confirm is
+    True`` this returns ``permission_denied``. The gate is enforced here, not in
+    the prompt. Read the original first so the threading is correct."""
+    if confirm is not True:
+        return _denied("Replying to a message requires confirm: true")
+    svc = service or _mailops
+    try:
+        return svc.reply(account, uid=uid, body=body, html=html,
+                         reply_all=reply_all, source=source)
+    except MailError as exc:
+        return _error(exc)
