@@ -204,3 +204,33 @@ tools:
     module: utils.apps.calendar.agent.tools
     function: delete_entry
     description: Remove the schedule-to-date mapping at an index (irreversible; requires confirm true).
+  imdbspy_list_media:
+    app: imdbspy
+    module: utils.apps.imdbspy.agent.tools
+    function: list_media
+    description: List tracked movies/TV shows (filters status/kind/search; paginated).
+  imdbspy_add_media:
+    app: imdbspy
+    module: utils.apps.imdbspy.agent.tools
+    function: add_media
+    description: Scrape and add titles by IMDb URL/ID (network); returns added + per-item errors.
+  imdbspy_set_status:
+    app: imdbspy
+    module: utils.apps.imdbspy.agent.tools
+    function: set_status
+    description: Set a title's status (seen / not_seen / abandoned).
+  imdbspy_update_review:
+    app: imdbspy
+    module: utils.apps.imdbspy.agent.tools
+    function: update_review
+    description: Set a weighted rating (fun/grit/comfort), review, and/or seasons seen.
+  imdbspy_delete_media:
+    app: imdbspy
+    module: utils.apps.imdbspy.agent.tools
+    function: delete_media
+    description: Delete a tracked title (irreversible; requires confirm true).
+  imdbspy_refresh_metadata:
+    app: imdbspy
+    module: utils.apps.imdbspy.agent.tools
+    function: refresh_metadata
+    description: Refresh rating/year/seasons/episodes for all titles (network; no image re-download).
