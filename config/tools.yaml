@@ -114,6 +114,21 @@ tools:
     module: utils.apps.mailbox.agent.tools
     function: organize_message
     description: Move a message by uid from source to dest (reversible; creates dest if missing).
+  mailbox_move_messages:
+    app: mailbox
+    module: utils.apps.mailbox.agent.tools
+    function: move_messages
+    description: Batch-move messages by uid from source to dest in one round trip (reversible).
+  mailbox_mark_messages:
+    app: mailbox
+    module: utils.apps.mailbox.agent.tools
+    function: mark_messages
+    description: Mark messages read/unread and/or starred (tri-state; reversible).
+  mailbox_delete_messages:
+    app: mailbox
+    module: utils.apps.mailbox.agent.tools
+    function: delete_messages
+    description: Delete messages by uid; soft (move to Trash, reversible) or permanent (confirm required).
   mailbox_create_folder:
     app: mailbox
     module: utils.apps.mailbox.agent.tools
@@ -124,6 +139,11 @@ tools:
     module: utils.apps.mailbox.agent.tools
     function: send_message
     description: Send a message (irreversible). Returns permission_denied unless confirm is true.
+  mailbox_reply_message:
+    app: mailbox
+    module: utils.apps.mailbox.agent.tools
+    function: reply_message
+    description: Reply/reply-all to a message by uid, threaded (irreversible; requires confirm true).
   projectmanager_list_projects:
     app: projectmanager
     module: utils.apps.projectmanager.agent.tools
@@ -239,3 +259,28 @@ tools:
     module: utils.apps.recipes.agent.tools
     function: delete_recipe
     description: Delete a recipe (irreversible; requires confirm true).
+  timekeeper_list_logs:
+    app: timekeeper
+    module: utils.apps.timekeeper.agent.tools
+    function: list_logs
+    description: List tracked 5-minute intervals; pass date (YYYY-MM-DD) to scope to one day.
+  timekeeper_daily_totals:
+    app: timekeeper
+    module: utils.apps.timekeeper.agent.tools
+    function: daily_totals
+    description: Total tracked minutes per day (oldest first).
+  timekeeper_list_categories:
+    app: timekeeper
+    module: utils.apps.timekeeper.agent.tools
+    function: list_categories
+    description: The category/subcategory taxonomy with ids used when saving logs.
+  timekeeper_save_day:
+    app: timekeeper
+    module: utils.apps.timekeeper.agent.tools
+    function: save_day
+    description: Replace a day's logs from painted 5-minute block indices (overwrites the day; requires confirm true).
+  timekeeper_delete_log:
+    app: timekeeper
+    module: utils.apps.timekeeper.agent.tools
+    function: delete_log
+    description: Delete one log row by id (irreversible; requires confirm true).

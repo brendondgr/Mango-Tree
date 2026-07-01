@@ -1,6 +1,7 @@
 import {
   CalendarDays,
   ChefHat,
+  Clock,
   Dumbbell,
   FolderKanban,
   FolderOpen,
@@ -15,6 +16,7 @@ import { MailboxWorkspace } from "@mailbox/pages/MailboxWorkspace";
 import { ArtifactsWorkspace } from "@media-viewer/pages/ArtifactsWorkspace";
 import { ProjectManagerWorkspace } from "@projectmanager/pages/ProjectManagerWorkspace";
 import { RecipesWorkspace } from "@recipes/pages/RecipesWorkspace";
+import { TimekeeperWorkspace } from "@timekeeper/pages/TimekeeperWorkspace";
 
 /**
  * Single source of truth for the apps that can be opened as workspace tabs.
@@ -82,6 +84,13 @@ export const WORKSPACE_APPS: WorkspaceApp[] = [
     description: "Browse, preview, and manage files and generated outputs.",
     icon: FolderOpen,
     Component: ArtifactsWorkspace,
+  },
+  {
+    id: "timekeeper",
+    label: "Time Keeper",
+    description: "Track time in 5-minute blocks and review daily statistics.",
+    icon: Clock,
+    Component: TimekeeperWorkspace,
   },
 ];
 

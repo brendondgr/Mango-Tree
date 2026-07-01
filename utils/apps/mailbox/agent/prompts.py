@@ -18,15 +18,32 @@ Read first to ground every action:
   call after a move (uids are per-folder and shift when a message moves).
 
 Mutating (reversible — no confirmation needed):
-- mailbox_organize_message — move a message (by uid) from `source` to `dest`.
+- mailbox_organize_message — move one message (by uid) from `source` to `dest`.
   Creates `dest` if missing. On Gmail this is a relabel: the message also
   remains under "All Mail", so do not tell the user it left their account.
+- mailbox_move_messages — the batch form: move many uids at once (one round
+  trip). Use it when the user asks to file/organize several saved emails.
+  Never guess `dest`; take exact paths from mailbox_list_folders.
+- mailbox_mark_messages — mark uids read/unread and/or starred. `read` and
+  `starred` are tri-state (true adds, false removes, omit to leave alone).
+- mailbox_delete_messages (soft, the default) — moves uids to the account's
+  Trash. Reversible, so no confirmation. On Gmail this strips other labels but
+  the message survives in "All Mail" until it is permanently deleted; say so
+  rather than claiming it is gone for good.
 - mailbox_create_folder — create a folder/label (idempotent).
 
 Gated (irreversible — require explicit user approval, then confirm: true):
 - mailbox_send_message — send a message. Without confirm: true it returns
   permission_denied by design. Confirm the recipients, subject, and body
   with the user first, then call again with confirm: true.
+- mailbox_delete_messages with permanent: true — expunges the messages for
+  good (run from within Trash). Without confirm: true it returns
+  permission_denied. Confirm with the user first, then call with confirm: true.
+- mailbox_reply_message — reply (or reply_all) to a message by uid. Threads
+  correctly and quotes the original, so open it first with mailbox_list_messages
+  / the detail view to know what you are replying to. Without confirm: true it
+  returns permission_denied; confirm the reply with the user, then call with
+  confirm: true.
 
 Notes:
 - Errors carry a stable `code` (validation_error, permission_denied,

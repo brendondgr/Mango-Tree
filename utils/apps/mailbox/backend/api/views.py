@@ -269,3 +269,105 @@ class AccountOrganizeView(APIView):
         except MailError as exc:
             return _error_response(exc)
         return Response(result, status=status.HTTP_200_OK)
+
+
+def _uids(body: dict) -> list[str]:
+    """Accept ``uids: [...]`` or a single ``uid`` for convenience."""
+    raw = body.get("uids")
+    if raw is None and body.get("uid") is not None:
+        raw = [body["uid"]]
+    return [str(u) for u in raw] if isinstance(raw, list) else []
+
+
+class AccountMoveView(APIView):
+    """Batch-move messages by UID. Reversible, so not confirm-gated."""
+
+    def post(self, request: Request, account_id: str) -> Response:
+        body = parse_object(request.data) if isinstance(request.data, dict) else {}
+        try:
+            result = mailops_service.move(
+                account_id,
+                uids=_uids(body),
+                dest=str(body.get("dest", "")),
+                source=str(body.get("source", "INBOX")),
+                create_if_missing=bool(body.get("create_if_missing", True)),
+            )
+        except MailError as exc:
+            return _error_response(exc)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class AccountMarkView(APIView):
+    """Mark messages read/unread and/or starred. Reversible, so not gated."""
+
+    def post(self, request: Request, account_id: str) -> Response:
+        body = parse_object(request.data) if isinstance(request.data, dict) else {}
+        try:
+            result = mailops_service.mark(
+                account_id,
+                uids=_uids(body),
+                read=body.get("read"),
+                starred=body.get("starred"),
+                source=str(body.get("source", "INBOX")),
+            )
+        except MailError as exc:
+            return _error_response(exc)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class AccountDeleteView(APIView):
+    """Delete messages by UID. Soft delete (default) moves them to Trash and is
+    reversible; the irreversible ``permanent: true`` path requires ``confirm:
+    true`` in the body, mirroring the agent tool's gate."""
+
+    def post(self, request: Request, account_id: str) -> Response:
+        body = parse_object(request.data) if isinstance(request.data, dict) else {}
+        permanent = bool(body.get("permanent", False))
+        if permanent and body.get("confirm") is not True:
+            return Response(
+                {
+                    "code": "permission_denied",
+                    "message": "Permanently deleting messages requires confirm: true",
+                    "details": {},
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        try:
+            result = mailops_service.delete(
+                account_id,
+                uids=_uids(body),
+                source=str(body.get("source", "INBOX")),
+                permanent=permanent,
+            )
+        except MailError as exc:
+            return _error_response(exc)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class AccountReplyView(APIView):
+    """Reply / reply-all to a message. Irreversible, so it requires ``confirm:
+    true`` in the body, mirroring the agent tool's gate."""
+
+    def post(self, request: Request, account_id: str) -> Response:
+        body = parse_object(request.data) if isinstance(request.data, dict) else {}
+        if body.get("confirm") is not True:
+            return Response(
+                {
+                    "code": "permission_denied",
+                    "message": "Replying to a message requires confirm: true",
+                    "details": {},
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        try:
+            result = mailops_service.reply(
+                account_id,
+                uid=str(body.get("uid", "")),
+                body=str(body.get("body", "")),
+                html=body.get("html"),
+                reply_all=bool(body.get("reply_all", False)),
+                source=str(body.get("source", "INBOX")),
+            )
+        except MailError as exc:
+            return _error_response(exc)
+        return Response(result, status=status.HTTP_200_OK)

@@ -110,6 +110,43 @@ def organize_message(
         return _error(exc)
 
 
+def move_messages(
+    *,
+    account: str,
+    uids: list[str],
+    dest: str,
+    source: str = "INBOX",
+    create_if_missing: bool = True,
+    service=None,
+) -> dict[str, Any]:
+    """Move a batch of messages (by uid) from ``source`` to ``dest`` in one call."""
+    svc = service or _mailops
+    try:
+        return svc.move(
+            account, uids=uids, dest=dest, source=source, create_if_missing=create_if_missing
+        )
+    except MailError as exc:
+        return _error(exc)
+
+
+def mark_messages(
+    *,
+    account: str,
+    uids: list[str],
+    read: bool | None = None,
+    starred: bool | None = None,
+    source: str = "INBOX",
+    service=None,
+) -> dict[str, Any]:
+    """Mark messages read/unread and/or starred. Tri-state: True adds, False
+    removes, None leaves the flag untouched."""
+    svc = service or _mailops
+    try:
+        return svc.mark(account, uids=uids, read=read, starred=starred, source=source)
+    except MailError as exc:
+        return _error(exc)
+
+
 def create_folder(*, account: str, name: str, service=None) -> dict[str, Any]:
     svc = service or _mailops
     try:
@@ -138,5 +175,54 @@ def send_message(
     svc = service or _mailops
     try:
         return svc.send(account, to=to, subject=subject, body=body, cc=cc, html=html)
+    except MailError as exc:
+        return _error(exc)
+
+
+def delete_messages(
+    *,
+    account: str,
+    uids: list[str],
+    source: str = "INBOX",
+    permanent: bool = False,
+    confirm: bool = False,
+    service=None,
+) -> dict[str, Any]:
+    """Delete messages by uid.
+
+    Soft delete (default) moves them to the account's Trash and is reversible, so
+    it is ungated. Permanent delete is irreversible and returns
+    ``permission_denied`` unless ``confirm is True`` — the gate is enforced here,
+    not in the prompt.
+    """
+    if permanent and confirm is not True:
+        return _denied("Permanently deleting messages requires confirm: true")
+    svc = service or _mailops
+    try:
+        return svc.delete(account, uids=uids, source=source, permanent=permanent)
+    except MailError as exc:
+        return _error(exc)
+
+
+def reply_message(
+    *,
+    account: str,
+    uid: str,
+    body: str,
+    html: str | None = None,
+    reply_all: bool = False,
+    source: str = "INBOX",
+    confirm: bool = False,
+    service=None,
+) -> dict[str, Any]:
+    """Reply (or reply-all) to a message. Irreversible: without ``confirm is
+    True`` this returns ``permission_denied``. The gate is enforced here, not in
+    the prompt. Read the original first so the threading is correct."""
+    if confirm is not True:
+        return _denied("Replying to a message requires confirm: true")
+    svc = service or _mailops
+    try:
+        return svc.reply(account, uid=uid, body=body, html=html,
+                         reply_all=reply_all, source=source)
     except MailError as exc:
         return _error(exc)

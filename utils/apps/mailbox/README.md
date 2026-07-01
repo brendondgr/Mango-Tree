@@ -74,14 +74,20 @@ Single source of truth. `agent/tools.py`, `agent/prompts.py`, and
 | `mailbox_list_folders` | `account` | `{tree, flat, count}` | read | none |
 | `mailbox_list_messages` | `account`, `folder="INBOX"`, `limit=25` | `{messages: [MessageDTO], count}` | read | none |
 | `mailbox_organize_message` | `account`, `uid`, `source="INBOX"`, `dest`, `create_if_missing=true` | `{uid, moved_to, method}` | mutating | none (reversible) |
+| `mailbox_move_messages` | `account`, `uids[]`, `dest`, `source="INBOX"`, `create_if_missing=true` | `{uids, moved_to, method}` | mutating | none (reversible) |
+| `mailbox_mark_messages` | `account`, `uids[]`, `read?`, `starred?`, `source="INBOX"` | `{uids, added, removed}` | mutating | none (reversible) |
+| `mailbox_delete_messages` | `account`, `uids[]`, `source="INBOX"`, `permanent=false`, `confirm=false` | `{uids, deleted, permanent, moved_to?, method?}` | mutating / irreversible | **`confirm: true` only when `permanent`** |
 | `mailbox_create_folder` | `account`, `name` | `{folder, created}` | mutating | none |
 | `mailbox_send_message` | `account`, `to[]`, `subject`, `body`, `cc[]?`, `html?`, `confirm=false` | `{sent, accepted[], refused[]}` | irreversible | **`confirm: true`** |
+| `mailbox_reply_message` | `account`, `uid`, `body`, `html?`, `reply_all=false`, `source="INBOX"`, `confirm=false` | `{sent, replied_to, to[], cc[], subject, filed_to_sent}` | irreversible | **`confirm: true`** |
 
 - `account` is an **account id** resolved against the config store by the provider
   registry. `mailbox_list_accounts` reads from the config store, never env, and
   returns only configured accounts.
-- `mailbox_organize_message` is mutating but reversible, so it is not gated;
-  `mailbox_send_message` is irreversible and **is** gated.
+- `mailbox_organize_message`/`mailbox_move_messages`/`mailbox_mark_messages` and
+  soft `mailbox_delete_messages` are reversible, so they are not gated;
+  `mailbox_send_message`, `mailbox_reply_message`, and **permanent**
+  `mailbox_delete_messages` are irreversible and **are** gated on `confirm: true`.
 - Every tool can return the platform error envelope with a stable `code`
   (`validation_error`, `permission_denied`, `provider_error`, `not_found`).
 
@@ -89,7 +95,7 @@ Single source of truth. `agent/tools.py`, `agent/prompts.py`, and
 `tools.py`; account scoping and network/filesystem scope are enforced by the
 registry + `config/permissions.yaml`.
 
-## Resolved decisions (D1–D5)
+## Resolved decisions (D1–D11)
 
 - **D1 — Account scoping.** No `ExecutionContext` exists in this codebase; tools
   are plain functions with injectable services. `account` is always an id
@@ -99,11 +105,45 @@ registry + `config/permissions.yaml`.
   organize stays keyed on `uid` within a grounded turn (UIDs shift on MOVE).
 - **D3 — M365 path.** IMAP now; the registry honors a future `use_graph` toggle.
   Graph tools exist in `providers/m365.py` but are not registered.
-- **D4 — Send copy-to-Sent.** The IMAP send path does not APPEND to Sent
-  (provider-neutral); the Graph path sets `saveToSentItems`.
+- **D4 — Send copy-to-Sent.** The bare IMAP `send_message` does not APPEND to
+  Sent (provider-neutral); the Graph path sets `saveToSentItems`. Replies do file
+  a copy — see D10.
 - **D5 — Secret store.** A `0600` `data/mailbox/secrets.json`, with an interface
   small enough to later swap to an OS keychain. The secret never enters
   `accounts.json`.
+- **D6 — Well-known folders.** Trash/Sent/Junk/Archive/Drafts names vary per
+  provider. `ops.well_known_folder(account, kind)` prefers the server's RFC 6154
+  SPECIAL-USE flags from the `LIST` response, then falls back to a per-provider
+  name map seeded on the account by the registry — the agent never guesses paths.
+- **D7 — Gating.** Reversible = ungated, irreversible = confirm-gated in code.
+  Move/organize, flag changes, and soft delete (a move to Trash you can undo) are
+  ungated; permanent delete and reply/send are confirm-gated. On Gmail, "delete"
+  moves to `[Gmail]/Trash` and strips other labels but the message survives in
+  All Mail until a permanent delete.
+- **D8 — Cache consistency.** `mailops` best-effort updates the local cache on a
+  successful mutation (`cache.remove_uids` after a move/delete out of a folder,
+  `cache.update_flags` after a flag change) so a user-driven change shows up
+  immediately; the next incremental sync stays the source of truth.
+- **D9 — Batch + handle stability.** The write primitives are batch-native: they
+  take a `uids[]` set and issue one IMAP round trip (`"1,2,5"`). UIDs are
+  per-folder and shift on MOVE (D2), so a batch resolves all UIDs against one
+  `source` folder within a grounded turn; `message_id` remains the stable
+  cross-folder handle.
+- **D10 — Sent copy on reply.** `reply_message` fetches the original to thread
+  correctly (`In-Reply-To`/`References`, `Re:` subject, quoted body) and to
+  compute recipients (reply → original `Reply-To`/`From`; reply-all → also its
+  `To`+`Cc` minus the account's own address). After sending, it IMAP-`APPEND`s
+  the copy to the resolved Sent folder with `\Seen`, **unless**
+  `account.files_sent_automatically` (Gmail files it itself, so we skip to avoid a
+  duplicate). The APPEND is best-effort — a failed file-to-Sent never fails the
+  reply.
+- **D11 — Graph parity.** `mailops` is the dispatch seam: every mutation resolves
+  an account via the registry, then calls an `ops` primitive. When a Graph token
+  flow lands and an account's `use_graph` flips (D3), `mailops` can dispatch to
+  Graph equivalents behind the same tool names (Graph has native move/reply/
+  replyAll and `PATCH` read-state), with no contract change. Not wired yet — the
+  Graph mutation path stays unregistered until that flow exists, like `organize`
+  today. See `docs/migrations/mailbox-operations.md`.
 
 ## HTTP API
 

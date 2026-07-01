@@ -24,6 +24,7 @@ export default defineConfig({
       ),
       "@calendar": path.resolve(__dirname, "../utils/apps/calendar/frontend"),
       "@recipes": path.resolve(__dirname, "../utils/apps/recipes/frontend"),
+      "@timekeeper": path.resolve(__dirname, "../utils/apps/timekeeper/frontend"),
       react: path.resolve(__dirname, "./node_modules/react"),
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
       "lucide-react": path.resolve(__dirname, "./node_modules/lucide-react"),

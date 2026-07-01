@@ -34,13 +34,22 @@ def stores(tmp_path, monkeypatch):
     return tmp_path
 
 
-# --- 1. no-confirm send -------------------------------------------------------
+# --- 1. no-confirm send / no-confirm permanent delete -------------------------
 
 def test_send_without_confirm_is_denied():
     payload = tools.send_message(
         account="a1", to=["x@y.com"], subject="s", body="b", service=MagicMock()
     )
     assert payload["error"]["code"] == "permission_denied"
+
+
+def test_permanent_delete_without_confirm_is_denied():
+    mock = MagicMock()
+    payload = tools.delete_messages(
+        account="a1", uids=["1"], source="Trash", permanent=True, service=mock
+    )
+    assert payload["error"]["code"] == "permission_denied"
+    mock.delete.assert_not_called()  # gate fires before the service is touched
 
 
 # --- 2. missing credentials ---------------------------------------------------

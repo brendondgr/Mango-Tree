@@ -103,6 +103,7 @@ export type ProjectManagerView = "board" | "timeline" | "deadlines";
 export type CalendarView = "calendar" | "schedules";
 
 export type RecipesView = "browse" | "editor";
+export type TimekeeperView = "tracker" | "dashboard" | "logs" | "categories";
 
 export type ExerciseView =
   | "dashboard"
@@ -189,6 +190,7 @@ interface WorkspaceState {
   projectManagerView: ProjectManagerView;
   calendarView: CalendarView;
   recipesView: RecipesView;
+  timekeeperView: TimekeeperView;
   artifactGridColumns: number;
   viewerMediaFraction: number;
   artifactNotice: string | null;
@@ -215,6 +217,7 @@ interface WorkspaceState {
   setProjectManagerView: (view: ProjectManagerView) => void;
   setCalendarView: (view: CalendarView) => void;
   setRecipesView: (view: RecipesView) => void;
+  setTimekeeperView: (view: TimekeeperView) => void;
   startExerciseSession: (session: ExerciseSession) => void;
   updateSessionExercise: (index: number, changes: Partial<SessionExercise>) => void;
   endExerciseSession: () => void;
@@ -269,6 +272,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       projectManagerView: "board",
       calendarView: "calendar",
       recipesView: "browse",
+      timekeeperView: "tracker",
       artifactGridColumns: ARTIFACT_GRID_COLUMNS_DEFAULT,
       viewerMediaFraction: VIEWER_MEDIA_FRACTION_DEFAULT,
       artifactNotice: null,
@@ -366,6 +370,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       setCalendarView: (view) => set({ calendarView: view }),
 
       setRecipesView: (view) => set({ recipesView: view }),
+      setTimekeeperView: (view) => set({ timekeeperView: view }),
 
       startExerciseSession: (session) => set({ exerciseSession: session }),
 
@@ -487,6 +492,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         projectManagerView: state.projectManagerView,
         calendarView: state.calendarView,
         recipesView: state.recipesView,
+        timekeeperView: state.timekeeperView,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {

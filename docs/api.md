@@ -175,7 +175,11 @@ derived `has_credential` boolean; the credential endpoint is write-only.
 | `GET` | `/api/mailbox/accounts/{id}/messages/` | `messages.cached_messages` | Cached messages, newest first (`?folder=INBOX&limit=25`; `limit=all`/absent returns the whole cache). No network — see `/sync/` |
 | `GET`/`POST` | `/api/mailbox/accounts/{id}/sync/` | `messages.sync_status` / `messages.start_sync` | Inspect / trigger an incremental background sync into the local cache |
 | `GET` | `/api/mailbox/accounts/{id}/messages/{uid}/` | `messages.get_message` | One message with decoded body (cached after first open) |
-| `POST` | `/api/mailbox/accounts/{id}/organize/` | `mailops.organize` | Move a message by UID (reversible) |
+| `POST` | `/api/mailbox/accounts/{id}/organize/` | `mailops.organize` | Move one message by UID (reversible) |
+| `POST` | `/api/mailbox/accounts/{id}/move/` | `mailops.move` | Batch-move messages: body `{uids[], dest, source?, create_if_missing?}` (reversible) |
+| `POST` | `/api/mailbox/accounts/{id}/mark/` | `mailops.mark` | Mark read/unread and/or starred: body `{uids[], read?, starred?, source?}` (tri-state; reversible) |
+| `POST` | `/api/mailbox/accounts/{id}/delete/` | `mailops.delete` | Delete messages: body `{uids[], source?, permanent?, confirm?}`. Soft (Trash) is reversible; `permanent: true` needs `confirm: true` (else 403) |
+| `POST` | `/api/mailbox/accounts/{id}/reply/` | `mailops.reply` | Reply/reply-all (threaded): body `{uid, body, html?, reply_all?, source?, confirm}`. Irreversible — needs `confirm: true` (else 403) |
 
 **Gmail/M365 use the OAuth portal, not a token field.** `GET /oauth/start/?provider=gmail` returns `{authorize_url}`; the SPA opens it, the user signs in on the provider's own page, and the provider redirects to `/oauth/callback/`, which validates the one-time `state`, exchanges the code (Authorization Code + PKCE), stores the **refresh token** in the secret store, upserts the account from the verified email, and redirects the browser to the SPA with `?mailbox_added=<id>`. Short-lived access tokens are minted from the refresh token on demand. Requires `OAUTH_GMAIL_CLIENT_ID`/`OAUTH_M365_CLIENT_ID` (and secrets) in the environment. The `PUT .../credential/` endpoint is for **app passwords only** (Yahoo/Exchange): body `{"value": "<app password>"}`, write-only, echoes only `{id, credential_ref, has_credential}`.
 
@@ -251,9 +255,25 @@ A recipe book (browse/filter, pantry match, and recipe CRUD), migrated from a st
 
 List endpoints return the standard envelope `{count, next, previous, results}` (default `page_size` 25, max 2000 via `?page_size=`). Recipe summaries carry `match_percentage` (0–100 or `null`), `total_ingredients`, and `matched_ingredients` when a pantry filter is active. IDs are integers (legacy autoincrement). The parser and image endpoints are **API-only** (not exposed as agent tools). Errors use the platform schema with codes `validation_error` (400), `permission_denied` (403), `not_found` (404), `conflict` (409).
 
+### Time Keeper
+
+Five-minute time tracking across user-defined categories, migrated from the standalone TimeKeeper (Flask) app. See `utils/apps/timekeeper/README.md`. Data lives in the legacy SQLite store at `data/timekeeper/timekeeper.db` (bound read/write, schema unchanged; `managed = False` models). DRF routes: `utils/api/routes/timekeeper.py`; views call `backend/services/` only.
+
+| Method | Endpoint | Service | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/timekeeper/logs/` | `logs.list_logs` | List tracked intervals; `?date=YYYY-MM-DD` filters to one day |
+| `POST` | `/api/timekeeper/logs/` | `logs.save_day` | Replace a day (body `{date, intervals:[{index, category_id?, subcategory_id?}]}`); empty `intervals` clears the day to a 0-min marker |
+| `PUT` | `/api/timekeeper/logs/{id}/` | `logs.update_log` | Update a log's `start_time`/`duration`/`notes` |
+| `DELETE` | `/api/timekeeper/logs/{id}/` | `logs.delete_log` | Delete a log |
+| `GET` | `/api/timekeeper/stats/daily/` | `logs.daily_totals` | Total tracked minutes per day (`{days:[{date, total_duration}]}`) |
+| `GET` | `/api/timekeeper/categories/` | `categories.get_categories` | The category taxonomy (`{categories:[...]}`) |
+| `PUT` | `/api/timekeeper/categories/` | `categories.save_categories` | Replace the whole taxonomy (body = list, or `{categories:[...]}`) |
+
+List endpoints return the standard envelope `{count, next, previous, results}` (default `page_size` 25, max 2000 via `?page_size=`). A log object is `{id, date, start_time, duration, category_id, subcategory_id, notes, created_at}`; `POST /logs/` echoes `{date, logs:[...]}`. Painted `index` values are 5-minute block indices (0 = 00:00 … 287 = 23:55); contiguous same-subcategory blocks collapse into one log row. A category is `{id, name, colorId, subcategories:[{id, name, l}]}` (free-form extra keys preserved). Errors use the platform schema with codes `validation_error` (400), `not_found` (404).
+
 ### Reserved (TBD)
 
-`/api/imdbspy/`, `/api/timekeeper/`
+`/api/imdbspy/`
 
 ## Rules
 
