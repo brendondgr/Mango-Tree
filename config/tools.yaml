@@ -204,3 +204,28 @@ tools:
     module: utils.apps.calendar.agent.tools
     function: delete_entry
     description: Remove the schedule-to-date mapping at an index (irreversible; requires confirm true).
+  timekeeper_list_logs:
+    app: timekeeper
+    module: utils.apps.timekeeper.agent.tools
+    function: list_logs
+    description: List tracked 5-minute intervals; pass date (YYYY-MM-DD) to scope to one day.
+  timekeeper_daily_totals:
+    app: timekeeper
+    module: utils.apps.timekeeper.agent.tools
+    function: daily_totals
+    description: Total tracked minutes per day (oldest first).
+  timekeeper_list_categories:
+    app: timekeeper
+    module: utils.apps.timekeeper.agent.tools
+    function: list_categories
+    description: The category/subcategory taxonomy with ids used when saving logs.
+  timekeeper_save_day:
+    app: timekeeper
+    module: utils.apps.timekeeper.agent.tools
+    function: save_day
+    description: Replace a day's logs from painted 5-minute block indices (overwrites the day; requires confirm true).
+  timekeeper_delete_log:
+    app: timekeeper
+    module: utils.apps.timekeeper.agent.tools
+    function: delete_log
+    description: Delete one log row by id (irreversible; requires confirm true).
