@@ -110,7 +110,7 @@ When migrating a Flask app into `utils/apps/{name}/`:
 - notes
 - jobs
 - calendar (implemented — weekly schedules + a dated calendar of merged events; file-based JSON store; migrated from a standalone Flask app)
-- recipes
+- recipes (implemented — browse/filter recipes, pantry ingredient matching, and recipe CRUD with an LLM recipe-text parser; SQLite store bound managed=False and seeded on first run; migrated from a standalone Flask app)
 - imdbspy
 - exercise (implemented — workouts/routines/equipment/history + Strava import)
 - timekeeper

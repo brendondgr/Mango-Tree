@@ -47,7 +47,7 @@ utils/apps/{app_name}/
 `-- shared/
 ```
 
-Registered apps: projects, notes, jobs, recipes, imdbspy, timekeeper, **media_viewer** (local artifacts and media viewer), **exercise** (workout/routine/equipment/history tracking with Strava import; migrated from the standalone WorkoutTracker app), **projectmanager** (projects, goals, deadlines, and a Gantt timeline; migrated from the standalone ProjectManager app), **calendar** (weekly schedules + a dated calendar of merged events with themed PDF export; migrated from a standalone Flask app). media_viewer, exercise, projectmanager, and calendar are fully implemented app modules.
+Registered apps: projects, notes, jobs, imdbspy, timekeeper, **media_viewer** (local artifacts and media viewer), **exercise** (workout/routine/equipment/history tracking with Strava import; migrated from the standalone WorkoutTracker app), **projectmanager** (projects, goals, deadlines, and a Gantt timeline; migrated from the standalone ProjectManager app), **calendar** (weekly schedules + a dated calendar of merged events with themed PDF export; migrated from a standalone Flask app), **recipes** (browse/filter recipes, pantry ingredient matching, and recipe CRUD with an LLM recipe-text parser; migrated from a standalone Flask app). media_viewer, exercise, projectmanager, calendar, and recipes are fully implemented app modules.
 
 **Code placement:** business logic in `backend/services/` or `shared/`; agent tools call services; UI in `web/src/` or `utils/apps/{app}/frontend/`; no business logic in `web/src/services/` beyond API clients.
 
@@ -85,7 +85,7 @@ Target: React/Vite SPA with swappable shadcn/Tailwind themes (Canva-inspired def
 | Route | Data Source |
 | --- | --- |
 | `/dashboard` | `/api/tasks/`, app summaries |
-| `/chat` | `/api/tasks/`, agent endpoints, `/api/media-viewer/artifacts/`, `/api/exercise/` (Exercise opens as a persistent workspace tab), `/api/projectmanager/` (Project Manager opens as a persistent workspace tab), `/api/calendar/` (Calendar opens as a persistent workspace tab) |
+| `/chat` | `/api/tasks/`, agent endpoints, `/api/media-viewer/artifacts/`, `/api/exercise/` (Exercise opens as a persistent workspace tab), `/api/projectmanager/` (Project Manager opens as a persistent workspace tab), `/api/calendar/` (Calendar opens as a persistent workspace tab), `/api/recipes/` (Recipes opens as a persistent workspace tab) |
 | `/projects`, `/projects/:id` | `/api/projects/` |
 | `/notes`, `/notes/:id` | `/api/notes/` |
 | `/jobs` | `/api/jobs/` |
@@ -159,6 +159,8 @@ The **exercise** app preserves the legacy WorkoutTracker SQLite database at `dat
 The **projectmanager** app preserves the legacy ProjectManager SQLite database at `data/projectmanager/projectmanager.db` (gitignored). It is bound through a dedicated `projectmanager` Django connection with `managed = False` models (schema unchanged); override the path with `MANGO_PROJECTMANAGER_DB`. It opens as a persistent workspace tab (board / timeline / deadlines). See `utils/apps/projectmanager/README.md`.
 
 The **calendar** app has no database: it keeps its JSON stores (`calendar.json` + `schedules/*.json` + `instructions.md`) under `data/calendar/` (gitignored), seeded on first run from a committed copy in `backend/seed/` and overridable with `MANGO_CALENDAR_DATA_DIR`. Following the mailbox pattern, it is not a Django app (no models/migrations/INSTALLED_APPS entry); its routes mount at `/api/calendar/` and it opens as a persistent workspace tab (calendar / schedules). The filesystem scope is confined to `{calendar_root}/**` via `config/permissions.yaml`. See `utils/apps/calendar/README.md`.
+
+The **recipes** app keeps its SQLite store at `data/recipes/recipes.db` (gitignored), bound through a dedicated `recipes` Django connection with `managed = False` models. Unlike the other legacy-SQLite apps there is no committed database: the schema (owned by `backend/services/store.py`) and a small sample dataset are seeded on first run; override the path with `MANGO_RECIPES_DB`. It opens as a persistent workspace tab (browse / editor). The "AI Chef" recipe-text parser reuses the shared OpenAI-compatible LLM client (`utils/shared/llm`, `LLM_*` config); filesystem scope is confined to `{recipes_root}/**` via `config/permissions.yaml`. See `utils/apps/recipes/README.md`.
 
 ## Build Sequence
 
