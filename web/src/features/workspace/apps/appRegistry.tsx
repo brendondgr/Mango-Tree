@@ -1,6 +1,7 @@
 import {
   CalendarDays,
   Dumbbell,
+  Film,
   FolderKanban,
   FolderOpen,
   Mail,
@@ -10,6 +11,7 @@ import type { ComponentType } from "react";
 
 import { CalendarWorkspace } from "@calendar/pages/CalendarWorkspace";
 import { ExerciseWorkspace } from "@exercise/pages/ExerciseWorkspace";
+import { ImdbspyWorkspace } from "@imdbspy/pages/ImdbspyWorkspace";
 import { MailboxWorkspace } from "@mailbox/pages/MailboxWorkspace";
 import { ArtifactsWorkspace } from "@media-viewer/pages/ArtifactsWorkspace";
 import { ProjectManagerWorkspace } from "@projectmanager/pages/ProjectManagerWorkspace";
@@ -66,6 +68,13 @@ export const WORKSPACE_APPS: WorkspaceApp[] = [
     description: "Plan weekly schedules and a dated calendar of merged events.",
     icon: CalendarDays,
     Component: CalendarWorkspace,
+  },
+  {
+    id: "imdbspy",
+    label: "IMDbSpy",
+    description: "Track movies and shows to watch, mark them seen, and rate them.",
+    icon: Film,
+    Component: ImdbspyWorkspace,
   },
   {
     id: "mediaviewer",

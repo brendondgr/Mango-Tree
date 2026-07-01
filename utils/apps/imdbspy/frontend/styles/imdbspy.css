@@ -1,0 +1,686 @@
+/**
+ * IMDbSpy workspace styles — scoped under `.imdbspy-app`.
+ *
+ * All hand-authored classes carry the `imdbspy-` prefix.
+ * Chrome surfaces use theme tokens; colours only for data/status indicators.
+ */
+
+.imdbspy-app {
+  width: 100%;
+  color: hsl(var(--foreground));
+}
+
+/* === Top header ============================================================ */
+
+.imdbspy-header {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 0.6rem 1rem;
+  background: hsl(var(--background));
+}
+
+.imdbspy-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* === Status tab segmented control ========================================= */
+
+.imdbspy-status-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: color-mix(in srgb, hsl(var(--muted)) 60%, transparent);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-md);
+  padding: 0.2rem;
+}
+
+.imdbspy-status-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  border-radius: calc(var(--radius-md) - 2px);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  transition: color 120ms ease, background 120ms ease;
+  white-space: nowrap;
+}
+
+.imdbspy-status-tab:hover {
+  color: hsl(var(--foreground));
+  background: color-mix(in srgb, hsl(var(--foreground)) 6%, transparent);
+}
+
+.imdbspy-status-tab[data-active="true"] {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* === Control bar =========================================================== */
+
+.imdbspy-controls {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid hsl(var(--border));
+  background: color-mix(in srgb, hsl(var(--muted)) 25%, transparent);
+}
+
+.imdbspy-count {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  margin-right: 0.25rem;
+}
+
+.imdbspy-filter-tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.imdbspy-filter-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  border: 1px solid transparent;
+  transition: all 120ms ease;
+}
+
+.imdbspy-filter-tab:hover {
+  color: hsl(var(--foreground));
+  background: color-mix(in srgb, hsl(var(--foreground)) 6%, transparent);
+}
+
+.imdbspy-filter-tab[data-active="true"] {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.imdbspy-layout-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.imdbspy-layout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem 0.55rem;
+  color: hsl(var(--muted-foreground));
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.imdbspy-layout-btn:hover {
+  color: hsl(var(--foreground));
+  background: color-mix(in srgb, hsl(var(--foreground)) 6%, transparent);
+}
+
+.imdbspy-layout-btn[data-active="true"] {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.imdbspy-search {
+  flex: 1;
+  min-width: 160px;
+  max-width: 300px;
+}
+
+/* === Content scroll area ================================================== */
+
+.imdbspy-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.imdbspy-content::-webkit-scrollbar { width: 8px; }
+.imdbspy-content::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, hsl(var(--foreground)) 18%, transparent);
+  border-radius: 9999px;
+}
+.imdbspy-content::-webkit-scrollbar-track { background: transparent; }
+
+/* === Grid layout ========================================================== */
+
+.imdbspy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+/* === Media Card (grid mode) =============================================== */
+
+.imdbspy-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    border-color 200ms ease;
+  cursor: default;
+}
+
+.imdbspy-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  border-color: color-mix(in srgb, hsl(var(--primary)) 40%, transparent);
+}
+
+.imdbspy-card-poster {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  background: color-mix(in srgb, hsl(var(--muted)) 60%, transparent);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.imdbspy-card-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.imdbspy-card-poster-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 2rem;
+  font-weight: 800;
+  color: hsl(var(--muted-foreground));
+  background: color-mix(in srgb, hsl(var(--muted)) 50%, transparent);
+}
+
+.imdbspy-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.6rem;
+  flex: 1;
+}
+
+.imdbspy-card-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+.imdbspy-card-meta {
+  font-size: 0.72rem;
+  color: hsl(var(--muted-foreground));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.imdbspy-card-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ca8a04;
+}
+
+.imdbspy-card-user-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: hsl(var(--primary));
+}
+
+.imdbspy-card-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.imdbspy-genre-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  background: color-mix(in srgb, hsl(var(--muted)) 70%, transparent);
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
+}
+
+.imdbspy-cast-row {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.imdbspy-actor-thumb {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, hsl(var(--muted)) 50%, transparent);
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid hsl(var(--border));
+}
+
+.imdbspy-actor-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.imdbspy-actor-thumb-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: hsl(var(--muted-foreground));
+}
+
+.imdbspy-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  padding: 0.4rem 0.6rem;
+  border-top: 1px solid hsl(var(--border));
+  background: color-mix(in srgb, hsl(var(--muted)) 25%, transparent);
+}
+
+/* === List row (list mode) ================================================= */
+
+.imdbspy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.imdbspy-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-md);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.imdbspy-row:hover {
+  border-color: color-mix(in srgb, hsl(var(--primary)) 40%, transparent);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.imdbspy-row-thumb {
+  width: 2.75rem;
+  height: 4rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, hsl(var(--muted)) 50%, transparent);
+  overflow: hidden;
+  border: 1px solid hsl(var(--border));
+}
+
+.imdbspy-row-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.imdbspy-row-thumb-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: hsl(var(--muted-foreground));
+}
+
+.imdbspy-row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.imdbspy-row-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.imdbspy-row-meta {
+  font-size: 0.72rem;
+  color: hsl(var(--muted-foreground));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.imdbspy-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+/* === Status badge ========================================================= */
+
+.imdbspy-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.imdbspy-status-badge[data-status="seen"] {
+  background: #d1fae5;
+  border-color: #10b981;
+  color: #064e3b;
+}
+
+.imdbspy-status-badge[data-status="not_seen"] {
+  background: color-mix(in srgb, hsl(var(--muted)) 60%, transparent);
+  border-color: hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+}
+
+.imdbspy-status-badge[data-status="abandoned"] {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #7f1d1d;
+}
+
+/* === Kind badge ============================================================ */
+
+.imdbspy-kind-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  background: #dbeafe;
+  border-color: #3b82f6;
+  color: #1e3a8a;
+}
+
+.imdbspy-kind-badge[data-kind="tv"] {
+  background: #f3e8ff;
+  border-color: #a855f7;
+  color: #581c87;
+}
+
+/* === Empty state =========================================================== */
+
+.imdbspy-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 4rem 2rem;
+  color: hsl(var(--muted-foreground));
+  text-align: center;
+}
+
+.imdbspy-empty-icon {
+  opacity: 0.35;
+}
+
+/* === Dialog content ======================================================= */
+
+.imdbspy-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.imdbspy-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.imdbspy-textarea {
+  width: 100%;
+  min-height: 6rem;
+  resize: vertical;
+  background: color-mix(in srgb, hsl(var(--muted)) 45%, transparent);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  color: hsl(var(--foreground));
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.imdbspy-textarea:focus {
+  outline: none;
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px color-mix(in srgb, hsl(var(--primary)) 20%, transparent);
+}
+
+.imdbspy-textarea::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+/* === Slider (range input) ================================================= */
+
+.imdbspy-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.imdbspy-slider-label {
+  width: 10rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  text-transform: capitalize;
+  flex-shrink: 0;
+}
+
+.imdbspy-slider {
+  flex: 1;
+  appearance: none;
+  height: 4px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, hsl(var(--muted)) 70%, transparent);
+  outline: none;
+  cursor: pointer;
+}
+
+.imdbspy-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  background: hsl(var(--primary));
+  border: 2px solid hsl(var(--background));
+  box-shadow: 0 0 0 1px hsl(var(--primary));
+  cursor: pointer;
+}
+
+.imdbspy-slider::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  background: hsl(var(--primary));
+  border: 2px solid hsl(var(--background));
+  cursor: pointer;
+}
+
+.imdbspy-slider-value {
+  width: 2rem;
+  text-align: right;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: hsl(var(--primary));
+}
+
+/* === Scale type tabs ====================================================== */
+
+.imdbspy-scale-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.imdbspy-scale-tab {
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  transition: all 120ms ease;
+}
+
+.imdbspy-scale-tab:hover {
+  background: color-mix(in srgb, hsl(var(--muted)) 60%, transparent);
+  color: hsl(var(--foreground));
+}
+
+.imdbspy-scale-tab[data-active="true"] {
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+/* === Computed rating display =============================================== */
+
+.imdbspy-computed-rating {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: color-mix(in srgb, hsl(var(--muted)) 40%, transparent);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-md);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: hsl(var(--primary));
+}
+
+/* === Error list ============================================================ */
+
+.imdbspy-error-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.75rem;
+  background: #fee2e2;
+  border: 1px solid #ef4444;
+  border-radius: var(--radius-md);
+}
+
+.imdbspy-error-item {
+  font-size: 0.8rem;
+  color: #7f1d1d;
+}
+
+/* === Success summary ======================================================= */
+
+.imdbspy-success-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background: #d1fae5;
+  border: 1px solid #10b981;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #064e3b;
+}
+
+/* === Refresh spinner ======================================================= */
+
+.imdbspy-spin {
+  animation: imdbspy-spin 0.8s linear infinite;
+}
+
+@keyframes imdbspy-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* === Reduced motion ======================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .imdbspy-card,
+  .imdbspy-card:hover { transform: none; transition: none; }
+  .imdbspy-spin { animation: none; }
+}

@@ -11,6 +11,7 @@
 @source "../../../utils/apps/mailbox/frontend";
 @source "../../../utils/apps/media_viewer/frontend";
 @source "../../../utils/apps/calendar/frontend";
+@source "../../../utils/apps/imdbspy/frontend";
 
 @import "./themes/default.css";
 @import "./themes/dark.css";
