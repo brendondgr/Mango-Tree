@@ -236,7 +236,17 @@ List endpoints return the standard envelope `{count, next, previous, results}` (
 
 Five-minute time tracking across user-defined categories, migrated from the standalone TimeKeeper (Flask) app. See `utils/apps/timekeeper/README.md`. Data lives in the legacy SQLite store at `data/timekeeper/timekeeper.db` (bound read/write, schema unchanged; `managed = False` models). DRF routes: `utils/api/routes/timekeeper.py`; views call `backend/services/` only.
 
-_Endpoints documented in Stage 5 of the migration._
+| Method | Endpoint | Service | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/timekeeper/logs/` | `logs.list_logs` | List tracked intervals; `?date=YYYY-MM-DD` filters to one day |
+| `POST` | `/api/timekeeper/logs/` | `logs.save_day` | Replace a day (body `{date, intervals:[{index, category_id?, subcategory_id?}]}`); empty `intervals` clears the day to a 0-min marker |
+| `PUT` | `/api/timekeeper/logs/{id}/` | `logs.update_log` | Update a log's `start_time`/`duration`/`notes` |
+| `DELETE` | `/api/timekeeper/logs/{id}/` | `logs.delete_log` | Delete a log |
+| `GET` | `/api/timekeeper/stats/daily/` | `logs.daily_totals` | Total tracked minutes per day (`{days:[{date, total_duration}]}`) |
+| `GET` | `/api/timekeeper/categories/` | `categories.get_categories` | The category taxonomy (`{categories:[...]}`) |
+| `PUT` | `/api/timekeeper/categories/` | `categories.save_categories` | Replace the whole taxonomy (body = list, or `{categories:[...]}`) |
+
+List endpoints return the standard envelope `{count, next, previous, results}` (default `page_size` 25, max 2000 via `?page_size=`). A log object is `{id, date, start_time, duration, category_id, subcategory_id, notes, created_at}`; `POST /logs/` echoes `{date, logs:[...]}`. Painted `index` values are 5-minute block indices (0 = 00:00 … 287 = 23:55); contiguous same-subcategory blocks collapse into one log row. A category is `{id, name, colorId, subcategories:[{id, name, l}]}` (free-form extra keys preserved). Errors use the platform schema with codes `validation_error` (400), `not_found` (404).
 
 ### Reserved (TBD)
 

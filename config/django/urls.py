@@ -11,5 +11,6 @@ urlpatterns = [
     path("api/exercise/", include("utils.api.routes.exercise")),
     path("api/projectmanager/", include("utils.api.routes.projectmanager")),
     path("api/calendar/", include("utils.api.routes.calendar")),
+    path("api/timekeeper/", include("utils.api.routes.timekeeper")),
     path("api/agent/", include("utils.api.routes.agent")),
 ]
