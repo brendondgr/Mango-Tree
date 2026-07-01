@@ -1,5 +1,7 @@
 import {
   CalendarDays,
+  ChefHat,
+  Clock,
   Dumbbell,
   Film,
   FolderKanban,
@@ -15,6 +17,8 @@ import { ImdbspyWorkspace } from "@imdbspy/pages/ImdbspyWorkspace";
 import { MailboxWorkspace } from "@mailbox/pages/MailboxWorkspace";
 import { ArtifactsWorkspace } from "@media-viewer/pages/ArtifactsWorkspace";
 import { ProjectManagerWorkspace } from "@projectmanager/pages/ProjectManagerWorkspace";
+import { RecipesWorkspace } from "@recipes/pages/RecipesWorkspace";
+import { TimekeeperWorkspace } from "@timekeeper/pages/TimekeeperWorkspace";
 
 /**
  * Single source of truth for the apps that can be opened as workspace tabs.
@@ -77,11 +81,25 @@ export const WORKSPACE_APPS: WorkspaceApp[] = [
     Component: ImdbspyWorkspace,
   },
   {
+    id: "recipes",
+    label: "Recipes",
+    description: "Browse recipes, match them to your pantry, and add your own.",
+    icon: ChefHat,
+    Component: RecipesWorkspace,
+  },
+  {
     id: "mediaviewer",
     label: "Artifacts",
     description: "Browse, preview, and manage files and generated outputs.",
     icon: FolderOpen,
     Component: ArtifactsWorkspace,
+  },
+  {
+    id: "timekeeper",
+    label: "Time Keeper",
+    description: "Track time in 5-minute blocks and review daily statistics.",
+    icon: Clock,
+    Component: TimekeeperWorkspace,
   },
 ];
 

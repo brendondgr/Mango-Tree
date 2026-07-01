@@ -23,6 +23,8 @@ INSTALLED_APPS = [
     "utils.apps.exercise.backend.apps.ExerciseBackendConfig",
     "utils.apps.projectmanager.backend.apps.ProjectManagerBackendConfig",
     "utils.apps.imdbspy.backend.apps.ImdbspyBackendConfig",
+    "utils.apps.timekeeper.backend.apps.TimekeeperBackendConfig",
+    "utils.apps.recipes.backend.apps.RecipesBackendConfig",
 ]
 
 MIDDLEWARE = [
@@ -65,12 +67,33 @@ DATABASES = {
             BASE_DIR / "data" / "imdbspy" / "imdbtracker.db"
         ),
     },
+    # Legacy TimeKeeper SQLite store, bound read/write with managed=False models.
+    # Schema and rows are preserved unchanged (Strategy A). Override the path with
+    # MANGO_TIMEKEEPER_DB for tests or alternate deployments.
+    "timekeeper": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.environ.get("MANGO_TIMEKEEPER_DB") or str(
+            BASE_DIR / "data" / "timekeeper" / "timekeeper.db"
+        ),
+    },
+    # Recipes SQLite store, bound read/write with managed=False models. The
+    # schema (recipes/ingredients/recipe_ingredients/steps/recipe_images) is
+    # owned by backend/services/store.py and seeded on first run. Override the
+    # path with MANGO_RECIPES_DB for tests or alternate deployments.
+    "recipes": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.environ.get("MANGO_RECIPES_DB") or str(
+            BASE_DIR / "data" / "recipes" / "recipes.db"
+        ),
+    },
 }
 
 DATABASE_ROUTERS = [
     "utils.apps.exercise.backend.db_router.ExerciseRouter",
     "utils.apps.projectmanager.backend.db_router.ProjectManagerRouter",
     "utils.apps.imdbspy.backend.db_router.ImdbspyRouter",
+    "utils.apps.timekeeper.backend.db_router.TimekeeperRouter",
+    "utils.apps.recipes.backend.db_router.RecipesRouter",
 ]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

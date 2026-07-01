@@ -47,7 +47,7 @@ utils/apps/{app_name}/
 `-- shared/
 ```
 
-Registered apps: projects, notes, jobs, recipes, timekeeper, **media_viewer** (local artifacts and media viewer), **exercise** (workout/routine/equipment/history tracking with Strava import; migrated from the standalone WorkoutTracker app), **projectmanager** (projects, goals, deadlines, and a Gantt timeline; migrated from the standalone ProjectManager app), **calendar** (weekly schedules + a dated calendar of merged events with themed PDF export; migrated from a standalone Flask app), **imdbspy** (movie/TV tracker with IMDb scraping, weighted Fun/Grit/Comfort ratings, and a local media cache; migrated from a standalone Flask app). media_viewer, exercise, projectmanager, calendar, and imdbspy are fully implemented app modules.
+Registered apps: projects, notes, jobs, **media_viewer** (local artifacts and media viewer), **exercise** (workout/routine/equipment/history tracking with Strava import; migrated from the standalone WorkoutTracker app), **projectmanager** (projects, goals, deadlines, and a Gantt timeline; migrated from the standalone ProjectManager app), **calendar** (weekly schedules + a dated calendar of merged events with themed PDF export; migrated from a standalone Flask app), **imdbspy** (movie/TV tracker with IMDb scraping, weighted Fun/Grit/Comfort ratings, and a local media cache; migrated from a standalone Flask app), **timekeeper** (5-minute time tracking across user-defined categories with daily statistics; migrated from a standalone Flask app), **recipes** (browse/filter recipes, pantry ingredient matching, and recipe CRUD with an LLM recipe-text parser; migrated from a standalone Flask app). media_viewer, exercise, projectmanager, calendar, imdbspy, timekeeper, and recipes are fully implemented app modules.
 
 **Code placement:** business logic in `backend/services/` or `shared/`; agent tools call services; UI in `web/src/` or `utils/apps/{app}/frontend/`; no business logic in `web/src/services/` beyond API clients.
 
@@ -85,7 +85,7 @@ Target: React/Vite SPA with swappable shadcn/Tailwind themes (Canva-inspired def
 | Route | Data Source |
 | --- | --- |
 | `/dashboard` | `/api/tasks/`, app summaries |
-| `/chat` | `/api/tasks/`, agent endpoints, `/api/media-viewer/artifacts/`, `/api/exercise/` (Exercise opens as a persistent workspace tab), `/api/projectmanager/` (Project Manager opens as a persistent workspace tab), `/api/calendar/` (Calendar opens as a persistent workspace tab), `/api/imdbspy/` (IMDbSpy opens as a persistent workspace tab) |
+| `/chat` | `/api/tasks/`, agent endpoints, `/api/media-viewer/artifacts/`, `/api/exercise/` (Exercise opens as a persistent workspace tab), `/api/projectmanager/` (Project Manager opens as a persistent workspace tab), `/api/calendar/` (Calendar opens as a persistent workspace tab), `/api/imdbspy/` (IMDbSpy opens as a persistent workspace tab), `/api/timekeeper/` (Time Keeper opens as a persistent workspace tab), `/api/recipes/` (Recipes opens as a persistent workspace tab) |
 | `/projects`, `/projects/:id` | `/api/projects/` |
 | `/notes`, `/notes/:id` | `/api/notes/` |
 | `/jobs` | `/api/jobs/` |
@@ -97,7 +97,7 @@ Target: React/Vite SPA with swappable shadcn/Tailwind themes (Canva-inspired def
 | `/traces/:taskId` | `/api/traces/{task_id}/` |
 | `/settings` | TBD |
 
-Future: `/recipes`, `/imdbspy`, `/timekeeper`. Do not implement a route until its endpoint exists in `docs/api.md`.
+Future: `/recipes`, `/imdbspy`. Do not implement a route until its endpoint exists in `docs/api.md`.
 
 ### Component Map
 
@@ -161,6 +161,10 @@ The **projectmanager** app preserves the legacy ProjectManager SQLite database a
 The **calendar** app has no database: it keeps its JSON stores (`calendar.json` + `schedules/*.json` + `instructions.md`) under `data/calendar/` (gitignored), seeded on first run from a committed copy in `backend/seed/` and overridable with `MANGO_CALENDAR_DATA_DIR`. Following the mailbox pattern, it is not a Django app (no models/migrations/INSTALLED_APPS entry); its routes mount at `/api/calendar/` and it opens as a persistent workspace tab (calendar / schedules). The filesystem scope is confined to `{calendar_root}/**` via `config/permissions.yaml`. See `utils/apps/calendar/README.md`.
 
 The **imdbspy** app owns a dedicated SQLite database at `data/imdbspy/imdbtracker.db` (gitignored). Unlike exercise/projectmanager (which bind to a legacy file), Django owns this schema (`managed = True` models routed by `ImdbspyRouter`); it is created by `migrate --database=imdbspy` and overridable with `MANGO_IMDBSPY_DB`. Scraped posters/headshots are cached under `data/imdbspy/media/` (override `MANGO_IMDBSPY_MEDIA_DIR`) and served through a path-sanitized asset endpoint. Its routes mount at `/api/imdbspy/` and it opens as a persistent workspace tab. Outbound scraping is confined to IMDb + its image CDN (`imdbspy_scrape` network scope) and the media cache to `{imdbspy_media_root}/**` (`imdbspy_media` filesystem scope) via `config/permissions.yaml`. See `utils/apps/imdbspy/README.md`.
+
+The **timekeeper** app preserves the legacy TimeKeeper SQLite database at `data/timekeeper/timekeeper.db` (gitignored). It is bound through a dedicated `timekeeper` Django connection with `managed = False` models (`time_logs` and `settings`, schema unchanged); override the path with `MANGO_TIMEKEEPER_DB`. Its routes mount at `/api/timekeeper/` and it opens as a persistent workspace tab (tracker / dashboard / logs / categories). It has no external I/O, so no `config/permissions.yaml` scope is needed; state-changing agent tools are confirm-gated. See `utils/apps/timekeeper/README.md`.
+
+The **recipes** app keeps its SQLite store at `data/recipes/recipes.db` (gitignored), bound through a dedicated `recipes` Django connection with `managed = False` models. Unlike the other legacy-SQLite apps there is no committed database: the schema (owned by `backend/services/store.py`) and a small sample dataset are seeded on first run; override the path with `MANGO_RECIPES_DB`. It opens as a persistent workspace tab (browse / editor). The "AI Chef" recipe-text parser reuses the shared OpenAI-compatible LLM client (`utils/shared/llm`, `LLM_*` config); filesystem scope is confined to `{recipes_root}/**` via `config/permissions.yaml`. See `utils/apps/recipes/README.md`.
 
 ## Build Sequence
 

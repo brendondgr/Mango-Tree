@@ -171,6 +171,9 @@ class MessageDTO:
     snippet: str
     timestamp: float = 0.0        # epoch seconds parsed from Date — for sorting
     message_id: str = ""          # RFC Message-ID — stable across a folder MOVE
+    references: str = ""          # RFC References chain — for reply threading
+    reply_to: str = ""            # RFC Reply-To — preferred reply target
+    cc_addr: str = ""             # RFC Cc — needed to compute reply-all recipients
     flags: list[str] = field(default_factory=list)
     body_text: str | None = None  # populated only by the message-detail fetch
     body_html: str | None = None
@@ -193,6 +196,9 @@ class MessageDTO:
             snippet=data.get("snippet", ""),
             timestamp=float(data.get("timestamp", 0.0) or 0.0),
             message_id=data.get("message_id", ""),
+            references=data.get("references", ""),
+            reply_to=data.get("reply_to", ""),
+            cc_addr=data.get("cc", ""),
             flags=list(data.get("flags", [])),
             body_text=data.get("body_text"),
             body_html=data.get("body_html"),
@@ -210,6 +216,9 @@ class MessageDTO:
             "snippet": self.snippet,
             "timestamp": self.timestamp,
             "message_id": self.message_id,
+            "references": self.references,
+            "reply_to": self.reply_to,
+            "cc": self.cc_addr,
             "flags": self.flags,
             "unread": self.unread,
             "body_text": self.body_text,

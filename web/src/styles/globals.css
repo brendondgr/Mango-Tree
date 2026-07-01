@@ -12,6 +12,8 @@
 @source "../../../utils/apps/media_viewer/frontend";
 @source "../../../utils/apps/calendar/frontend";
 @source "../../../utils/apps/imdbspy/frontend";
+@source "../../../utils/apps/recipes/frontend";
+@source "../../../utils/apps/timekeeper/frontend";
 
 @import "./themes/default.css";
 @import "./themes/dark.css";

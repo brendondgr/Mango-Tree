@@ -65,6 +65,24 @@ def test_organize_delegates_with_defaults():
     )
 
 
+def test_move_messages_batch_delegates():
+    mock = MagicMock()
+    mock.move.return_value = {"uids": ["2", "3"], "moved_to": "Archive", "method": "MOVE"}
+    payload = tools.move_messages(account="a1", uids=["2", "3"], dest="Archive", service=mock)
+    assert payload["uids"] == ["2", "3"]
+    mock.move.assert_called_once_with(
+        "a1", uids=["2", "3"], dest="Archive", source="INBOX", create_if_missing=True
+    )
+
+
+def test_mark_messages_delegates_tristate():
+    mock = MagicMock()
+    mock.mark.return_value = {"uids": ["2"], "added": ["\\Seen"], "removed": []}
+    payload = tools.mark_messages(account="a1", uids=["2"], read=True, service=mock)
+    assert payload["added"] == ["\\Seen"]
+    mock.mark.assert_called_once_with("a1", uids=["2"], read=True, starred=None, source="INBOX")
+
+
 def test_create_folder_delegates():
     mock = MagicMock()
     mock.create_folder.return_value = {"folder": "Work", "created": True}
@@ -89,6 +107,60 @@ def test_send_with_confirm_delegates():
     assert payload["sent"] is True
     mock.send.assert_called_once_with(
         "a1", to=["c@x.com"], subject="Hi", body="x", cc=None, html=None
+    )
+
+
+# --- delete: soft ungated, permanent confirm-gated ----------------------------
+
+def test_soft_delete_is_ungated_and_delegates():
+    mock = MagicMock()
+    mock.delete.return_value = {"uids": ["2"], "deleted": True, "permanent": False,
+                                "moved_to": "[Gmail]/Trash", "method": "MOVE"}
+    payload = tools.delete_messages(account="a1", uids=["2"], service=mock)
+    assert payload["permanent"] is False
+    mock.delete.assert_called_once_with("a1", uids=["2"], source="INBOX", permanent=False)
+
+
+def test_permanent_delete_without_confirm_is_denied():
+    mock = MagicMock()
+    payload = tools.delete_messages(
+        account="a1", uids=["2"], source="Trash", permanent=True, service=mock
+    )
+    assert payload["error"]["code"] == "permission_denied"
+    mock.delete.assert_not_called()
+
+
+def test_permanent_delete_with_confirm_delegates():
+    mock = MagicMock()
+    mock.delete.return_value = {"uids": ["2"], "deleted": True, "permanent": True,
+                                "source": "Trash"}
+    payload = tools.delete_messages(
+        account="a1", uids=["2"], source="Trash", permanent=True, confirm=True, service=mock
+    )
+    assert payload["permanent"] is True
+    mock.delete.assert_called_once_with("a1", uids=["2"], source="Trash", permanent=True)
+
+
+# --- irreversible reply (confirm-gated in code) -------------------------------
+
+def test_reply_without_confirm_is_denied():
+    mock = MagicMock()
+    payload = tools.reply_message(account="a1", uid="2", body="hi", service=mock)
+    assert payload["error"]["code"] == "permission_denied"
+    mock.reply.assert_not_called()
+
+
+def test_reply_with_confirm_delegates():
+    mock = MagicMock()
+    mock.reply.return_value = {"sent": True, "replied_to": "2", "reply_all": True,
+                               "to": ["a@x.com"], "cc": [], "subject": "Re: Hi",
+                               "filed_to_sent": True}
+    payload = tools.reply_message(
+        account="a1", uid="2", body="thanks", reply_all=True, confirm=True, service=mock
+    )
+    assert payload["sent"] is True and payload["reply_all"] is True
+    mock.reply.assert_called_once_with(
+        "a1", uid="2", body="thanks", html=None, reply_all=True, source="INBOX"
     )
 
 
@@ -117,7 +189,7 @@ def test_tools_yaml_entries_resolve():
         for name, meta in config["tools"].items()
         if meta.get("app") == "mailbox"
     }
-    assert len(mailbox_tools) == 6
+    assert len(mailbox_tools) == 10
     for meta in mailbox_tools.values():
         module = importlib.import_module(meta["module"])
         assert callable(getattr(module, meta["function"]))

@@ -1,0 +1,160 @@
+/**
+ * Time Keeper workspace styles — scoped under `.timekeeper-app`.
+ *
+ * All hand-authored classes carry the `timekeeper-` prefix. Chrome surfaces
+ * (cards, tabs, headers) use theme tokens so the UI tracks the active theme;
+ * distinct hues appear ONLY on data (painted blocks, category swatches), whose
+ * colours are computed inline from the category taxonomy.
+ */
+
+.timekeeper-app {
+  width: 100%;
+  color: hsl(var(--foreground));
+}
+
+/* === Sub-view nav tabs ==================================================== */
+
+.timekeeper-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.timekeeper-tab:hover {
+  background: hsl(var(--muted) / 0.6);
+  color: hsl(var(--foreground));
+}
+.timekeeper-tab[data-active="true"] {
+  background: hsl(var(--primary) / 0.12);
+  color: hsl(var(--primary));
+  border-color: hsl(var(--primary) / 0.35);
+}
+
+.timekeeper-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+}
+
+/* === Tracker grid ========================================================= */
+
+.timekeeper-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  user-select: none;
+  touch-action: none;
+}
+.timekeeper-grid-row {
+  display: grid;
+  grid-template-columns: 3.25rem repeat(12, 1fr);
+  align-items: stretch;
+  gap: 2px;
+}
+.timekeeper-hour-label {
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  color: hsl(var(--muted-foreground));
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 0.4rem;
+}
+.timekeeper-block {
+  height: 1.1rem;
+  border-radius: 3px;
+  background: hsl(var(--muted) / 0.5);
+  border: 1px solid hsl(var(--border) / 0.6);
+  cursor: pointer;
+  transition: transform 0.05s;
+}
+.timekeeper-block:hover {
+  outline: 1px solid hsl(var(--primary) / 0.6);
+}
+.timekeeper-block[data-painted="true"] {
+  border-color: transparent;
+}
+
+/* === Paint palette pills ================================================== */
+
+.timekeeper-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1.5px solid transparent;
+  background: hsl(var(--muted) / 0.5);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.timekeeper-pill[data-active="true"] {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.4);
+}
+.timekeeper-swatch {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* === Simple bar charts (dependency-free) ================================== */
+
+.timekeeper-bar-track {
+  background: hsl(var(--muted) / 0.5);
+  border-radius: 4px;
+  overflow: hidden;
+  height: 0.6rem;
+}
+.timekeeper-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.timekeeper-stat {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-left-width: 3px;
+  border-radius: 0.6rem;
+  padding: 0.9rem 1rem;
+}
+.timekeeper-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* === Table =============================================================== */
+
+.timekeeper-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.timekeeper-table th {
+  text-align: left;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: hsl(var(--muted-foreground));
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.timekeeper-table td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid hsl(var(--border) / 0.6);
+}
+.timekeeper-table tr:hover td {
+  background: hsl(var(--muted) / 0.35);
+}
