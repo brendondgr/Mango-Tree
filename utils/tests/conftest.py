@@ -61,3 +61,29 @@ def projectmanager_db(tmp_path, django_db_blocker):
     finally:
         conn.close()
         conn.settings_dict["NAME"] = original
+
+
+@pytest.fixture
+def imdbspy_db(tmp_path, django_db_blocker):
+    """Point the ``imdbspy`` connection at a fresh, migrated temp database.
+
+    Unlike exercise/projectmanager (which copy a live legacy file), IMDbSpy owns
+    its schema via managed models, so this fixture creates an empty DB and runs
+    the app's migrations into it — including the seed migration that inserts the
+    three default weight scales. The live ``data/imdbspy/imdbtracker.db`` is
+    never touched. Yields the temp DB path.
+    """
+    from django.core.management import call_command
+
+    tmp = tmp_path / "imdbtracker.db"
+    conn = connections["imdbspy"]
+    conn.close()
+    original = conn.settings_dict["NAME"]
+    conn.settings_dict["NAME"] = str(tmp)
+    try:
+        with django_db_blocker.unblock():
+            call_command("migrate", "imdbspy", database="imdbspy", verbosity=0)
+            yield tmp
+    finally:
+        conn.close()
+        conn.settings_dict["NAME"] = original
