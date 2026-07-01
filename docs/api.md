@@ -230,9 +230,30 @@ Projects, goals, deadlines, and a Gantt timeline, migrated from the standalone P
 
 List endpoints return the standard envelope `{count, next, previous, results}` (default `page_size` 25, max 2000 via `?page_size=`). Project/goal objects carry a computed `deadline_status` (`{display, css_class, date_formatted, is_overdue, is_approaching}`) when a deadline is set. IDs are integers (legacy autoincrement). Statuses: project `Active`/`Completed`/`On-Hold`/`Abandoned`, goal `Pending`/`Completed`. Errors use the platform schema with codes `validation_error` (400), `not_found` (404), `conflict` (409).
 
+### Recipes
+
+A recipe book (browse/filter, pantry match, and recipe CRUD), migrated from a standalone Flask app. See `utils/apps/recipes/README.md`. Data lives in a SQLite store at `data/recipes/recipes.db` (bound read/write with `managed = False` models; schema owned by `backend/services/store.py` and seeded on first run). DRF routes: `utils/api/routes/recipes.py`; views call `backend/services/` only.
+
+| Method | Endpoint | Service | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/recipes/recipes/` | `recipes.list_all` | List all recipes (summary cards with images) |
+| `POST` | `/api/recipes/recipes/` | `recipes.create_recipe` | Create a recipe (structured ingredients + steps) |
+| `POST` | `/api/recipes/recipes/filter/` | `recipes.filter_recipes` | Filter/rank by pantry `ingredient_ids`, `meal_types`, `cuisine_regions` (match %) |
+| `GET` | `/api/recipes/recipes/{id}/` | `recipes.get_by_id` | Recipe detail (ingredients + ordered steps) |
+| `PATCH`/`PUT` | `/api/recipes/recipes/{id}/` | `recipes.update_recipe` | Replace a recipe wholesale |
+| `DELETE` | `/api/recipes/recipes/{id}/` | `recipes.delete_recipe` | Delete a recipe and its children |
+| `GET` | `/api/recipes/ingredients/` | `ingredients.by_category` | Ingredient catalog grouped by category |
+| `GET` | `/api/recipes/ingredients/search/?q=` | `ingredients.search` | Search ingredients (prefix-ranked) |
+| `GET` | `/api/recipes/filter-options/` | `recipes.distinct_meal_types` / `distinct_cuisine_regions` | Distinct meal types + cuisine regions with counts |
+| `POST` | `/api/recipes/parse/` | `parser.parse_recipe_text` | "AI Chef": parse recipe text → structured recipe (LLM; API-only) |
+| `POST` | `/api/recipes/images/` | `images.save_uploaded_image` | Upload a recipe image (multipart `image`; API-only) |
+| `GET` | `/api/recipes/images/{filename}` | `images.resolve_image_path` | Serve an uploaded image (traversal-safe; API-only) |
+
+List endpoints return the standard envelope `{count, next, previous, results}` (default `page_size` 25, max 2000 via `?page_size=`). Recipe summaries carry `match_percentage` (0–100 or `null`), `total_ingredients`, and `matched_ingredients` when a pantry filter is active. IDs are integers (legacy autoincrement). The parser and image endpoints are **API-only** (not exposed as agent tools). Errors use the platform schema with codes `validation_error` (400), `permission_denied` (403), `not_found` (404), `conflict` (409).
+
 ### Reserved (TBD)
 
-`/api/recipes/`, `/api/imdbspy/`, `/api/timekeeper/`
+`/api/imdbspy/`, `/api/timekeeper/`
 
 ## Rules
 
