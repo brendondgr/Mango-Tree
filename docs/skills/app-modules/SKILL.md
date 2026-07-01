@@ -111,7 +111,7 @@ When migrating a Flask app into `utils/apps/{name}/`:
 - jobs
 - calendar (implemented — weekly schedules + a dated calendar of merged events; file-based JSON store; migrated from a standalone Flask app)
 - recipes
-- imdbspy
+- imdbspy (implemented — movie/TV tracker with IMDb scraping + weighted Fun/Grit/Comfort ratings; dedicated managed SQLite store + media cache; migrated from a standalone Flask app)
 - exercise (implemented — workouts/routines/equipment/history + Strava import)
 - timekeeper
 - media_viewer (implemented)
