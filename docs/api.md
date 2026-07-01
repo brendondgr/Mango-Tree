@@ -175,7 +175,9 @@ derived `has_credential` boolean; the credential endpoint is write-only.
 | `GET` | `/api/mailbox/accounts/{id}/messages/` | `messages.cached_messages` | Cached messages, newest first (`?folder=INBOX&limit=25`; `limit=all`/absent returns the whole cache). No network — see `/sync/` |
 | `GET`/`POST` | `/api/mailbox/accounts/{id}/sync/` | `messages.sync_status` / `messages.start_sync` | Inspect / trigger an incremental background sync into the local cache |
 | `GET` | `/api/mailbox/accounts/{id}/messages/{uid}/` | `messages.get_message` | One message with decoded body (cached after first open) |
-| `POST` | `/api/mailbox/accounts/{id}/organize/` | `mailops.organize` | Move a message by UID (reversible) |
+| `POST` | `/api/mailbox/accounts/{id}/organize/` | `mailops.organize` | Move one message by UID (reversible) |
+| `POST` | `/api/mailbox/accounts/{id}/move/` | `mailops.move` | Batch-move messages: body `{uids[], dest, source?, create_if_missing?}` (reversible) |
+| `POST` | `/api/mailbox/accounts/{id}/mark/` | `mailops.mark` | Mark read/unread and/or starred: body `{uids[], read?, starred?, source?}` (tri-state; reversible) |
 
 **Gmail/M365 use the OAuth portal, not a token field.** `GET /oauth/start/?provider=gmail` returns `{authorize_url}`; the SPA opens it, the user signs in on the provider's own page, and the provider redirects to `/oauth/callback/`, which validates the one-time `state`, exchanges the code (Authorization Code + PKCE), stores the **refresh token** in the secret store, upserts the account from the verified email, and redirects the browser to the SPA with `?mailbox_added=<id>`. Short-lived access tokens are minted from the refresh token on demand. Requires `OAUTH_GMAIL_CLIENT_ID`/`OAUTH_M365_CLIENT_ID` (and secrets) in the environment. The `PUT .../credential/` endpoint is for **app passwords only** (Yahoo/Exchange): body `{"value": "<app password>"}`, write-only, echoes only `{id, credential_ref, has_credential}`.
 
@@ -230,9 +232,15 @@ Projects, goals, deadlines, and a Gantt timeline, migrated from the standalone P
 
 List endpoints return the standard envelope `{count, next, previous, results}` (default `page_size` 25, max 2000 via `?page_size=`). Project/goal objects carry a computed `deadline_status` (`{display, css_class, date_formatted, is_overdue, is_approaching}`) when a deadline is set. IDs are integers (legacy autoincrement). Statuses: project `Active`/`Completed`/`On-Hold`/`Abandoned`, goal `Pending`/`Completed`. Errors use the platform schema with codes `validation_error` (400), `not_found` (404), `conflict` (409).
 
+### Time Keeper
+
+Five-minute time tracking across user-defined categories, migrated from the standalone TimeKeeper (Flask) app. See `utils/apps/timekeeper/README.md`. Data lives in the legacy SQLite store at `data/timekeeper/timekeeper.db` (bound read/write, schema unchanged; `managed = False` models). DRF routes: `utils/api/routes/timekeeper.py`; views call `backend/services/` only.
+
+_Endpoints documented in Stage 5 of the migration._
+
 ### Reserved (TBD)
 
-`/api/recipes/`, `/api/imdbspy/`, `/api/timekeeper/`
+`/api/recipes/`, `/api/imdbspy/`
 
 ## Rules
 
