@@ -55,11 +55,22 @@ DATABASES = {
             BASE_DIR / "data" / "projectmanager" / "projectmanager.db"
         ),
     },
+    # Dedicated IMDbSpy SQLite store. Unlike exercise/projectmanager, Django
+    # owns this schema (managed=True models) — created by
+    # `migrate --database=imdbspy`. Override the path with MANGO_IMDBSPY_DB for
+    # tests or alternate deployments.
+    "imdbspy": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.environ.get("MANGO_IMDBSPY_DB") or str(
+            BASE_DIR / "data" / "imdbspy" / "imdbtracker.db"
+        ),
+    },
 }
 
 DATABASE_ROUTERS = [
     "utils.apps.exercise.backend.db_router.ExerciseRouter",
     "utils.apps.projectmanager.backend.db_router.ProjectManagerRouter",
+    "utils.apps.imdbspy.backend.db_router.ImdbspyRouter",
 ]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
