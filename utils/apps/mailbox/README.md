@@ -95,7 +95,7 @@ Single source of truth. `agent/tools.py`, `agent/prompts.py`, and
 `tools.py`; account scoping and network/filesystem scope are enforced by the
 registry + `config/permissions.yaml`.
 
-## Resolved decisions (D1–D10)
+## Resolved decisions (D1–D11)
 
 - **D1 — Account scoping.** No `ExecutionContext` exists in this codebase; tools
   are plain functions with injectable services. `account` is always an id
@@ -137,6 +137,13 @@ registry + `config/permissions.yaml`.
   `account.files_sent_automatically` (Gmail files it itself, so we skip to avoid a
   duplicate). The APPEND is best-effort — a failed file-to-Sent never fails the
   reply.
+- **D11 — Graph parity.** `mailops` is the dispatch seam: every mutation resolves
+  an account via the registry, then calls an `ops` primitive. When a Graph token
+  flow lands and an account's `use_graph` flips (D3), `mailops` can dispatch to
+  Graph equivalents behind the same tool names (Graph has native move/reply/
+  replyAll and `PATCH` read-state), with no contract change. Not wired yet — the
+  Graph mutation path stays unregistered until that flow exists, like `organize`
+  today. See `docs/migrations/mailbox-operations.md`.
 
 ## HTTP API
 
