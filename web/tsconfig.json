@@ -23,6 +23,7 @@
       "@mailbox/*": ["../utils/apps/mailbox/frontend/*"],
       "@projectmanager/*": ["../utils/apps/projectmanager/frontend/*"],
       "@calendar/*": ["../utils/apps/calendar/frontend/*"],
+      "@timekeeper/*": ["../utils/apps/timekeeper/frontend/*"],
       "lucide-react": ["./node_modules/lucide-react"],
       "react": ["./node_modules/@types/react"],
       "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
@@ -37,7 +38,8 @@
     "../utils/apps/media_viewer/frontend",
     "../utils/apps/exercise/frontend",
     "../utils/apps/mailbox/frontend",
-    "../utils/apps/projectmanager/frontend"
+    "../utils/apps/projectmanager/frontend",
+    "../utils/apps/timekeeper/frontend"
   ],
   "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }

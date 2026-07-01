@@ -11,6 +11,6 @@ Domain app modules. Each app follows the standard layout documented in `docs/ski
 - `recipes/` — Recipe management
 - `imdbspy/` — IMDB lookup and tracking
 - `exercise/` — Exercise tracking (implemented; workouts, routines, equipment, history, Strava import — migrated from the standalone WorkoutTracker app)
-- `timekeeper/` — Time tracking
+- `timekeeper/` — Time tracking (implemented; 5-minute block time logging across user-defined categories + daily statistics — legacy SQLite bound read/write with `managed = False` models, migrated from a standalone Flask app)
 
 Each app contains `backend/`, `frontend/`, `agent/`, and `shared/` subdirectories.

@@ -113,7 +113,7 @@ When migrating a Flask app into `utils/apps/{name}/`:
 - recipes
 - imdbspy
 - exercise (implemented — workouts/routines/equipment/history + Strava import)
-- timekeeper
+- timekeeper (implemented — 5-minute time tracking with daily statistics; legacy SQLite bound with managed=False models; migrated from a standalone Flask app)
 - media_viewer (implemented)
 
 Each app directory includes a README describing its subfolder responsibilities.

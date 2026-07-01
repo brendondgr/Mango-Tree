@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     "utils.apps.media_viewer.backend.apps.MediaViewerBackendConfig",
     "utils.apps.exercise.backend.apps.ExerciseBackendConfig",
     "utils.apps.projectmanager.backend.apps.ProjectManagerBackendConfig",
+    "utils.apps.timekeeper.backend.apps.TimekeeperBackendConfig",
 ]
 
 MIDDLEWARE = [
@@ -54,11 +55,21 @@ DATABASES = {
             BASE_DIR / "data" / "projectmanager" / "projectmanager.db"
         ),
     },
+    # Legacy TimeKeeper SQLite store, bound read/write with managed=False models.
+    # Schema and rows are preserved unchanged (Strategy A). Override the path with
+    # MANGO_TIMEKEEPER_DB for tests or alternate deployments.
+    "timekeeper": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.environ.get("MANGO_TIMEKEEPER_DB") or str(
+            BASE_DIR / "data" / "timekeeper" / "timekeeper.db"
+        ),
+    },
 }
 
 DATABASE_ROUTERS = [
     "utils.apps.exercise.backend.db_router.ExerciseRouter",
     "utils.apps.projectmanager.backend.db_router.ProjectManagerRouter",
+    "utils.apps.timekeeper.backend.db_router.TimekeeperRouter",
 ]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
