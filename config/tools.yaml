@@ -204,3 +204,38 @@ tools:
     module: utils.apps.calendar.agent.tools
     function: delete_entry
     description: Remove the schedule-to-date mapping at an index (irreversible; requires confirm true).
+  recipes_list_recipes:
+    app: recipes
+    module: utils.apps.recipes.agent.tools
+    function: list_recipes
+    description: List all recipes as summary cards (id, title, servings, cuisine, meal type, images).
+  recipes_get_recipe:
+    app: recipes
+    module: utils.apps.recipes.agent.tools
+    function: get_recipe
+    description: Get full detail for one recipe_id (structured ingredients + ordered steps).
+  recipes_find_by_ingredients:
+    app: recipes
+    module: utils.apps.recipes.agent.tools
+    function: find_by_ingredients
+    description: Rank recipes by pantry match from ingredient_names/ingredient_ids (optional meal_types/cuisine_regions).
+  recipes_list_ingredients:
+    app: recipes
+    module: utils.apps.recipes.agent.tools
+    function: list_ingredients
+    description: List the pantry ingredient catalog (id, name, category).
+  recipes_create_recipe:
+    app: recipes
+    module: utils.apps.recipes.agent.tools
+    function: create_recipe
+    description: Create a recipe from a structured object (title, ingredients, steps, optional meta).
+  recipes_update_recipe:
+    app: recipes
+    module: utils.apps.recipes.agent.tools
+    function: update_recipe
+    description: Replace an existing recipe wholesale (recipe_id + recipe object).
+  recipes_delete_recipe:
+    app: recipes
+    module: utils.apps.recipes.agent.tools
+    function: delete_recipe
+    description: Delete a recipe (irreversible; requires confirm true).

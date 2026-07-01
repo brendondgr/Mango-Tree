@@ -23,6 +23,14 @@ filesystem:
       - "../**"
       - "**/.env"
       - "config/**"
+  recipes_data:
+    description: Local recipes SQLite store + uploaded recipe images read/write scope
+    allow:
+      - "{recipes_root}/**"
+    deny:
+      - "../**"
+      - "**/.env"
+      - "config/**"
 
 network:
   web_research:
@@ -67,7 +75,13 @@ network:
       - openidconnect.googleapis.com
       - login.microsoftonline.com
       - outlook.office.com
+  recipes_llm:
+    description: Outbound HTTP(S) to the configured OpenAI-compatible LLM endpoint for the AI Chef recipe parser
+    allow_schemes:
+      - http
+      - https
 
 artifacts_root: data/artifacts
 mailbox_root: data/mailbox
 calendar_root: data/calendar
+recipes_root: data/recipes
