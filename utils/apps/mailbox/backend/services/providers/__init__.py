@@ -14,7 +14,7 @@ touch accounts that exist there.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from utils.apps.mailbox.backend.services.oauth import tokens as _tokens
@@ -31,15 +31,45 @@ class ProviderDefaults:
     smtp_port: int
     auth: str            # "oauth2" | "password" | "either"
     supports_move: bool
+    # Provider auto-files an SMTP-sent copy to Sent (Gmail) — a reply skips its
+    # own APPEND to avoid a duplicate (D10).
+    files_sent_automatically: bool = False
+    # Fallback well-known folder names (kind -> path) when the server does not
+    # advertise RFC 6154 SPECIAL-USE flags (D6).
+    well_known: dict[str, str] = field(default_factory=dict)
 
 
 # Per-provider connection defaults. Exchange (on-prem) has no defaults — host
-# comes from the account settings.
+# comes from the account settings. Well-known names are a *fallback*: the ops
+# resolver prefers the server's SPECIAL-USE flags when advertised.
+_GMAIL_WELL_KNOWN = {
+    "trash": "[Gmail]/Trash", "sent": "[Gmail]/Sent Mail", "junk": "[Gmail]/Spam",
+    "archive": "[Gmail]/All Mail", "drafts": "[Gmail]/Drafts",
+}
+_EXCHANGE_WELL_KNOWN = {
+    "trash": "Deleted Items", "sent": "Sent Items", "junk": "Junk Email",
+    "archive": "Archive", "drafts": "Drafts",
+}
+_YAHOO_WELL_KNOWN = {
+    "trash": "Trash", "sent": "Sent", "junk": "Bulk Mail",
+    "archive": "Archive", "drafts": "Draft",
+}
 PROVIDERS: dict[str, ProviderDefaults] = {
-    "gmail": ProviderDefaults("imap.gmail.com", 993, "smtp.gmail.com", 587, "oauth2", True),
-    "m365": ProviderDefaults("outlook.office365.com", 993, "smtp.office365.com", 587, "oauth2", True),
-    "yahoo": ProviderDefaults("imap.mail.yahoo.com", 993, "smtp.mail.yahoo.com", 587, "password", True),
-    "exchange": ProviderDefaults("", 993, "", 587, "either", False),
+    "gmail": ProviderDefaults(
+        "imap.gmail.com", 993, "smtp.gmail.com", 587, "oauth2", True,
+        files_sent_automatically=True, well_known=_GMAIL_WELL_KNOWN,
+    ),
+    "m365": ProviderDefaults(
+        "outlook.office365.com", 993, "smtp.office365.com", 587, "oauth2", True,
+        well_known=_EXCHANGE_WELL_KNOWN,
+    ),
+    "yahoo": ProviderDefaults(
+        "imap.mail.yahoo.com", 993, "smtp.mail.yahoo.com", 587, "password", True,
+        well_known=_YAHOO_WELL_KNOWN,
+    ),
+    "exchange": ProviderDefaults(
+        "", 993, "", 587, "either", False, well_known=_EXCHANGE_WELL_KNOWN,
+    ),
 }
 
 
@@ -103,6 +133,8 @@ def build_account_from_config(
         app_password=app_password,
         access_token=access_token,
         supports_move=defaults.supports_move,
+        files_sent_automatically=defaults.files_sent_automatically,
+        well_known_names=dict(defaults.well_known),
     )
 
 

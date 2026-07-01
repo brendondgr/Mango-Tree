@@ -27,9 +27,9 @@ from __future__ import annotations
 
 import base64
 import smtplib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from email.message import EmailMessage
-from typing import Any, Callable, Protocol
+from typing import Any, Callable, Protocol, Sequence
 
 from utils.apps.mailbox.shared.errors import (
     PermissionDeniedError,
@@ -54,6 +54,12 @@ class MailAccount:
     access_token: str | None = None
     supports_move: bool = True      # Exchange on-prem IMAP often does NOT
     folder_delimiter: str = "/"
+    # Provider files an SMTP-sent copy to Sent automatically (Gmail). When False
+    # a reply IMAP-APPENDs its own copy to the resolved Sent folder (D10).
+    files_sent_automatically: bool = False
+    # Per-provider well-known folder name map (kind -> folder path), used as the
+    # fallback when the server does not advertise RFC 6154 SPECIAL-USE flags (D6).
+    well_known_names: dict[str, str] = field(default_factory=dict)
 
     def require_credentials(self) -> None:
         if self.auth == "oauth2" and not self.access_token:
@@ -155,6 +161,43 @@ def create_folder(client: ImapLike, name: str) -> dict[str, Any]:
     return {"folder": name, "created": typ == "OK"}
 
 
+def _uid_set(uids: Sequence[str]) -> tuple[str, list[str]]:
+    """Normalize a UID collection into an IMAP message-set string + a clean list.
+
+    IMAP accepts comma-separated UIDs and ranges (``"1,2,5"``), so a whole batch
+    is a single round trip. Empty/blank UIDs are dropped; an all-empty set is a
+    validation error.
+    """
+    items = [str(u).strip() for u in uids if str(u).strip()]
+    if not items:
+        raise ValidationError("at least one uid is required", details={"uids": list(uids)})
+    return ",".join(items), items
+
+
+def _uid_move(client: ImapLike, account: MailAccount, message_set: str, dest_folder: str) -> str:
+    """Move an already-selected UID set into ``dest_folder``; return the method.
+
+    Uses the IMAP MOVE extension (RFC 6851) when the account/server supports it;
+    otherwise falls back to COPY + STORE \\Deleted + EXPUNGE, which every IMAP
+    server supports. Exchange on-prem typically needs the fallback. The caller is
+    responsible for selecting the source folder first.
+    """
+    caps = " ".join(
+        c.decode() if isinstance(c, bytes) else str(c) for c in (client.capabilities() or [])
+    ).upper()
+    if account.supports_move and "MOVE" in caps:
+        typ, data = client.uid("MOVE", message_set, dest_folder)
+        if not _imap_ok((typ, data)):
+            raise ProviderError("UID MOVE failed", details={"uids": message_set})
+        return "MOVE"
+    typ, _ = client.uid("COPY", message_set, dest_folder)
+    if not _imap_ok(typ):
+        raise ProviderError("UID COPY failed", details={"uids": message_set})
+    client.uid("STORE", message_set, "+FLAGS", "(\\Deleted)")
+    client.expunge()
+    return "COPY+EXPUNGE"
+
+
 def organize_message(
     account: MailAccount,
     *,
@@ -166,9 +209,8 @@ def organize_message(
 ) -> dict[str, Any]:
     """Move a single message (by UID) from ``source_folder`` to ``dest_folder``.
 
-    Uses the IMAP MOVE extension (RFC 6851) when the account/server supports it;
-    otherwise falls back to COPY + STORE \\Deleted + EXPUNGE, which every IMAP
-    server supports. Exchange on-prem typically needs the fallback.
+    Thin single-UID wrapper over the shared move core; kept for back-compat with
+    the ``mailbox_organize_message`` tool. See :func:`move_messages` for batches.
     """
     if not uid:
         raise ValidationError("uid is required", details={"uid": uid})
@@ -176,28 +218,181 @@ def organize_message(
     try:
         if create_if_missing:
             create_folder(client, dest_folder)
-
         client.select(source_folder, readonly=False)
-
-        caps = " ".join(
-            c.decode() if isinstance(c, bytes) else str(c) for c in (client.capabilities() or [])
-        ).upper()
-        use_move = account.supports_move and "MOVE" in caps
-
-        if use_move:
-            typ, data = client.uid("MOVE", uid, dest_folder)
-            if not _imap_ok((typ, data)):
-                raise ProviderError("UID MOVE failed", details={"uid": uid})
-            method = "MOVE"
-        else:
-            typ, _ = client.uid("COPY", uid, dest_folder)
-            if not _imap_ok(typ):
-                raise ProviderError("UID COPY failed", details={"uid": uid})
-            client.uid("STORE", uid, "+FLAGS", "(\\Deleted)")
-            client.expunge()
-            method = "COPY+EXPUNGE"
-
+        method = _uid_move(client, account, uid, dest_folder)
         return {"uid": uid, "moved_to": dest_folder, "method": method}
+    finally:
+        _safe_logout(client)
+
+
+def move_messages(
+    account: MailAccount,
+    *,
+    uids: Sequence[str],
+    source_folder: str,
+    dest_folder: str,
+    create_if_missing: bool = True,
+    imap_factory: Callable[[MailAccount], ImapLike] | None = None,
+) -> dict[str, Any]:
+    """Move a batch of messages (by UID) from ``source_folder`` to ``dest_folder``
+    in one IMAP round trip (D9). Same MOVE / COPY+EXPUNGE semantics as organize."""
+    message_set, items = _uid_set(uids)
+    client = connect_imap(account, imap_factory=imap_factory)
+    try:
+        if create_if_missing:
+            create_folder(client, dest_folder)
+        client.select(source_folder, readonly=False)
+        method = _uid_move(client, account, message_set, dest_folder)
+        return {"uids": items, "moved_to": dest_folder, "method": method}
+    finally:
+        _safe_logout(client)
+
+
+# =============================================================================
+# 1b. WELL-KNOWN FOLDERS — resolve Trash/Sent/Junk/Archive/Drafts (D6)
+# =============================================================================
+
+# RFC 6154 SPECIAL-USE attributes advertised on the LIST response, per kind.
+_SPECIAL_USE = {
+    "trash": "\\Trash",
+    "sent": "\\Sent",
+    "junk": "\\Junk",
+    "archive": "\\Archive",
+    "drafts": "\\Drafts",
+}
+
+
+def _resolve_special_use(client: ImapLike, kind: str) -> str | None:
+    """Return the folder path the server flags for ``kind`` (RFC 6154), or None."""
+    flag = _SPECIAL_USE.get(kind)
+    if not flag:
+        return None
+    typ, data = client.list("", "*")
+    if typ != "OK":
+        return None
+    for line in data or []:
+        parsed = _parse_list_line(line)
+        if not parsed:
+            continue
+        flags, _delim, name = parsed
+        if any(f.lower() == flag.lower() for f in flags):
+            return name
+    return None
+
+
+def well_known_folder(
+    account: MailAccount,
+    kind: str,
+    *,
+    client: ImapLike | None = None,
+    imap_factory: Callable[[MailAccount], ImapLike] | None = None,
+) -> str:
+    """Resolve a well-known folder (``trash``/``sent``/``junk``/``archive``/``drafts``).
+
+    Prefers the server's RFC 6154 SPECIAL-USE flag from the LIST response so the
+    agent never has to guess a path; falls back to the per-provider name map on
+    the account. Pass an open ``client`` to reuse an existing connection.
+    """
+    kind = kind.lower()
+    if kind not in _SPECIAL_USE:
+        raise ValidationError(
+            f"unknown well-known folder kind '{kind}'",
+            details={"kind": kind, "valid": list(_SPECIAL_USE)},
+        )
+    if client is not None:
+        name = _resolve_special_use(client, kind)
+    else:
+        conn = connect_imap(account, imap_factory=imap_factory)
+        try:
+            name = _resolve_special_use(conn, kind)
+        finally:
+            _safe_logout(conn)
+    name = name or account.well_known_names.get(kind)
+    if not name:
+        raise ValidationError(
+            f"could not resolve the {kind} folder for {account.provider}",
+            details={"kind": kind, "provider": account.provider},
+        )
+    return name
+
+
+# =============================================================================
+# 1c. DELETE — soft (move to Trash, reversible) or permanent (expunge)
+# =============================================================================
+
+def delete_message(
+    account: MailAccount,
+    *,
+    uids: Sequence[str],
+    source_folder: str = "INBOX",
+    permanent: bool = False,
+    imap_factory: Callable[[MailAccount], ImapLike] | None = None,
+) -> dict[str, Any]:
+    """Delete a batch of messages by UID.
+
+    ``permanent=False`` (default) moves them to the account's Trash — reversible.
+    On Gmail this strips other labels but the message survives in All Mail until a
+    permanent delete. ``permanent=True`` selects ``source_folder``, sets
+    ``\\Deleted`` and EXPUNGEs — irreversible; run it from within Trash.
+    """
+    message_set, items = _uid_set(uids)
+    client = connect_imap(account, imap_factory=imap_factory)
+    try:
+        if permanent:
+            client.select(source_folder, readonly=False)
+            typ, _ = client.uid("STORE", message_set, "+FLAGS", "(\\Deleted)")
+            if not _imap_ok(typ):
+                raise ProviderError("UID STORE \\Deleted failed", details={"uids": message_set})
+            client.expunge()
+            return {"uids": items, "deleted": True, "permanent": True, "source": source_folder}
+        trash = well_known_folder(account, "trash", client=client)
+        client.select(source_folder, readonly=False)
+        method = _uid_move(client, account, message_set, trash)
+        return {
+            "uids": items, "deleted": True, "permanent": False,
+            "moved_to": trash, "method": method,
+        }
+    finally:
+        _safe_logout(client)
+
+
+# =============================================================================
+# 1d. FLAGS — mark read/unread, star/unstar (UID STORE +/-FLAGS)
+# =============================================================================
+
+def set_flags(
+    account: MailAccount,
+    *,
+    uids: Sequence[str],
+    add: Sequence[str] = (),
+    remove: Sequence[str] = (),
+    source_folder: str = "INBOX",
+    imap_factory: Callable[[MailAccount], ImapLike] | None = None,
+) -> dict[str, Any]:
+    """Add and/or remove IMAP flags on a batch of messages.
+
+    e.g. ``add=("\\Seen",)`` marks read, ``remove=("\\Seen",)`` marks unread,
+    ``add=("\\Flagged",)`` stars. Reversible, so ungated.
+    """
+    message_set, items = _uid_set(uids)
+    add_list, remove_list = list(add), list(remove)
+    if not add_list and not remove_list:
+        raise ValidationError(
+            "nothing to change: pass add and/or remove flags",
+            details={"uids": items},
+        )
+    client = connect_imap(account, imap_factory=imap_factory)
+    try:
+        client.select(source_folder, readonly=False)
+        if add_list:
+            typ, _ = client.uid("STORE", message_set, "+FLAGS", "(%s)" % " ".join(add_list))
+            if not _imap_ok(typ):
+                raise ProviderError("UID STORE +FLAGS failed", details={"uids": message_set})
+        if remove_list:
+            typ, _ = client.uid("STORE", message_set, "-FLAGS", "(%s)" % " ".join(remove_list))
+            if not _imap_ok(typ):
+                raise ProviderError("UID STORE -FLAGS failed", details={"uids": message_set})
+        return {"uids": items, "added": add_list, "removed": remove_list}
     finally:
         _safe_logout(client)
 
@@ -382,6 +577,7 @@ def _selftest() -> None:
                 b'(\\HasNoChildren) "/" "INBOX/Work"',
                 b'(\\HasNoChildren) "/" "INBOX/Work/Urgent"',
                 b'(\\Sent \\HasNoChildren) "/" "Sent"',
+                b'(\\Trash \\HasNoChildren) "/" "[Gmail]/Trash"',
                 b'(\\Noselect \\HasChildren) "/" "[Gmail]"',
             ])
         def logout(self): self.commands.append(("logout",))
@@ -418,6 +614,44 @@ def _selftest() -> None:
     r3 = organize_message(exch, uid="1", source_folder="INBOX", dest_folder="Done",
                           imap_factory=lambda a: FakeImap(with_move=True))
     assert r3["method"] == "COPY+EXPUNGE", r3
+
+    # 1d. move_messages (batch) — one MOVE round trip for a UID set
+    fakeb = FakeImap(with_move=True)
+    rb = move_messages(oauth, uids=["7", "8"], source_folder="INBOX",
+                       dest_folder="INBOX/Work", imap_factory=lambda a: fakeb)
+    assert rb["method"] == "MOVE" and rb["uids"] == ["7", "8"], rb
+    assert ("uid", "MOVE", "7,8", "INBOX/Work") in fakeb.commands
+
+    # 1e. well_known_folder resolves Trash via the RFC 6154 SPECIAL-USE flag
+    trash = well_known_folder(oauth, "trash", imap_factory=lambda a: FakeImap())
+    assert trash == "[Gmail]/Trash", trash
+
+    # 1f. well_known_folder falls back to the provider name map (no SPECIAL-USE)
+    class NoSpecialUse(FakeImap):
+        def list(self, directory="", pattern="*"):
+            return ("OK", [b'(\\HasNoChildren) "/" "INBOX"', b'(\\HasNoChildren) "/" "Custom"'])
+    mapped = MailAccount("yahoo", "me@yahoo.com", "imap.mail.yahoo.com", 993,
+                         "smtp.mail.yahoo.com", 587, "password", app_password="APPPW",
+                         well_known_names={"trash": "Trash"})
+    assert well_known_folder(mapped, "trash", imap_factory=lambda a: NoSpecialUse()) == "Trash"
+
+    # 1g. soft delete = reversible move to Trash
+    faked = FakeImap(with_move=True)
+    rd = delete_message(oauth, uids=["9"], source_folder="INBOX", imap_factory=lambda a: faked)
+    assert rd["permanent"] is False and rd["moved_to"] == "[Gmail]/Trash", rd
+
+    # 1h. permanent delete = STORE \Deleted + EXPUNGE within the source folder
+    fakep = FakeImap(with_move=True)
+    rp = delete_message(oauth, uids=["9"], source_folder="[Gmail]/Trash", permanent=True,
+                        imap_factory=lambda a: fakep)
+    assert rp["permanent"] is True and fakep.expunged, rp
+    assert ("uid", "STORE", "9", "+FLAGS", "(\\Deleted)") in fakep.commands
+
+    # 1i. set_flags — mark read + star in one STORE
+    fakef = FakeImap()
+    rf = set_flags(oauth, uids=["3"], add=["\\Seen", "\\Flagged"], imap_factory=lambda a: fakef)
+    assert rf["added"] == ["\\Seen", "\\Flagged"], rf
+    assert ("uid", "STORE", "3", "+FLAGS", "(\\Seen \\Flagged)") in fakef.commands
 
     # 2. send (XOAUTH2 path)
     smtp = FakeSmtp()
