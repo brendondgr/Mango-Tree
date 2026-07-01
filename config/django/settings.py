@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     "utils.apps.media_viewer.backend.apps.MediaViewerBackendConfig",
     "utils.apps.exercise.backend.apps.ExerciseBackendConfig",
     "utils.apps.projectmanager.backend.apps.ProjectManagerBackendConfig",
+    "utils.apps.imdbspy.backend.apps.ImdbspyBackendConfig",
 ]
 
 MIDDLEWARE = [

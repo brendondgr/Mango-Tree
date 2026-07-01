@@ -230,9 +230,21 @@ Projects, goals, deadlines, and a Gantt timeline, migrated from the standalone P
 
 List endpoints return the standard envelope `{count, next, previous, results}` (default `page_size` 25, max 2000 via `?page_size=`). Project/goal objects carry a computed `deadline_status` (`{display, css_class, date_formatted, is_overdue, is_approaching}`) when a deadline is set. IDs are integers (legacy autoincrement). Statuses: project `Active`/`Completed`/`On-Hold`/`Abandoned`, goal `Pending`/`Completed`. Errors use the platform schema with codes `validation_error` (400), `not_found` (404), `conflict` (409).
 
+### IMDbSpy
+
+Personal movie/TV tracker migrated from a standalone Flask app. Add titles by
+IMDb URL/ID (metadata + poster + cast headshots are scraped and cached locally),
+mark them seen/not-seen/abandoned, and rate them with weighted Fun/Grit/Comfort
+scales. See `utils/apps/imdbspy/README.md`. Data lives in a dedicated SQLite store
+at `data/imdbspy/imdbtracker.db` (`managed = True` models, Django owns the schema)
+with images cached under `data/imdbspy/media/`. DRF routes:
+`utils/api/routes/imdbspy.py`; views call `backend/services/` only.
+
+_Endpoints are documented in Stage 5 of the migration; this block is reserved._
+
 ### Reserved (TBD)
 
-`/api/recipes/`, `/api/imdbspy/`, `/api/timekeeper/`
+`/api/recipes/`, `/api/timekeeper/`
 
 ## Rules
 
