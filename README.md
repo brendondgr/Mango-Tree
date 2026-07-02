@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/mango-color.svg" alt="Mango Tree logo" width="160" />
+</p>
+
 # Mango Tree
 
 Mango Tree is a **local-first, permissioned agent platform**. It routes user requests through a coordinator, delegates broad reasoning to a planner, and executes focused work through LangGraph workflows and app-scoped tools. The web UI and agents both call the same backend services — agents never bypass the tool and permission layer.

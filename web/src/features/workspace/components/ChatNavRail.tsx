@@ -4,6 +4,7 @@ import {
   appTabValue,
   useWorkspaceStore,
 } from "@/app/stores/workspaceStore";
+import mangoLogo from "@/assets/logos/mango.svg";
 import { Button } from "@/components/ui/button";
 import { useEnabledApps } from "@/features/workspace/apps/useEnabledApps";
 import { MOBILE_BREAKPOINT, useMediaQuery } from "@/hooks/useMediaQuery";
@@ -26,6 +27,12 @@ export function ChatNavRail() {
           : "flex w-[52px] flex-col items-center gap-1 border-r py-3",
       )}
     >
+      <img
+        src={mangoLogo}
+        alt="Mango Tree"
+        className={cn("h-7 w-7 shrink-0", isMobile ? "mr-1" : "mb-1")}
+      />
+
       <Button
         type="button"
         variant="ghost"
