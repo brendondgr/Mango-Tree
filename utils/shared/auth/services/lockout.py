@@ -102,6 +102,9 @@ def list_locked_ips() -> list[dict]:
     """Distinct IPs currently locked out, with remaining time."""
     ips = (
         LoginAttempt.objects.filter(successful=False, counts_toward_lockout=True)
+        # Clear the model's default ``-created_at`` ordering: leaving it in place
+        # forces created_at into the SELECT DISTINCT and defeats the dedupe.
+        .order_by("ip_address")
         .values_list("ip_address", flat=True)
         .distinct()
     )

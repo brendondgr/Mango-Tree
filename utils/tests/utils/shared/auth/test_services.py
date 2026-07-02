@@ -67,6 +67,15 @@ def test_lockout_after_threshold_and_reset_on_success(auth_db):
     assert lockout.is_locked(ip) is False
 
 
+def test_locked_ips_are_deduplicated(auth_db):
+    ip = "203.0.113.11"
+    for _ in range(MAX_FAILED_ATTEMPTS + 2):
+        lockout.record_attempt(username="owner", ip_address=ip, user_agent="", successful=False)
+    locked = lockout.list_locked_ips()
+    assert len(locked) == 1
+    assert locked[0]["ip_address"] == ip
+
+
 def test_manual_unlock_preserves_log(auth_db):
     ip = "203.0.113.9"
     for _ in range(MAX_FAILED_ATTEMPTS):
