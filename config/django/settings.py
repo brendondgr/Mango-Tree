@@ -13,12 +13,22 @@ load_dotenv(BASE_DIR / ".env", override=False)
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-not-for-production")
 DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
-ALLOWED_HOSTS = ["*"]
+
+
+def _csv_env(name: str, default: str) -> list[str]:
+    return [item.strip() for item in os.environ.get(name, default).split(",") if item.strip()]
+
+
+# Public deployments must pin the hostnames they answer to. Override via
+# DJANGO_ALLOWED_HOSTS (comma separated) in production, e.g. "mango.example.com".
+ALLOWED_HOSTS = _csv_env("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 
 INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",
+    "django.contrib.sessions",
     "rest_framework",
+    "utils.shared.auth.apps.MangoAuthConfig",
     "utils.apps.media_viewer.backend.apps.MediaViewerBackendConfig",
     "utils.apps.exercise.backend.apps.ExerciseBackendConfig",
     "utils.apps.projectmanager.backend.apps.ProjectManagerBackendConfig",
@@ -29,7 +39,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
 ]
 
 ROOT_URLCONF = "config.django.urls"
@@ -107,7 +120,52 @@ REST_FRAMEWORK = {
         "rest_framework.parsers.MultiPartParser",
         "rest_framework.parsers.FormParser",
     ],
-    "UNAUTHENTICATED_USER": None,
+    # The platform is single-owner and gated: authenticate every request against
+    # the session cookie and require a logged-in user by default. Public
+    # endpoints (login, signup, csrf, health) opt out with AllowAny.
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
 }
+
+# --- Authentication & session security ---------------------------------------
+# Session cookies (httpOnly, so JavaScript cannot exfiltrate them) are the
+# credential; CSRF protects state-changing requests. Cookies go Secure whenever
+# DEBUG is off so a public https deployment never leaks them over plain http.
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = not DEBUG
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_COOKIE_AGE = int(os.environ.get("DJANGO_SESSION_COOKIE_AGE", 60 * 60 * 24 * 14))
+
+# The CSRF cookie must be readable by the SPA so it can echo the token back in
+# the X-CSRFToken header, so it is deliberately NOT httpOnly.
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SECURE = not DEBUG
+CSRF_TRUSTED_ORIGINS = _csv_env("DJANGO_CSRF_TRUSTED_ORIGINS", "")
+
+# Behind a TLS-terminating reverse proxy (the public mango.* deployment), trust
+# the forwarded-proto header so Django knows the request arrived over https.
+if os.environ.get("DJANGO_BEHIND_TLS_PROXY", "false").lower() == "true":
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Hardened response headers.
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"
+
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 10},
+    },
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
 
 USE_TZ = True

@@ -6,6 +6,7 @@ urlpatterns = [
     path("", root_redirect, name="root"),
     path("favicon.ico", favicon, name="favicon"),
     path("api/health/", health, name="health"),
+    path("api/auth/", include("utils.api.routes.auth")),
     path("api/media-viewer/", include("utils.api.routes.media_viewer")),
     path("api/mailbox/", include("utils.api.routes.mailbox")),
     path("api/exercise/", include("utils.api.routes.exercise")),
