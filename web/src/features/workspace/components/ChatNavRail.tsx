@@ -27,17 +27,28 @@ export function ChatNavRail() {
           : "flex w-[52px] flex-col items-center gap-1 border-r py-3",
       )}
     >
-      <img
-        src={mangoLogo}
-        alt="Mango Tree"
+      <span
+        role="img"
+        aria-label="Mango Tree"
         className={cn("h-7 w-7 shrink-0", isMobile ? "mr-1" : "mb-1")}
+        style={{
+          backgroundColor: "var(--mango-logo-color)",
+          WebkitMaskImage: `url(${mangoLogo})`,
+          maskImage: `url(${mangoLogo})`,
+          WebkitMaskRepeat: "no-repeat",
+          maskRepeat: "no-repeat",
+          WebkitMaskPosition: "center",
+          maskPosition: "center",
+          WebkitMaskSize: "contain",
+          maskSize: "contain",
+        }}
       />
 
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        className="h-10 w-10 rounded-[var(--radius-md)]"
+        className="h-10 w-10 rounded-[var(--radius-md)] hover:bg-transparent hover:text-primary hover:[&_svg]:text-primary hover:ring-1 hover:ring-inset hover:ring-primary/40"
         aria-label="Chat"
         title="Chat"
         onClick={() => expandSidebar()}
@@ -56,6 +67,8 @@ export function ChatNavRail() {
             size="icon"
             className={cn(
               "h-10 w-10 rounded-[var(--radius-md)]",
+              !active &&
+                "hover:bg-transparent hover:text-primary hover:[&_svg]:text-primary hover:ring-1 hover:ring-inset hover:ring-primary/40",
               active && "bg-secondary text-foreground",
             )}
             aria-label={app.label}

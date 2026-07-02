@@ -21,9 +21,8 @@ export function AuthCard({
           <img
             src={mangoColorLogo}
             alt="Mango Tree"
-            className="mx-auto mb-3 h-16 w-16"
+            className="mx-auto h-80 w-80"
           />
-          <h1 className="text-2xl font-semibold tracking-tight">Mango Tree</h1>
         </div>
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
           <div className="mb-5">

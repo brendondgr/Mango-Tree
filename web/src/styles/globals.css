@@ -63,6 +63,7 @@ html[data-theme="blue-light"],
 html[data-theme="fsu-light"],
 html[data-theme="pulse-light"] {
   color-scheme: light;
+  --mango-logo-color: #000000;
 }
 
 html[data-theme="dark"],
@@ -70,6 +71,7 @@ html[data-theme="blue-dark"],
 html[data-theme="fsu-dark"],
 html[data-theme="pulse-dark"] {
   color-scheme: dark;
+  --mango-logo-color: #ffffff;
 }
 
 body {
