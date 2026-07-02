@@ -18,7 +18,6 @@ dependencies = [
     "python-dotenv>=1.0",
     "stravalib>=2.5.0",
     "reportlab>=4.0",
-    "cinemagoer>=2026.6.27",
 ]
 
 [project.optional-dependencies]

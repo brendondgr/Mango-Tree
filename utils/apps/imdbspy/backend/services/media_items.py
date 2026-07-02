@@ -27,7 +27,7 @@ from utils.apps.imdbspy.shared.ratings import compute_score, criteria_for
 
 def _default_scraper():
     # Imported lazily so the service layer (and its tests, which inject a fake)
-    # do not require cinemagoer to be importable.
+    # never pay the scraper import cost unless a real network add/refresh runs.
     from utils.apps.imdbspy.backend.services.scraper import IMDbScraper
 
     return IMDbScraper()

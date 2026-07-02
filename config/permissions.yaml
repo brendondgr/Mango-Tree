@@ -74,11 +74,12 @@ network:
     allow_hosts:
       - graph.microsoft.com
   imdbspy_scrape:
-    description: Outbound HTTP(S) to IMDb + its image CDN for title/cast metadata and posters
+    description: Outbound HTTP(S) to IMDb's GraphQL API + its image CDN for title/cast metadata and posters
     allow_schemes:
       - http
       - https
     allow_hosts:
+      - api.graphql.imdb.com
       - m.imdb.com
       - m.media-amazon.com
       - images-na.ssl-images-amazon.com
