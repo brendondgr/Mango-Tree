@@ -95,9 +95,15 @@ Target: React/Vite SPA with swappable shadcn/Tailwind themes (Canva-inspired def
 | `/tools` | `/api/tools/` |
 | `/memory` | `/api/memory/` |
 | `/traces/:taskId` | `/api/traces/{task_id}/` |
-| `/settings` | TBD |
+| `/login`, `/signup` | `/api/auth/login|signup|csrf|registration-status/` |
+| `/onboarding` | `/api/auth/preferences/` |
+| `/settings` | `/api/auth/preferences/`, `/api/auth/security/*` (Apps + Security panels) |
 
 Future: `/recipes`, `/imdbspy`. Do not implement a route until its endpoint exists in `docs/api.md`.
+
+The workspace at `/chat` is gated: unauthenticated users are redirected to
+`/login`, and a signed-in owner who has not finished onboarding is sent to
+`/onboarding` before the workspace renders.
 
 ### Component Map
 
@@ -165,6 +171,30 @@ The **imdbspy** app owns a dedicated SQLite database at `data/imdbspy/imdbtracke
 The **timekeeper** app preserves the legacy TimeKeeper SQLite database at `data/timekeeper/timekeeper.db` (gitignored). It is bound through a dedicated `timekeeper` Django connection with `managed = False` models (`time_logs` and `settings`, schema unchanged); override the path with `MANGO_TIMEKEEPER_DB`. Its routes mount at `/api/timekeeper/` and it opens as a persistent workspace tab (tracker / dashboard / logs / categories). It has no external I/O, so no `config/permissions.yaml` scope is needed; state-changing agent tools are confirm-gated. See `utils/apps/timekeeper/README.md`.
 
 The **recipes** app keeps its SQLite store at `data/recipes/recipes.db` (gitignored), bound through a dedicated `recipes` Django connection with `managed = False` models. Unlike the other legacy-SQLite apps there is no committed database: the schema (owned by `backend/services/store.py`) and a small sample dataset are seeded on first run; override the path with `MANGO_RECIPES_DB`. It opens as a persistent workspace tab (browse / editor). The "AI Chef" recipe-text parser reuses the shared OpenAI-compatible LLM client (`utils/shared/llm`, `LLM_*` config); filesystem scope is confined to `{recipes_root}/**` via `config/permissions.yaml`. See `utils/apps/recipes/README.md`.
+
+## Authentication & Security
+
+The platform is **single-owner and gated** so it is safe to expose publicly. The
+first visitor creates the owner account via `/signup`; registration then closes
+(further signups return `403`). Auth is a Django session in an **httpOnly**
+cookie, and DRF defaults every endpoint to `IsAuthenticated` (`SessionAuthentication`),
+so the whole API is closed unless signed in — only `/api/health/` and the public
+`/api/auth/` routes (login, signup, csrf, registration-status) opt out. CSRF is
+enforced on state-changing requests; the SPA echoes the `csrftoken` cookie in the
+`X-CSRFToken` header.
+
+Repeated failed logins from an IP are **locked out** (`429`) after a threshold
+within a rolling window (tunable via `MANGO_AUTH_*`); every attempt is recorded
+in an append-only log surfaced under Settings → Security, where the owner can
+review attempts (time, IP, outcome) and clear a lockout. Per-owner preferences
+(`enabled_apps`, `onboarding_completed`) drive onboarding and which workspace
+apps appear; only the media viewer ("Artifacts") is enabled by default.
+
+The auth models, services, and API live in `utils/shared/auth/` (Django app
+label `mango_auth`, tables on the `default` database). Production sets
+`DJANGO_ALLOWED_HOSTS` and `DJANGO_CSRF_TRUSTED_ORIGINS`; behind a TLS proxy set
+`DJANGO_BEHIND_TLS_PROXY=true`. Cookies are marked `Secure` automatically when
+`DJANGO_DEBUG` is off.
 
 ## Build Sequence
 

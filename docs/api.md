@@ -16,7 +16,36 @@ All endpoints are prefixed with `/api/`.
 }
 ```
 
-Stable codes: `validation_error`, `permission_denied`, `not_found`, `conflict`, `internal_error`.
+Stable codes: `validation_error`, `permission_denied`, `not_found`, `conflict`, `rate_limited`, `internal_error`.
+
+## Authentication
+
+The platform is single-owner and gated. Every endpoint requires an authenticated
+session (DRF `SessionAuthentication` + a global `IsAuthenticated` default) except
+the public endpoints noted below (`/api/health/` and the `/api/auth/` login,
+signup, csrf, and registration-status routes). Unauthenticated requests return
+`403`.
+
+Auth uses Django sessions carried in an **httpOnly** cookie; state-changing
+requests must echo the CSRF token (from the readable `csrftoken` cookie) in the
+`X-CSRFToken` header. The SPA primes the cookie via `GET /api/auth/csrf/`.
+
+### Auth & Security (`/api/auth/`)
+
+| Method | Endpoint | Auth | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/csrf/` | public | Set the CSRF cookie; returns `{csrftoken}` |
+| `GET` | `/registration-status/` | public | `{registration_open, owner_exists}` |
+| `POST` | `/signup/` | public\* | Create the single owner account; logs in. `*` closed once an owner exists (`403`) |
+| `POST` | `/login/` | public | Session login. Failed attempts are logged; an IP is locked (`429`) after too many failures |
+| `POST` | `/logout/` | owner | End the session (`204`) |
+| `GET` | `/me/` | owner | `{id, username, is_owner, preferences}` |
+| `GET/PATCH` | `/preferences/` | owner | Read/update `{enabled_apps, onboarding_completed}` |
+| `GET` | `/security/attempts/` | owner | Recent login attempts `{username, ip_address, successful, created_at}` |
+| `GET` | `/security/lockouts/` | owner | Currently blocked IPs `{ip_address, failed, retry_after_seconds}` |
+| `POST` | `/security/unlock/` | owner | Clear an IP's lockout counter (log preserved) |
+
+Routes: `utils/api/routes/auth.py`; views call `utils/shared/auth/services/` only.
 
 ## Platform Endpoints
 
