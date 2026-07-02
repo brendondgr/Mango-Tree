@@ -147,6 +147,13 @@ CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_TRUSTED_ORIGINS = _csv_env("DJANGO_CSRF_TRUSTED_ORIGINS", "")
+if DEBUG:
+    # Trust the Vite dev origin so the SPA's cross-checked CSRF requests succeed
+    # during local development. Production sets DJANGO_CSRF_TRUSTED_ORIGINS.
+    CSRF_TRUSTED_ORIGINS += [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
 
 # Behind a TLS-terminating reverse proxy (the public mango.* deployment), trust
 # the forwarded-proto header so Django knows the request arrived over https.

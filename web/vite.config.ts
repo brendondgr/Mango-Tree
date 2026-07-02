@@ -54,7 +54,10 @@ export default defineConfig({
       },
       "/api": {
         target: "http://127.0.0.1:32553",
-        changeOrigin: true,
+        // Preserve the browser Host so it matches the Origin header: Django's
+        // CSRF origin check rejects requests whose Origin does not match the
+        // request host, and rewriting the Host (changeOrigin) would break it.
+        changeOrigin: false,
       },
     },
   },
@@ -70,7 +73,10 @@ export default defineConfig({
       },
       "/api": {
         target: "http://127.0.0.1:32553",
-        changeOrigin: true,
+        // Preserve the browser Host so it matches the Origin header: Django's
+        // CSRF origin check rejects requests whose Origin does not match the
+        // request host, and rewriting the Host (changeOrigin) would break it.
+        changeOrigin: false,
       },
     },
   },
