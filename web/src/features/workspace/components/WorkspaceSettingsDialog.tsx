@@ -1,4 +1,4 @@
-import { Palette, Settings2 } from "lucide-react";
+import { LayoutGrid, Palette, Settings2, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import {
@@ -10,11 +10,13 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AppsSettingsPanel } from "@/features/workspace/components/AppsSettingsPanel";
 import { ColorPalettePanel } from "@/features/workspace/components/ColorPalettePanel";
 import { LlmConfigPanel } from "@/features/workspace/components/LlmConfigPanel";
+import { SecuritySettingsPanel } from "@/features/workspace/components/SecuritySettingsPanel";
 import { cn } from "@/lib/utils";
 
-type SettingsTab = "llm" | "colors";
+type SettingsTab = "llm" | "colors" | "apps" | "security";
 
 const settingsTabTriggerClass = cn(
   "min-w-0 justify-start gap-2 rounded-none px-3 py-2",
@@ -43,7 +45,7 @@ export function WorkspaceSettingsDialog({
         <DialogHeader className="shrink-0 space-y-1 px-5 pb-0 pt-5 pr-12 sm:px-6 sm:pt-6">
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>
-            LLM connection and appearance options for this workspace.
+            LLM connection, apps, appearance, and security for this workspace.
           </DialogDescription>
         </DialogHeader>
 
@@ -61,25 +63,22 @@ export function WorkspaceSettingsDialog({
               <Settings2 className="h-4 w-4 shrink-0" aria-hidden />
               <span className="truncate">LLM</span>
             </TabsTrigger>
+            <TabsTrigger value="apps" className={settingsTabTriggerClass} role="tab">
+              <LayoutGrid className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate">Apps</span>
+            </TabsTrigger>
             <TabsTrigger value="colors" className={settingsTabTriggerClass} role="tab">
               <Palette className="h-4 w-4 shrink-0" aria-hidden />
               <span className="truncate">Color palette</span>
             </TabsTrigger>
+            <TabsTrigger value="security" className={settingsTabTriggerClass} role="tab">
+              <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate">Security</span>
+            </TabsTrigger>
           </TabsList>
 
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            {activeTab === "llm" ? (
-              <ScrollArea className="min-h-0 flex-1">
-                <TabsContent
-                  value="llm"
-                  className="px-5 py-4 sm:px-6 sm:py-5"
-                  role="tabpanel"
-                  forceMount
-                >
-                  <LlmConfigPanel active={open && activeTab === "llm"} />
-                </TabsContent>
-              </ScrollArea>
-            ) : (
+            {activeTab === "colors" ? (
               <TabsContent
                 value="colors"
                 className="flex min-h-0 flex-1 flex-col overflow-hidden px-5 py-4 sm:px-6 sm:py-5"
@@ -88,6 +87,39 @@ export function WorkspaceSettingsDialog({
               >
                 <ColorPalettePanel />
               </TabsContent>
+            ) : (
+              <ScrollArea className="min-h-0 flex-1">
+                {activeTab === "llm" ? (
+                  <TabsContent
+                    value="llm"
+                    className="px-5 py-4 sm:px-6 sm:py-5"
+                    role="tabpanel"
+                    forceMount
+                  >
+                    <LlmConfigPanel active={open && activeTab === "llm"} />
+                  </TabsContent>
+                ) : null}
+                {activeTab === "apps" ? (
+                  <TabsContent
+                    value="apps"
+                    className="px-5 py-4 sm:px-6 sm:py-5"
+                    role="tabpanel"
+                    forceMount
+                  >
+                    <AppsSettingsPanel />
+                  </TabsContent>
+                ) : null}
+                {activeTab === "security" ? (
+                  <TabsContent
+                    value="security"
+                    className="px-5 py-4 sm:px-6 sm:py-5"
+                    role="tabpanel"
+                    forceMount
+                  >
+                    <SecuritySettingsPanel active={open && activeTab === "security"} />
+                  </TabsContent>
+                ) : null}
+              </ScrollArea>
             )}
           </div>
         </Tabs>

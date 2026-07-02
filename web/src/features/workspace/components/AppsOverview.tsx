@@ -1,12 +1,13 @@
 import { useWorkspaceStore } from "@/app/stores/workspaceStore";
-import { WORKSPACE_APPS } from "@/features/workspace/apps/appRegistry";
+import { useEnabledApps } from "@/features/workspace/apps/useEnabledApps";
 
 /**
- * Default landing surface shown whenever no app tab is active. Lists every
- * registered app as a launcher card; selecting one opens it in a workspace tab.
+ * Default landing surface shown whenever no app tab is active. Lists the owner's
+ * enabled apps as launcher cards; selecting one opens it in a workspace tab.
  */
 export function AppsOverview() {
   const openAppTab = useWorkspaceStore((s) => s.openAppTab);
+  const enabledApps = useEnabledApps();
 
   return (
     <section
@@ -23,8 +24,14 @@ export function AppsOverview() {
           </p>
         </header>
 
+        {enabledApps.length === 0 ? (
+          <p className="rounded-[var(--radius-lg)] border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            No apps are enabled yet. Turn some on under Settings → Apps.
+          </p>
+        ) : null}
+
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {WORKSPACE_APPS.map((app) => {
+          {enabledApps.map((app) => {
             const Icon = app.icon;
             return (
               <li key={app.id}>

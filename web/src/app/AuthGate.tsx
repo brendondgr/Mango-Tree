@@ -14,11 +14,21 @@ function AuthSplash() {
 
 /**
  * Gates its children behind an authenticated session. On first mount it probes
- * the session; unauthenticated users are bounced to /login. The onboarding
- * redirect is layered on in the workspace phase.
+ * the session; unauthenticated users are bounced to /login and authenticated
+ * owners who have not finished onboarding are sent to /onboarding.
+ *
+ * Pass `requireOnboarded={false}` on the onboarding route itself so it can
+ * render without redirecting back to itself.
  */
-export function AuthGate({ children }: { children: ReactNode }) {
+export function AuthGate({
+  children,
+  requireOnboarded = true,
+}: {
+  children: ReactNode;
+  requireOnboarded?: boolean;
+}) {
   const status = useAuthStore((s) => s.status);
+  const user = useAuthStore((s) => s.user);
   const checkSession = useAuthStore((s) => s.checkSession);
 
   useEffect(() => {
@@ -32,6 +42,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }
   if (status === "unauthenticated") {
     return <Navigate to="/login" />;
+  }
+  if (requireOnboarded && user && !user.preferences.onboarding_completed) {
+    return <Navigate to="/onboarding" />;
   }
   return <>{children}</>;
 }

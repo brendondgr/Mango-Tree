@@ -5,7 +5,7 @@ import {
   useWorkspaceStore,
 } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
-import { WORKSPACE_APPS } from "@/features/workspace/apps/appRegistry";
+import { useEnabledApps } from "@/features/workspace/apps/useEnabledApps";
 import { MOBILE_BREAKPOINT, useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,7 @@ export function ChatNavRail() {
   const expandSidebar = useWorkspaceStore((s) => s.expandSidebar);
   const openAppTab = useWorkspaceStore((s) => s.openAppTab);
   const activeWorkspaceTab = useWorkspaceStore((s) => s.activeWorkspaceTab);
+  const enabledApps = useEnabledApps();
 
   return (
     <nav
@@ -37,7 +38,7 @@ export function ChatNavRail() {
         <MessageSquare className="h-5 w-5" />
       </Button>
 
-      {WORKSPACE_APPS.map((app) => {
+      {enabledApps.map((app) => {
         const Icon = app.icon;
         const active = activeWorkspaceTab === appTabValue(app.id);
         return (

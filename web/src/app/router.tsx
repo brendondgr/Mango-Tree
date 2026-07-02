@@ -11,6 +11,7 @@ import { AppProviders } from "@/app/providers";
 import { ChatPage } from "@/pages/chat/ChatPage";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { SignupPage } from "@/pages/auth/SignupPage";
+import { OnboardingPage } from "@/pages/onboarding/OnboardingPage";
 
 function RootLayout() {
   return (
@@ -42,6 +43,16 @@ const signupRoute = createRoute({
   component: SignupPage,
 });
 
+const onboardingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/onboarding",
+  component: () => (
+    <AuthGate requireOnboarded={false}>
+      <OnboardingPage />
+    </AuthGate>
+  ),
+});
+
 const chatRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/chat",
@@ -56,6 +67,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
   signupRoute,
+  onboardingRoute,
   chatRoute,
 ]);
 
