@@ -182,7 +182,7 @@
   border-radius: var(--radius-md);
   overflow: hidden;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   transition:
     box-shadow 200ms ease,
     border-color 200ms ease;
@@ -194,31 +194,56 @@
   border-color: color-mix(in srgb, hsl(var(--primary)) 40%, transparent);
 }
 
-/* Left: poster fills the card height at a 2:3 aspect */
+/* Top row: poster + headline/description/crew. The poster stretches to this
+   row's height (driven by the info column's content), NOT the full card
+   (which also includes cast + footer below) — that mismatch was what made
+   the poster look "squished": it was being cover-cropped to a much taller
+   box than a poster's natural shape.
+
+   The width is a plain percentage (not `aspect-ratio`): an aspect-ratio box
+   with only a max-width and no explicit width resolves its own preferred
+   size (from the ratio + max-width) independently of its flex siblings, so
+   it drags the row height to match itself instead of following the info
+   column's content. A definite width sidesteps that and leaves height
+   purely to `align-self: stretch`; `object-fit: cover` on the image then
+   keeps the poster looking like a normal ~2:3 poster without distortion. */
+.imdbspy-card-main {
+  display: flex;
+  flex-direction: row;
+}
+
 .imdbspy-card-poster {
   position: relative;
-  width: 120px;
   align-self: stretch;
   flex-shrink: 0;
+  width: 35%;
+  min-width: 96px;
+  max-width: 190px;
   background: color-mix(in srgb, hsl(var(--muted)) 60%, transparent);
   overflow: hidden;
 }
 
+/* Absolutely positioned (not width/height:100% in normal flow): a percentage
+   height only resolves against a DEFINITE parent height, but the poster's
+   height is itself only definite via flex stretch — an in-flow img with
+   height:100% of that indeterminate box falls back to its own intrinsic
+   aspect ratio and forces the poster to content-fit around it, undoing the
+   stretch. Taking it out of flow removes that circular dependency. */
 .imdbspy-card-poster img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  min-height: 180px;
   object-fit: cover;
   display: block;
 }
 
 .imdbspy-card-poster-fallback {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
-  min-height: 180px;
   font-size: 2.5rem;
   font-weight: 800;
   color: hsl(var(--muted-foreground));
@@ -251,12 +276,15 @@
   background: hsl(var(--destructive));
 }
 
-/* Right: info column */
+/* Info column: headline + description/crew (or review when seen). Its natural
+   content height is what the poster to its left stretches to match. */
 .imdbspy-card-info {
   flex: 1;
   min-width: 0;
+  min-height: 190px;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 0.4rem;
   padding: 0.75rem 0.85rem;
 }
@@ -438,11 +466,12 @@
   text-decoration: underline;
 }
 
-/* Cast strip */
+/* Cast strip: full-width row below the poster/info block */
 .imdbspy-card-cast {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  padding: 0 0.85rem 0.75rem;
 }
 
 .imdbspy-cast-label {
@@ -516,15 +545,14 @@
   overflow: hidden;
 }
 
-/* Footer */
+/* Footer: full-width row below the poster/info block (and cast, when shown) */
 .imdbspy-card-footer {
-  margin-top: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
   flex-wrap: wrap;
-  padding-top: 0.5rem;
+  padding: 0.5rem 0.85rem 0.75rem;
   border-top: 1px solid hsl(var(--border));
 }
 
