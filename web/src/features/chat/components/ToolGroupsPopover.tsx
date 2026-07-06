@@ -58,6 +58,8 @@ export function ToolGroupsPopover({ disabled }: { disabled?: boolean }) {
   const defaults = useWorkspaceStore((s) => s.defaultEnabledToolGroups);
   const setDefaults = useWorkspaceStore((s) => s.setDefaultEnabledToolGroups);
   const boundWorkspaceId = useWorkspaceStore((s) => s.boundWorkspaceId);
+  const open = useWorkspaceStore((s) => s.toolGroupsPopoverOpen);
+  const setOpen = useWorkspaceStore((s) => s.setToolGroupsPopoverOpen);
 
   const toolCount = catalogue
     .filter((group) => enabled.includes(group.id))
@@ -69,7 +71,7 @@ export function ToolGroupsPopover({ disabled }: { disabled?: boolean }) {
     defaults.every((id) => enabled.includes(id));
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           type="button"

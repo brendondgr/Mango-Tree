@@ -209,6 +209,8 @@ interface WorkspaceState {
   enabledToolGroups: string[];
   /** Bound workspace id — a session capability a group may require (D15). */
   boundWorkspaceId: string | null;
+  /** Whether the composer tool-toggle popover is open (driven by /tools too). */
+  toolGroupsPopoverOpen: boolean;
   setSidebarWidth: (width: number, maxWidth?: number) => void;
   setMobileDrawerOpen: (open: boolean) => void;
   setLastWidth: (width: number) => void;
@@ -265,6 +267,7 @@ interface WorkspaceState {
   setDefaultEnabledToolGroups: (groupIds: string[]) => void;
   resetToolGroupsToDefault: () => void;
   bindWorkspace: (workspaceId: string | null) => void;
+  setToolGroupsPopoverOpen: (open: boolean) => void;
   startNewChat: () => void;
   clearMessages: () => void;
   toggleSidebar: (mobile: boolean) => void;
@@ -301,6 +304,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       defaultEnabledToolGroups: [...DEFAULT_TOOL_GROUPS],
       enabledToolGroups: [...DEFAULT_TOOL_GROUPS],
       boundWorkspaceId: null,
+      toolGroupsPopoverOpen: false,
 
       setSidebarWidth: (width, maxWidth) => {
         const clamped = clampSidebarWidth(width, maxWidth);
@@ -500,6 +504,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         set((state) => ({ enabledToolGroups: [...state.defaultEnabledToolGroups] })),
 
       bindWorkspace: (workspaceId) => set({ boundWorkspaceId: workspaceId }),
+
+      setToolGroupsPopoverOpen: (open) => set({ toolGroupsPopoverOpen: open }),
 
       startNewChat: () =>
         set((state) => ({
