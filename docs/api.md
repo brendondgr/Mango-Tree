@@ -54,13 +54,48 @@ Routes: `utils/api/routes/auth.py`; views call `utils/shared/auth/services/` onl
 | Tasks | `POST/GET /api/tasks/`, `GET /api/tasks/{id}/`, `POST /api/tasks/{id}/cancel/` |
 | Agents | `GET /api/agents/`, `GET /api/agents/{id}/` |
 | Workflows | `GET /api/workflows/`, `GET /api/workflows/{id}/` |
-| Tools | `GET /api/tools/`, `GET /api/tools/{id}/` |
+| Tools | `GET /api/tools/groups/` (implemented), `GET /api/tools/`, `GET /api/tools/{id}/` |
 | Memory | `GET /api/memory/namespaces/`, `GET /api/memory/datasets/` |
 | Traces | `GET /api/traces/{task_id}/events|artifacts|logs/` |
 
 ### Health
 
 `GET /api/health/` — returns `{"status":"ok"}` when the Django API is running.
+
+### Tools
+
+Read-only catalogue of the agent tool groups the session toggle UI controls
+(see `docs/tool-groups.md`). Group membership derives from each tool's `app` in
+`config/tools.yaml`; `core` is on by default and the app groups are off until the
+user enables them. The enabled set is not stored server-side — it is sent per
+turn on `POST /api/agent/{session_id}/agent_turn/` as `enabled_groups` (with an
+optional `workspace_id`), validated there (unknown group → `validation_error`; a
+group whose `requires` capability is unmet → `permission_denied`).
+
+`GET /api/tools/groups/` →
+
+```json
+{
+  "groups": [
+    {
+      "id": "core",
+      "label": "Core",
+      "tools": ["inspect_chat_context", "inspect_skills", "list_artifacts",
+                "read_artifact", "read_skill", "search_web"],
+      "default_enabled": true
+    },
+    {
+      "id": "mailbox",
+      "label": "Mailbox",
+      "tools": ["mailbox_list_accounts", "mailbox_send_message", "..."],
+      "default_enabled": false
+    }
+  ]
+}
+```
+
+A group may also carry `"requires": "<capability>"` when it is gated behind a
+session precondition (none today). `core` is always listed first.
 
 ## App Endpoints
 
