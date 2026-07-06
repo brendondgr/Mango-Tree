@@ -23,6 +23,7 @@ import {
 import { ComposerAttachmentPill } from "@/features/chat/components/ComposerAttachmentPill";
 import { ComposerAttachmentStrip } from "@/features/chat/components/ComposerAttachmentStrip";
 import { ContextUsageRing } from "@/features/chat/components/ContextUsageRing";
+import { ToolGroupsPopover } from "@/features/chat/components/ToolGroupsPopover";
 import { useContextUsage } from "@/features/chat/hooks/useContextUsage";
 import { useComposerArtifactStore } from "@/features/chat/stores/composerArtifactStore";
 import { useComposerWebSearchStore } from "@/features/chat/stores/composerWebSearchStore";
@@ -355,6 +356,7 @@ export function ChatComposer({
               }
             }}
           />
+          <ToolGroupsPopover disabled={inputDisabled} />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
