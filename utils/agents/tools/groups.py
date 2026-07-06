@@ -117,6 +117,51 @@ def normalize_enabled_groups(groups) -> List[str]:
     return out
 
 
+def resolve_enabled_groups(
+    requested, capabilities: Optional[set] = None
+):
+    """Validate a client-requested enabled-group set for one turn.
+
+    Returns ``(groups, error)`` where exactly one is non-``None``:
+
+    - ``requested is None`` -> the default enabled set (backward compatible).
+    - a non-list, or unknown group ids -> a ``validation_error`` envelope.
+    - a group whose ``requires`` capability is not in ``capabilities`` (D15) ->
+      a ``permission_denied`` envelope carrying the ``enable_tool_group`` action.
+    - otherwise -> the normalized, de-duplicated list of known groups.
+    """
+    if requested is None:
+        return default_enabled_groups(), None
+    if not isinstance(requested, list):
+        return None, {
+            "code": "validation_error",
+            "message": "enabled_groups must be a list of group ids.",
+            "details": {},
+        }
+    unknown = unknown_groups(requested)
+    if unknown:
+        return None, {
+            "code": "validation_error",
+            "message": f"Unknown tool group(s): {', '.join(unknown)}.",
+            "details": {"unknown": unknown, "known": all_group_ids()},
+        }
+    capabilities = capabilities or set()
+    normalized = normalize_enabled_groups(requested)
+    for group in normalized:
+        requires = group_requires(group)
+        if requires and requires not in capabilities:
+            return None, {
+                "code": "permission_denied",
+                "message": f"Tool group '{group}' requires '{requires}' first.",
+                "details": {
+                    "action": "enable_tool_group",
+                    "group": group,
+                    "requires": requires,
+                },
+            }
+    return normalized, None
+
+
 def group_metadata() -> List[Dict[str, Any]]:
     """Descriptor list for ``GET /api/tools/groups``."""
     out: List[Dict[str, Any]] = []

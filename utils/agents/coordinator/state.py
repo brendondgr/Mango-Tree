@@ -10,6 +10,12 @@ class AgentState(TypedDict):
     final_answer: Optional[str]
     error: Optional[str]
     web_search_mode: Literal["auto", "forced"]
+    # Enabled tool groups for this turn (see docs/tool-groups.md). Assembly and
+    # execution are both gated on this set; falls back to the default set
+    # (``core``) when the client omits it.
+    enabled_groups: Optional[List[str]]
+    # Bound workspace id, if any — a session capability that a group may require.
+    workspace_id: Optional[str]
     # Per-request LLM overrides forwarded from the frontend settings
     # ({base_url, model, api_key}); falls back to env defaults when absent.
     llm_config: Optional[Dict[str, Any]]
