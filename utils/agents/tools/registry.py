@@ -15,7 +15,39 @@ class ToolRegistry:
             return func
         return decorator
         
-    def execute(self, name: str, arguments: Dict[str, Any]) -> ToolResult:
+    def execute(
+        self,
+        name: str,
+        arguments: Dict[str, Any],
+        enabled_groups: Optional[List[str]] = None,
+    ) -> ToolResult:
+        # Execution-side gate (D14): a hallucinated or stale call to a tool whose
+        # group is not enabled this session is denied with the standard envelope,
+        # even though disabled tools were never offered to the model. Passing
+        # ``enabled_groups=None`` skips the gate (backward compatible).
+        if enabled_groups is not None:
+            from utils.agents.tools.groups import group_of
+            group = group_of(name)
+            if group is not None and group not in enabled_groups:
+                return ToolResult(
+                    success=False,
+                    result={
+                        "code": "permission_denied",
+                        "message": (
+                            f"Tool '{name}' belongs to the '{group}' tool group, "
+                            "which is not enabled for this session."
+                        ),
+                        "details": {
+                            "action": "enable_tool_group",
+                            "group": group,
+                            "tool": name,
+                        },
+                    },
+                    summary=(
+                        f"Tool '{name}' denied — enable the '{group}' tool group to use it."
+                    ),
+                    artifact_ids=[],
+                )
         if name not in self._tools:
             return ToolResult(
                 success=False,

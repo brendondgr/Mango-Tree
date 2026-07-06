@@ -407,8 +407,10 @@ def observe_node(state: AgentState) -> Dict[str, Any]:
 
         if action.name == "search_web":
             action.arguments["citation_offset"] = search_citation_offset(new_observations)
-            
-        tool_result: ToolResult = registry.execute(action.name, action.arguments)
+
+        tool_result: ToolResult = registry.execute(
+            action.name, action.arguments, state.get("enabled_groups")
+        )
         
         obs_item = {
             "tool": action.name,
