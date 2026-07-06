@@ -24,6 +24,8 @@ export function SessionInfoDialog({ open, onOpenChange }: SessionInfoDialogProps
   const chatSessionId = useWorkspaceStore((s) => s.chatSessionId);
   const messages = useWorkspaceStore((s) => s.messages);
   const isTyping = useWorkspaceStore((s) => s.isTyping);
+  const enabledToolGroups = useWorkspaceStore((s) => s.enabledToolGroups);
+  const toolGroupCatalogue = useWorkspaceStore((s) => s.toolGroupCatalogue);
   const llmConfig = useLlmConfigStore((s) => s.config);
 
   const userCount = messages.filter((message) => message.role === "user").length;
@@ -33,6 +35,13 @@ export function SessionInfoDialog({ open, onOpenChange }: SessionInfoDialogProps
       ? formatTimestamp(messages[0]!.timestamp)
       : "Not started";
 
+  const labelFor = (id: string) =>
+    toolGroupCatalogue.find((group) => group.id === id)?.label ?? id;
+  const activeTools =
+    enabledToolGroups.length > 0
+      ? enabledToolGroups.map(labelFor).join(", ")
+      : "None";
+
   const rows = [
     { label: "Session ID", value: chatSessionId },
     { label: "Started", value: startedAt },
@@ -41,6 +50,7 @@ export function SessionInfoDialog({ open, onOpenChange }: SessionInfoDialogProps
       value: `${messages.length} total (${userCount} user, ${agentCount} agent)`,
     },
     { label: "Status", value: isTyping ? "Generating…" : "Idle" },
+    { label: "Active tools", value: activeTools },
     { label: "Model", value: llmConfig.model },
     { label: "Endpoint", value: llmConfig.baseUrl },
   ];

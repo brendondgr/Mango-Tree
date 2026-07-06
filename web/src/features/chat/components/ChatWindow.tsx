@@ -173,6 +173,7 @@ export function ChatWindow() {
         attachments: msg.attachments,
       }));
 
+      const wsState = useWorkspaceStore.getState();
       await runAgentTurn(
         chatSessionId,
         text,
@@ -180,6 +181,8 @@ export function ChatWindow() {
         attachments,
         options?.webSearchMode ?? "auto",
         useLlmConfigStore.getState().config,
+        wsState.enabledToolGroups,
+        wsState.boundWorkspaceId,
       );
       
       unsubscribe();

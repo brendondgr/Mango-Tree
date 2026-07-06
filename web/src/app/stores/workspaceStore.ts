@@ -5,6 +5,10 @@ import type { ChatAttachment } from "@/features/chat/types/attachment";
 import type { ChatReference } from "@/features/agent/types";
 import type { WorkspaceTabId } from "@/features/workspace/components/workspaceTabs";
 import type { LlmUsage } from "@/services/llmTypes";
+import type { ToolGroupInfo } from "@/services/toolsClient";
+
+/** Groups a fresh session starts with enabled until the catalogue loads. */
+const DEFAULT_TOOL_GROUPS = ["core"];
 
 export type { ChatAttachment } from "@/features/chat/types/attachment";
 export type MessageRole = "user" | "agent";
@@ -197,6 +201,14 @@ interface WorkspaceState {
   chatSessionId: string;
   messages: ChatMessage[];
   lastKnownUsage: LlmUsage | null;
+  /** Tool-group catalogue from GET /api/tools/groups/ (ephemeral, not persisted). */
+  toolGroupCatalogue: ToolGroupInfo[];
+  /** Persisted global default enabled set; seeds every new session. */
+  defaultEnabledToolGroups: string[];
+  /** The current session's enabled set (resets to the default on new chat). */
+  enabledToolGroups: string[];
+  /** Bound workspace id — a session capability a group may require (D15). */
+  boundWorkspaceId: string | null;
   setSidebarWidth: (width: number, maxWidth?: number) => void;
   setMobileDrawerOpen: (open: boolean) => void;
   setLastWidth: (width: number) => void;
@@ -247,6 +259,12 @@ interface WorkspaceState {
     >,
   ) => void;
   setLastKnownUsage: (usage: LlmUsage | null) => void;
+  setToolGroupCatalogue: (groups: ToolGroupInfo[]) => void;
+  setToolGroupEnabled: (groupId: string, enabled: boolean) => void;
+  setEnabledToolGroups: (groupIds: string[]) => void;
+  setDefaultEnabledToolGroups: (groupIds: string[]) => void;
+  resetToolGroupsToDefault: () => void;
+  bindWorkspace: (workspaceId: string | null) => void;
   startNewChat: () => void;
   clearMessages: () => void;
   toggleSidebar: (mobile: boolean) => void;
@@ -279,6 +297,10 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       chatSessionId: newChatSessionId(),
       messages: [],
       lastKnownUsage: null,
+      toolGroupCatalogue: [],
+      defaultEnabledToolGroups: [...DEFAULT_TOOL_GROUPS],
+      enabledToolGroups: [...DEFAULT_TOOL_GROUPS],
+      boundWorkspaceId: null,
 
       setSidebarWidth: (width, maxWidth) => {
         const clamped = clampSidebarWidth(width, maxWidth);
@@ -455,13 +477,39 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
       setLastKnownUsage: (usage) => set({ lastKnownUsage: usage }),
 
+      setToolGroupCatalogue: (groups) => set({ toolGroupCatalogue: groups }),
+
+      setToolGroupEnabled: (groupId, enabled) =>
+        set((state) => {
+          const has = state.enabledToolGroups.includes(groupId);
+          if (enabled === has) return {};
+          return {
+            enabledToolGroups: enabled
+              ? [...state.enabledToolGroups, groupId]
+              : state.enabledToolGroups.filter((id) => id !== groupId),
+          };
+        }),
+
+      setEnabledToolGroups: (groupIds) =>
+        set({ enabledToolGroups: [...new Set(groupIds)] }),
+
+      setDefaultEnabledToolGroups: (groupIds) =>
+        set({ defaultEnabledToolGroups: [...new Set(groupIds)] }),
+
+      resetToolGroupsToDefault: () =>
+        set((state) => ({ enabledToolGroups: [...state.defaultEnabledToolGroups] })),
+
+      bindWorkspace: (workspaceId) => set({ boundWorkspaceId: workspaceId }),
+
       startNewChat: () =>
-        set({
+        set((state) => ({
           messages: [],
           isTyping: false,
           lastKnownUsage: null,
           chatSessionId: newChatSessionId(),
-        }),
+          enabledToolGroups: [...state.defaultEnabledToolGroups],
+          boundWorkspaceId: null,
+        })),
 
       clearMessages: () => get().startNewChat(),
 
@@ -493,6 +541,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         calendarView: state.calendarView,
         recipesView: state.recipesView,
         timekeeperView: state.timekeeperView,
+        defaultEnabledToolGroups: state.defaultEnabledToolGroups,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
@@ -506,6 +555,15 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           state.activeWorkspaceTab = state.activeTab;
           // merge defaults so prefs added in later versions are populated
           state.mailboxPrefs = { ...MAILBOX_PREFS_DEFAULT, ...(state.mailboxPrefs ?? {}) };
+          // Seed a fresh session's enabled tool groups from the saved default.
+          const savedDefault =
+            state.defaultEnabledToolGroups && state.defaultEnabledToolGroups.length
+              ? state.defaultEnabledToolGroups
+              : [...DEFAULT_TOOL_GROUPS];
+          state.defaultEnabledToolGroups = savedDefault;
+          state.enabledToolGroups = [...savedDefault];
+          state.toolGroupCatalogue = [];
+          state.boundWorkspaceId = null;
         }
       },
     },

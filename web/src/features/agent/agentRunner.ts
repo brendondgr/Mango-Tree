@@ -14,6 +14,8 @@ export async function runAgentTurn(
   attachments?: any[],
   webSearchMode: "auto" | "forced" = "auto",
   llmConfig?: LlmConfig,
+  enabledGroups?: string[],
+  workspaceId?: string | null,
 ): Promise<void> {
   const store = useAgentStore.getState();
   store.reset();
@@ -43,6 +45,8 @@ export async function runAgentTurn(
         history,
         attachments,
         web_search_mode: webSearchMode,
+        ...(enabledGroups ? { enabled_groups: enabledGroups } : {}),
+        ...(workspaceId ? { workspace_id: workspaceId } : {}),
         ...(llmConfigPayload ? { llm_config: llmConfigPayload } : {}),
       }),
     });
