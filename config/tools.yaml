@@ -1,4 +1,119 @@
+# Tool groups are the toggle granularity for the session tool set (see
+# docs/tool-groups.md). A tool's group is its `app` value unless it sets `group`.
+# `default_enabled` seeds a new session's enabled set (only `core` is on by
+# default). `prompt` (module:ATTR) is the app-specific guidance block appended to
+# the system prompt when the group is enabled. Optional `requires: <capability>`
+# gates a group behind a session precondition (none set today).
+tool_groups:
+  core:
+    label: Core
+    default_enabled: true
+  media_viewer:
+    label: Media Viewer
+    default_enabled: false
+    prompt: utils.apps.media_viewer.agent.prompts:MEDIA_VIEWER_PROMPT
+  mailbox:
+    label: Mailbox
+    default_enabled: false
+    prompt: utils.apps.mailbox.agent.prompts:MAILBOX_TOOLS_PROMPT
+  calendar:
+    label: Calendar
+    default_enabled: false
+    prompt: utils.apps.calendar.agent.prompts:CALENDAR_TOOLS_PROMPT
+  exercise:
+    label: Exercise
+    default_enabled: false
+    prompt: utils.apps.exercise.agent.prompts:EXERCISE_TOOLS_PROMPT
+  projectmanager:
+    label: Project Manager
+    default_enabled: false
+    prompt: utils.apps.projectmanager.agent.prompts:PROJECTMANAGER_TOOLS_PROMPT
+  imdbspy:
+    label: IMDbSpy
+    default_enabled: false
+    prompt: utils.apps.imdbspy.agent.prompts:IMDBSPY_TOOLS_PROMPT
+  recipes:
+    label: Recipes
+    default_enabled: false
+    prompt: utils.apps.recipes.agent.prompts:RECIPES_TOOLS_PROMPT
+  timekeeper:
+    label: Time Keeper
+    default_enabled: false
+    prompt: utils.apps.timekeeper.agent.prompts:TIMEKEEPER_TOOLS_PROMPT
+
 tools:
+  # --- core: base tools always available unless the core group is toggled off ---
+  list_artifacts:
+    app: core
+    module: utils.agents.tools.registry
+    function: list_artifacts
+    description: List all files in the artifacts directory.
+    parameters:
+      type: object
+      properties: {}
+  read_artifact:
+    app: core
+    module: utils.agents.tools.registry
+    function: read_artifact
+    description: >-
+      Read and examine the content of an artifact file. Supports text files
+      (code, markdown, json, etc.), image files (png, jpg, gif, webp), and video
+      files (mp4, webm, mov). For images and videos, the file is loaded and sent
+      to the model for visual analysis. Cannot be used for audio, PDF, or archive
+      files.
+    parameters:
+      type: object
+      properties:
+        artifact_id:
+          type: string
+          description: The unique ID or filename of the artifact.
+      required: [artifact_id]
+  inspect_skills:
+    app: core
+    module: utils.agents.tools.registry
+    function: inspect_skills
+    description: List all agent skills documents available in the system.
+    parameters:
+      type: object
+      properties: {}
+  read_skill:
+    app: core
+    module: utils.agents.tools.registry
+    function: read_skill
+    description: >-
+      Read the content of a specific agent skill document. Always call
+      inspect_skills first to get valid skill names.
+    parameters:
+      type: object
+      properties:
+        skill_name:
+          type: string
+          description: The name of the skill (e.g., 'artifacts').
+      required: [skill_name]
+  inspect_chat_context:
+    app: core
+    module: utils.agents.tools.registry
+    function: inspect_chat_context
+    description: Inspect the conversation history and context.
+    parameters:
+      type: object
+      properties: {}
+  search_web:
+    app: core
+    module: utils.agents.tools.web_search
+    function: search_web
+    description: >-
+      Search the web for external factual information via local SearXNG. Use when
+      the question needs current events, documentation, statistics, or other facts
+      not available in chat context.
+    parameters:
+      type: object
+      properties:
+        query:
+          type: string
+          description: Concise web search query.
+      required: [query]
+  # --- app tool groups (default-off; toggled per session) ----------------------
   media_viewer_list_artifacts:
     app: media_viewer
     module: utils.apps.media_viewer.agent.tools

@@ -16,4 +16,5 @@ urlpatterns = [
     path("api/timekeeper/", include("utils.api.routes.timekeeper")),
     path("api/recipes/", include("utils.api.routes.recipes")),
     path("api/agent/", include("utils.api.routes.agent")),
+    path("api/tools/", include("utils.api.routes.tools")),
 ]

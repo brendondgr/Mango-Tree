@@ -5,99 +5,11 @@ from langgraph.graph import StateGraph, END
 from utils.agents.coordinator.state import AgentState
 from utils.agents.schemas.agent import ToolCall, ToolResult, AgentMessage
 from utils.agents.tools.registry import registry
+from utils.agents.tools.groups import build_tool_schemas, tools_prompt_for
 from utils.agents.providers.llm import chat_complete, LLMProviderError
 
-# Declare tool specifications for OpenAI function calling format
-TOOL_SCHEMAS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "list_artifacts",
-            "description": "List all files in the artifacts directory.",
-            "parameters": {
-                "type": "object",
-                "properties": {}
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "read_artifact",
-            "description": "Read and examine the content of an artifact file. Supports text files (code, markdown, json, etc.), image files (png, jpg, gif, webp), and video files (mp4, webm, mov). For images and videos, the file is loaded and sent to the model for visual analysis. Cannot be used for audio, PDF, or archive files.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "artifact_id": {
-                        "type": "string",
-                        "description": "The unique ID or filename of the artifact."
-                    }
-                },
-                "required": ["artifact_id"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "inspect_skills",
-            "description": "List all agent skills documents available in the system.",
-            "parameters": {
-                "type": "object",
-                "properties": {}
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "read_skill",
-            "description": "Read the content of a specific agent skill document. Always call inspect_skills first to get valid skill names.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "skill_name": {
-                        "type": "string",
-                        "description": "The name of the skill (e.g., 'artifacts')."
-                    }
-                },
-                "required": ["skill_name"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "inspect_chat_context",
-            "description": "Inspect the conversation history and context.",
-            "parameters": {
-                "type": "object",
-                "properties": {}
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "search_web",
-            "description": (
-                "Search the web for external factual information via local SearXNG. "
-                "Use when the question needs current events, documentation, statistics, "
-                "or other facts not available in chat context."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "Concise web search query."
-                    }
-                },
-                "required": ["query"]
-            }
-        }
-    }
-]
+# Tool schemas are assembled per turn from the session's enabled groups; see
+# ``build_tool_schemas`` in ``utils.agents.tools.groups`` and docs/tool-groups.md.
 
 SYSTEM_PROMPT_BASE = (
     "You are Mango, a helpful assistant. Follow these rules strictly:\n"
@@ -115,18 +27,26 @@ SYSTEM_PROMPT_BASE = (
 )
 
 
-def build_system_prompt(web_search_mode: str = "auto") -> str:
+def build_system_prompt(web_search_mode: str = "auto", enabled_groups=None) -> str:
     if web_search_mode == "forced":
-        return (
+        prompt = (
             SYSTEM_PROMPT_BASE
             + "7. Web search is REQUIRED for this turn. Do not provide a final answer until "
             "search_web has been run and you have incorporated the returned sources.\n"
         )
-    return (
-        SYSTEM_PROMPT_BASE
-        + "7. In auto mode, call search_web only when external factual grounding is needed; "
-        "otherwise answer from existing context.\n"
-    )
+    else:
+        prompt = (
+            SYSTEM_PROMPT_BASE
+            + "7. In auto mode, call search_web only when external factual grounding is needed; "
+            "otherwise answer from existing context.\n"
+        )
+    # Append the per-group tool guidance only for the groups enabled this turn.
+    tools_prompt = tools_prompt_for(enabled_groups)
+    if tools_prompt:
+        prompt += (
+            "\nApp tool guidance for the tools enabled this turn:\n\n" + tools_prompt + "\n"
+        )
+    return prompt
 
 
 def latest_user_message(messages: List[AgentMessage]) -> str:
@@ -191,8 +111,11 @@ def format_messages_for_llm(
     messages: List[AgentMessage],
     observations: List[Dict[str, Any]],
     web_search_mode: str = "auto",
+    enabled_groups=None,
 ) -> List[Dict[str, Any]]:
-    llm_messages = [{"role": "system", "content": build_system_prompt(web_search_mode)}]
+    llm_messages = [
+        {"role": "system", "content": build_system_prompt(web_search_mode, enabled_groups)}
+    ]
     
     for msg in messages:
         role = "assistant" if msg.role == "agent" else msg.role
@@ -286,19 +209,21 @@ def reason_node(state: AgentState) -> Dict[str, Any]:
     observations = state["observations"]
     web_search_mode = state.get("web_search_mode", "auto")
     llm_config = state.get("llm_config")
+    enabled_groups = state.get("enabled_groups")
 
-    llm_msgs = format_messages_for_llm(messages, observations, web_search_mode)
-    
+    llm_msgs = format_messages_for_llm(messages, observations, web_search_mode, enabled_groups)
+    tool_schemas = build_tool_schemas(enabled_groups)
+
     pending_actions = []
     final_answer = None
     error = None
-    
+
     try:
         if callback:
             callback("thinking_start", {})
-        
+
         # We do a streaming tool-call check
-        response_stream = chat_complete(llm_msgs, tools=TOOL_SCHEMAS, stream=True, config=llm_config)
+        response_stream = chat_complete(llm_msgs, tools=tool_schemas, stream=True, config=llm_config)
         
         content_accum = ""
         tool_calls_accum = {}
@@ -482,8 +407,10 @@ def observe_node(state: AgentState) -> Dict[str, Any]:
 
         if action.name == "search_web":
             action.arguments["citation_offset"] = search_citation_offset(new_observations)
-            
-        tool_result: ToolResult = registry.execute(action.name, action.arguments)
+
+        tool_result: ToolResult = registry.execute(
+            action.name, action.arguments, state.get("enabled_groups")
+        )
         
         obs_item = {
             "tool": action.name,

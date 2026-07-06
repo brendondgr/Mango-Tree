@@ -8,12 +8,26 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from utils.agents.coordinator.graph import agent_graph
 from utils.agents.schemas.agent import AgentMessage
+from utils.agents.tools.groups import resolve_enabled_groups
+
+_ERROR_STATUS = {"validation_error": 400, "permission_denied": 403}
 
 
 def _parse_web_search_mode(value) -> str:
     if value in ("auto", "forced"):
         return value
     return "auto"
+
+
+def _parse_workspace_id(value):
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
+
+
+def _session_capabilities(workspace_id):
+    """Capabilities the session can satisfy for group ``requires`` checks (D15)."""
+    return {"workspace"} if workspace_id else set()
 
 
 def _parse_llm_config(value):
@@ -45,6 +59,52 @@ def _coerce_agent_message(raw: dict) -> AgentMessage:
     )
 
 
+def _build_initial_state(data: dict):
+    """Build the agent's initial state from a turn payload.
+
+    Returns ``(initial_state, error)`` where ``error`` is a ``{code, message,
+    details}`` envelope (unknown group / unmet ``requires``) or ``None``. Raises
+    ``pydantic.ValidationError`` if a message fails to coerce.
+    """
+    user_message_text = data.get("message") or ""
+    history_raw = data.get("history") or []
+    attachments_raw = data.get("attachments") or []
+
+    messages = []
+    for msg in history_raw:
+        if not isinstance(msg, dict):
+            continue
+        messages.append(_coerce_agent_message(msg))
+    if user_message_text or attachments_raw:
+        messages.append(AgentMessage(
+            role="user",
+            content=str(user_message_text),
+            attachments=attachments_raw if attachments_raw else None,
+        ))
+
+    workspace_id = _parse_workspace_id(data.get("workspace_id"))
+    enabled_groups, group_error = resolve_enabled_groups(
+        data.get("enabled_groups"), _session_capabilities(workspace_id)
+    )
+    if group_error is not None:
+        return None, group_error
+
+    return {
+        "messages": messages,
+        "step_count": 0,
+        "max_steps": data.get("max_steps", 6),
+        "pending_actions": [],
+        "observations": [],
+        "final_answer": None,
+        "error": None,
+        "web_search_mode": _parse_web_search_mode(data.get("web_search_mode", "auto")),
+        "enabled_groups": enabled_groups,
+        "workspace_id": workspace_id,
+        "llm_config": _parse_llm_config(data.get("llm_config")),
+        "callback": None,
+    }, None
+
+
 @api_view(["POST"])
 def run_agent_turn(request, session_id):
     """
@@ -56,39 +116,15 @@ def run_agent_turn(request, session_id):
     except Exception as exc:
         return Response({"detail": f"Invalid request body: {exc}"}, status=400)
 
-    user_message_text = data.get("message") or ""
-    history_raw = data.get("history") or []
-    attachments_raw = data.get("attachments") or []
-
-    messages = []
     try:
-        for msg in history_raw:
-            if not isinstance(msg, dict):
-                continue
-            messages.append(_coerce_agent_message(msg))
-
-        if user_message_text or attachments_raw:
-            messages.append(AgentMessage(
-                role="user",
-                content=str(user_message_text),
-                attachments=attachments_raw if attachments_raw else None,
-            ))
+        initial_state, group_error = _build_initial_state(data)
     except ValidationError as exc:
         return Response({"detail": exc.errors()}, status=400)
+    if group_error is not None:
+        return Response(
+            group_error, status=_ERROR_STATUS.get(group_error["code"], 400)
+        )
 
-    initial_state = {
-        "messages": messages,
-        "step_count": 0,
-        "max_steps": data.get("max_steps", 6),
-        "pending_actions": [],
-        "observations": [],
-        "final_answer": None,
-        "error": None,
-        "web_search_mode": _parse_web_search_mode(data.get("web_search_mode", "auto")),
-        "llm_config": _parse_llm_config(data.get("llm_config")),
-        "callback": None,
-    }
-    
     def event_generator():
         q = queue.Queue()
         

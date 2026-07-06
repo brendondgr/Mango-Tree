@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useLlmConfigStore } from "@/app/stores/llmConfigStore";
 import type { ChatMessage } from "@/app/stores/workspaceStore";
+import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,6 +24,13 @@ import {
 import { ComposerAttachmentPill } from "@/features/chat/components/ComposerAttachmentPill";
 import { ComposerAttachmentStrip } from "@/features/chat/components/ComposerAttachmentStrip";
 import { ContextUsageRing } from "@/features/chat/components/ContextUsageRing";
+import { SlashCommandMenu } from "@/features/chat/components/SlashCommandMenu";
+import { ToolGroupsPopover } from "@/features/chat/components/ToolGroupsPopover";
+import {
+  getSlashSuggestions,
+  resolveSlashCommand,
+  type SlashAction,
+} from "@/features/chat/utils/slashCommands";
 import { useContextUsage } from "@/features/chat/hooks/useContextUsage";
 import { useComposerArtifactStore } from "@/features/chat/stores/composerArtifactStore";
 import { useComposerWebSearchStore } from "@/features/chat/stores/composerWebSearchStore";
@@ -65,6 +73,8 @@ export function ChatComposer({
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [slashActiveIndex, setSlashActiveIndex] = useState(0);
+  const [slashDismissed, setSlashDismissed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attachmentsRef = useRef(attachments);
@@ -104,6 +114,50 @@ export function ChatComposer({
     !isSubmitting &&
     !hasProcessing &&
     (text.trim().length > 0 || readyAttachments.length > 0);
+
+  // --- slash commands (/tools, /enable, /disable) --------------------------
+  const toolGroupCatalogue = useWorkspaceStore((s) => s.toolGroupCatalogue);
+  const enabledToolGroups = useWorkspaceStore((s) => s.enabledToolGroups);
+  const setToolGroupEnabled = useWorkspaceStore((s) => s.setToolGroupEnabled);
+  const setToolGroupsPopoverOpen = useWorkspaceStore(
+    (s) => s.setToolGroupsPopoverOpen,
+  );
+
+  const slashItems = useMemo(
+    () => getSlashSuggestions(text, toolGroupCatalogue, enabledToolGroups),
+    [text, toolGroupCatalogue, enabledToolGroups],
+  );
+  const slashMenuOpen = !slashDismissed && slashItems.length > 0;
+
+  useEffect(() => {
+    setSlashActiveIndex(0);
+  }, [text]);
+
+  const executeSlash = useCallback(
+    (action: SlashAction) => {
+      if (action.kind === "tools") {
+        setToolGroupsPopoverOpen(true);
+      } else {
+        setToolGroupEnabled(action.group, action.kind === "enable");
+      }
+      setText("");
+      setSlashDismissed(false);
+    },
+    [setToolGroupEnabled, setToolGroupsPopoverOpen],
+  );
+
+  const pickSlashSuggestion = useCallback(
+    (insert: string) => {
+      const action = resolveSlashCommand(insert, toolGroupCatalogue, enabledToolGroups);
+      if (action) {
+        executeSlash(action);
+      } else {
+        setText(insert);
+      }
+      textareaRef.current?.focus();
+    },
+    [toolGroupCatalogue, enabledToolGroups, executeSlash],
+  );
 
   const adjustTextareaHeight = useCallback(() => {
     const el = textareaRef.current;
@@ -251,6 +305,14 @@ export function ChatComposer({
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
+
+    // A fully-typed slash command runs instead of sending as a message.
+    const action = resolveSlashCommand(text, toolGroupCatalogue, enabledToolGroups);
+    if (action) {
+      executeSlash(action);
+      return;
+    }
+
     if (!canSend) return;
 
     setIsSubmitting(true);
@@ -267,6 +329,30 @@ export function ChatComposer({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (slashMenuOpen) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSlashActiveIndex((i) => (i + 1) % slashItems.length);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSlashActiveIndex((i) => (i - 1 + slashItems.length) % slashItems.length);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setSlashDismissed(true);
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        const item = slashItems[slashActiveIndex] ?? slashItems[0];
+        if (item) pickSlashSuggestion(item.insert);
+        return;
+      }
+    }
+
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void handleSubmit();
@@ -303,7 +389,15 @@ export function ChatComposer({
   const inputDisabled = disabled || isSubmitting;
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)}>
+    <form onSubmit={(e) => void handleSubmit(e)} className="relative">
+      {slashMenuOpen && (
+        <SlashCommandMenu
+          items={slashItems}
+          activeIndex={slashActiveIndex}
+          onPick={(item) => pickSlashSuggestion(item.insert)}
+          onHover={setSlashActiveIndex}
+        />
+      )}
       <label htmlFor="chat-input" className="sr-only">
         Message
       </label>
@@ -355,6 +449,7 @@ export function ChatComposer({
               }
             }}
           />
+          <ToolGroupsPopover disabled={inputDisabled} />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

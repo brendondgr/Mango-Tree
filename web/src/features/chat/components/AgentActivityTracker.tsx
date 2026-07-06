@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Brain, Wrench, Sparkles, ChevronDown, CheckCircle2, XCircle, Loader2, Terminal } from "lucide-react";
 import { MarkdownContent } from "@/components/markdown/MarkdownContent";
+import { EnableToolGroupChip } from "@/features/chat/components/EnableToolGroupChip";
 import { cn } from "@/lib/utils";
 
 interface ToolCall {
@@ -193,6 +194,11 @@ export function AgentActivityTracker({
                             {res.summary}
                           </p>
                         )}
+                        {!isPending &&
+                          res.result?.details?.action === "enable_tool_group" &&
+                          res.result.details.group && (
+                            <EnableToolGroupChip group={res.result.details.group} />
+                          )}
                       </div>
                     </div>
                   );
