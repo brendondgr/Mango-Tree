@@ -31,7 +31,7 @@ export function AppToggleGrid({
                 "flex h-full w-full items-start gap-3 rounded-[var(--radius-lg)] border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isOn
                   ? "border-primary/60 bg-primary/5"
-                  : "border-border bg-card hover:border-primary/40 hover:bg-accent",
+                  : "border-border bg-card hover:border-primary hover:ring-1 hover:ring-inset hover:ring-primary",
               )}
             >
               <span

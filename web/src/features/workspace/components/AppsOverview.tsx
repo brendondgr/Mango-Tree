@@ -38,19 +38,19 @@ export function AppsOverview() {
                 <button
                   type="button"
                   onClick={() => openAppTab(app.id)}
-                  className="group flex h-full w-full items-start gap-3 rounded-[var(--radius-lg)] border border-border bg-card p-4 text-left transition-colors hover:border-primary/50 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="group flex h-full w-full items-start gap-3 rounded-[var(--radius-lg)] border border-border bg-card p-4 text-left transition-colors hover:border-primary hover:ring-1 hover:ring-inset hover:ring-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-border bg-muted text-muted-foreground transition-colors group-hover:border-accent-foreground/30 group-hover:bg-accent-foreground/10 group-hover:text-accent-foreground"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-border bg-muted text-muted-foreground transition-colors group-hover:border-primary/40 group-hover:bg-primary/10 group-hover:text-primary"
                     aria-hidden
                   >
                     <Icon className="h-5 w-5" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-sm font-semibold text-foreground group-hover:text-accent-foreground">
+                    <span className="block text-sm font-semibold text-foreground group-hover:text-primary">
                       {app.label}
                     </span>
-                    <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground group-hover:text-accent-foreground/80">
+                    <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground group-hover:text-foreground">
                       {app.description}
                     </span>
                   </span>
