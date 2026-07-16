@@ -193,8 +193,12 @@ apps appear; only the media viewer ("Artifacts") is enabled by default.
 The auth models, services, and API live in `utils/shared/auth/` (Django app
 label `mango_auth`, tables on the `default` database). Production sets
 `DJANGO_ALLOWED_HOSTS` and `DJANGO_CSRF_TRUSTED_ORIGINS`; behind a TLS proxy set
-`DJANGO_BEHIND_TLS_PROXY=true`. Cookies are marked `Secure` automatically when
-`DJANGO_DEBUG` is off.
+`DJANGO_BEHIND_TLS_PROXY=true`. Cookies are marked `Secure` by default when
+`DJANGO_DEBUG` is off. A `Secure` cookie is only sent over https, so a
+`DJANGO_DEBUG=false` box browsed over plain `http://localhost` would drop the
+session/CSRF cookies — login succeeds but the session never sticks and every
+request 403s. For that case (DEBUG off but served over http) set
+`DJANGO_COOKIE_SECURE=false` to override; leave it unset in production.
 
 ## Build Sequence
 

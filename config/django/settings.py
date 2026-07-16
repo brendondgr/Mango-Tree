@@ -19,6 +19,13 @@ def _csv_env(name: str, default: str) -> list[str]:
     return [item.strip() for item in os.environ.get(name, default).split(",") if item.strip()]
 
 
+def _bool_env(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in ("1", "true", "yes", "on")
+
+
 # Public deployments must pin the hostnames they answer to. Override via
 # DJANGO_ALLOWED_HOSTS (comma separated) in production, e.g. "mango.example.com".
 ALLOWED_HOSTS = _csv_env("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
@@ -131,13 +138,27 @@ REST_FRAMEWORK = {
     ],
 }
 
+# Whether a TLS-terminating reverse proxy sits in front of us (the public
+# mango.* deployment). This — not DEBUG — is what actually tells us the app is
+# reachable over https.
+BEHIND_TLS_PROXY = _bool_env("DJANGO_BEHIND_TLS_PROXY", False)
+
 # --- Authentication & session security ---------------------------------------
 # Session cookies (httpOnly, so JavaScript cannot exfiltrate them) are the
-# credential; CSRF protects state-changing requests. Cookies go Secure whenever
-# DEBUG is off so a public https deployment never leaks them over plain http.
+# credential; CSRF protects state-changing requests.
+#
+# A "Secure" cookie is only ever sent by the browser over https. Marking cookies
+# Secure whenever DEBUG is off looks safe but silently bricks a DEBUG=False
+# instance browsed over plain http://localhost: the browser drops the Secure
+# session + CSRF cookies, so login returns 200 yet the session never persists and
+# every gated request then 403s (which the SPA reads as a lost session and bounces
+# to /login). Default Secure to "not DEBUG" to keep production locked down, but
+# expose DJANGO_COOKIE_SECURE so a DEBUG=False box served over http can opt out.
+COOKIE_SECURE = _bool_env("DJANGO_COOKIE_SECURE", not DEBUG)
+
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = COOKIE_SECURE
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_COOKIE_AGE = int(os.environ.get("DJANGO_SESSION_COOKIE_AGE", 60 * 60 * 24 * 14))
 
@@ -145,19 +166,23 @@ SESSION_COOKIE_AGE = int(os.environ.get("DJANGO_SESSION_COOKIE_AGE", 60 * 60 * 2
 # the X-CSRFToken header, so it is deliberately NOT httpOnly.
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = "Lax"
-CSRF_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = COOKIE_SECURE
 CSRF_TRUSTED_ORIGINS = _csv_env("DJANGO_CSRF_TRUSTED_ORIGINS", "")
-if DEBUG:
-    # Trust the Vite dev origin so the SPA's cross-checked CSRF requests succeed
-    # during local development. Production sets DJANGO_CSRF_TRUSTED_ORIGINS.
-    CSRF_TRUSTED_ORIGINS += [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ]
+if not COOKIE_SECURE:
+    # Local http development (DEBUG, or DEBUG=False with DJANGO_COOKIE_SECURE off):
+    # trust the Vite dev origin so the SPA's origin-checked CSRF requests succeed.
+    # Vite falls back to the next free port (5174, 5175, ...) when 5173 is taken,
+    # so trust the whole fallback band on both loopback hostnames. Production sits
+    # behind the TLS proxy and pins its own origins via DJANGO_CSRF_TRUSTED_ORIGINS.
+    for _dev_port in range(5173, 5183):
+        CSRF_TRUSTED_ORIGINS += [
+            f"http://localhost:{_dev_port}",
+            f"http://127.0.0.1:{_dev_port}",
+        ]
 
 # Behind a TLS-terminating reverse proxy (the public mango.* deployment), trust
 # the forwarded-proto header so Django knows the request arrived over https.
-if os.environ.get("DJANGO_BEHIND_TLS_PROXY", "false").lower() == "true":
+if BEHIND_TLS_PROXY:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Hardened response headers.
