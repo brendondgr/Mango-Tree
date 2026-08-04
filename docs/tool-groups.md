@@ -93,36 +93,25 @@ tools:
   `ToolResult(success, result, summary, artifact_ids)` so `registry.execute` is
   uniform. Core tools already return `ToolResult` and pass through.
 
-## Stage checklist
+## Where it lives
 
-Backend 1→5 land with tests green before any UI; frontend 6→9 follow. Each stage is
-one commit.
+All nine stages of this design have shipped. The implementation is spread across:
 
-- [ ] **S1 — Group metadata + loader.** `tool_groups` block + core tool entries in
-  `tools.yaml`; `utils/agents/tools/groups.py` loader (`tool_groups()`, `group_of`,
-  `default_enabled_groups`, `build_tool_schemas`, `tools_prompt_for`, group metadata
-  for the API) + app-tool registration adapter. Tests: every tool resolves to exactly
-  one group; per-app count tests still pass; a schema is produced for every tool; the
-  core group has 6 tools.
-- [ ] **S2 — Session tool state.** `AgentState.enabled_groups` + `workspace_id`; the
-  agent-turn view parses and validates both (unknown group → `validation_error`;
-  unmet `requires` → `permission_denied`); defaults applied when absent.
-- [ ] **S3 — Conditional assembly.** `build_tool_schemas(enabled_groups)` replaces the
-  static list; `build_system_prompt(mode, enabled_groups)` concatenates only enabled
-  groups' prompt blocks. Test: only `core` → no `mailbox_*` schema or prompt text.
-- [ ] **S4 — Execution enforcement.** `registry.execute(..., enabled_groups)` denies a
-  disabled tool with `details.action = "enable_tool_group"`. Test: disabled tool →
-  `permission_denied` with the stable action + group id.
-- [ ] **S5 — API surface.** `GET /api/tools/groups`; documented in `docs/api.md`.
-- [ ] **S6 — Store + turn payload.** `defaultEnabledToolGroups` (persisted) +
-  session `enabledToolGroups` / `boundWorkspaceId`; `runAgentTurn` sends both;
-  session-info dialog shows the active set.
-- [ ] **S7 — Toggle popover.** Sliders button at the left of `ChatComposer`; a
-  `Switch` per group + count badge; generic `requires`-disabled state.
-- [ ] **S8 — Slash commands.** `/tools`, `/enable <group>`, `/disable <group>` — pure
-  store mutations, no new endpoints.
-- [ ] **S9 — Inline enable chip.** A denied `enable_tool_group` result renders a chip
-  that flips the switch and lets the user re-send.
+| Concern | Location |
+| --- | --- |
+| Group metadata + loader | `utils/agents/tools/groups.py` — `tool_groups()`, `group_of`, `default_enabled_groups`, `build_tool_schemas`, `tools_prompt_for`, `group_metadata` |
+| App-tool registration adapter | `register_app_tools()` in the same module, run at import |
+| Session tool state | `AgentState.enabled_groups` / `workspace_id`, parsed and validated in `utils/api/routes/agent.py` |
+| Conditional assembly | `build_tool_schemas(enabled_groups)` and `build_system_prompt(mode, enabled_groups)` — only enabled groups contribute schemas and prompt blocks |
+| Execution enforcement | `registry.execute(..., enabled_groups)` in `utils/agents/tools/registry.py`, denying with `details.action = "enable_tool_group"` |
+| API surface | `GET /api/tools/groups/` (`utils/api/routes/tools.py`) |
+| Store + turn payload | `web/src/app/stores/workspaceStore.ts` — persisted `defaultEnabledToolGroups`, session `enabledToolGroups` / `boundWorkspaceId` |
+| Toggle popover | `web/src/features/chat/components/ToolGroupsPopover.tsx` |
+| Slash commands | `/tools`, `/enable <group>`, `/disable <group>` — store mutations only, no endpoints |
+| Inline enable chip | `EnableToolGroupChip.tsx`, rendered from a denied `enable_tool_group` result |
+
+Tests: `utils/tests/agents/test_tool_group*.py` and
+`web/src/app/stores/workspaceStore.toolGroups.test.ts`.
 
 ## Assumptions
 

@@ -1,10 +1,17 @@
 # API Contract
 
-No backend API is implemented yet. This document defines the contract between the React/Vite frontend and the Django/DRF backend.
+The contract between the React/Vite frontend and the Django/DRF backend. Every
+endpoint listed here is implemented; nothing in this document is aspirational.
 
 ## Base URL
 
-All endpoints are prefixed with `/api/`.
+All endpoints are prefixed with `/api/`. The root URLconf is
+`config/django/urls.py`, which includes one module per app from
+`utils/api/routes/`.
+
+In development the SPA reaches the backend through the Vite proxy, which
+forwards `/api` to `http://127.0.0.1:32553` with `changeOrigin: false` so
+Django's CSRF origin check still passes.
 
 ## Error Schema
 
@@ -49,18 +56,37 @@ Routes: `utils/api/routes/auth.py`; views call `utils/shared/auth/services/` onl
 
 ## Platform Endpoints
 
-| Group | Endpoints |
+| Method | Endpoint | Auth | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/health/` | public | `{"status":"ok"}` when Django is running |
+| `POST` | `/api/agent/{session_id}/agent_turn/` | owner | Run one agent turn; streams SSE |
+| `GET` | `/api/tools/groups/` | owner | The agent tool-group catalogue |
+
+There are no task, workflow, memory, or trace endpoints. Agent turns are
+stateless on the server: the client sends the full message history each turn and
+nothing about the turn is persisted.
+
+### Agent turn
+
+`POST /api/agent/{session_id}/agent_turn/` runs the coordinator graph
+(`utils/agents/coordinator/graph.py`) and streams progress back as
+Server-Sent Events.
+
+Request body:
+
+| Field | Purpose |
 | --- | --- |
-| Tasks | `POST/GET /api/tasks/`, `GET /api/tasks/{id}/`, `POST /api/tasks/{id}/cancel/` |
-| Agents | `GET /api/agents/`, `GET /api/agents/{id}/` |
-| Workflows | `GET /api/workflows/`, `GET /api/workflows/{id}/` |
-| Tools | `GET /api/tools/groups/` (implemented), `GET /api/tools/`, `GET /api/tools/{id}/` |
-| Memory | `GET /api/memory/namespaces/`, `GET /api/memory/datasets/` |
-| Traces | `GET /api/traces/{task_id}/events|artifacts|logs/` |
+| `messages` | The conversation so far |
+| `enabled_groups` | Tool groups this turn may use. Unknown group → `validation_error`; a group whose `requires` capability is unmet → `permission_denied` |
+| `workspace_id` | Optional; satisfies the `workspace` capability for group gating |
+| `web_search_mode` | `auto` (default) or `forced` |
+| `llm_config` | Optional per-request `base_url` / `model` / `api_key` override; falls back to the `LLM_*` environment defaults |
 
-### Health
+Event stream: `node_start`, `tool_call`, `tool_result`, `final_answer`, `error`.
+The final answer carries de-duplicated citations collected from `search_web`
+results. The loop runs at most six reason/act/observe cycles per turn.
 
-`GET /api/health/` — returns `{"status":"ok"}` when the Django API is running.
+Errors map `validation_error` → `400` and `permission_denied` → `403`.
 
 ### Tools
 
@@ -99,17 +125,11 @@ session precondition (none today). `core` is always listed first.
 
 ## App Endpoints
 
-### Projects
+Eight apps are routed: calendar, media viewer, mailbox, exercise, project
+manager, IMDbSpy, time keeper, and recipes. Each section below matches the
+corresponding module in `utils/api/routes/`.
 
-`GET/POST /api/projects/`, `GET/PATCH/DELETE /api/projects/{id}/`
-
-### Notes
-
-`GET/POST /api/notes/`, `GET/PATCH/DELETE /api/notes/{id}/`
-
-### Jobs
-
-`GET/POST /api/jobs/`, `GET /api/jobs/{id}/`
+`utils/apps/{jobs,notes,projects}/` are empty placeholders with no endpoints.
 
 ### Calendar
 

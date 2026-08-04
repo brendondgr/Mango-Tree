@@ -1,263 +1,317 @@
 # Mango Platform
 
-Mango Tree is a local-first, permissioned agent platform. It routes requests through a coordinator, delegates broad reasoning to a planner, and executes narrow work through LangGraph workflows and app-scoped tools. The frontend consumes APIs; agents consume tools. Both reach the same app services.
+Mango Tree is a local-first, single-owner agent platform. A React SPA and a
+LangGraph agent loop both reach the same Django app services — the SPA through
+DRF endpoints, the agent through registered tools. What the agent may touch is
+decided by which tool groups the session has enabled.
+
+This document describes what exists. Anything not built is labelled as such.
 
 ## Stack
 
 | Layer | Technology |
 | --- | --- |
-| Frontend | React, TypeScript, Vite, TanStack Router/Query, Zustand, Tailwind, shadcn/ui |
-| API | Django REST Framework |
-| Backend | Django, ASGI/Uvicorn, Celery, Redis |
-| Agents | LangGraph under `utils/agents/` |
-| Database | PostgreSQL, pgvector |
-| Models | Llama-CPP, cloud provider abstraction |
-| Storage | S3-compatible object storage |
-| Python tooling | `uv` |
+| Frontend | React 19, TypeScript, Vite 7, TanStack Router/Query, Zustand, Tailwind v4, shadcn/ui, Framer Motion |
+| API | Django 5.2 + Django REST Framework |
+| Agents | LangGraph (one graph, in `utils/agents/coordinator/`) |
+| Database | SQLite — one `default` connection plus one per SQLite-backed app |
+| Models | Any OpenAI-compatible HTTP endpoint (default `http://localhost:9090/v1`) |
+| Storage | Local filesystem under `data/` |
+| Search | SearXNG (optional, for the `search_web` tool) |
+| Python tooling | `uv`, Python 3.13+ |
+
+Not present, despite what older docs claimed: PostgreSQL, pgvector, Redis,
+Celery, Uvicorn, S3, and llama-cpp bindings. None are dependencies, and none are
+configured. `backend/tasks/` modules exist in a few apps but no broker runs them.
 
 ## Repository Layout
 
 ```text
 .
-|-- config/                 # Django project (settings, urls, asgi, wsgi) + runtime YAML
-|-- data/                   # runtime artifacts, storage, thumbnails
-|-- docs/
-|   |-- platform.md         # this file
-|   |-- api.md              # HTTP API contract
-|   `-- skills/             # agent instruction packs (symlinked from .cursor/, .claude/, and .codex/)
-|-- web/                    # React/Vite SPA
-|-- NewApps/                # staging drop-zone for apps awaiting migration
-|-- utils/                  # backend container
-|   |-- agents/             # coordinator, planner, memory, tools, providers
-|   |-- api/                # DRF routes, serializers, middleware, schemas
-|   |-- apps/{name}/        # backend, frontend, agent, shared per app
-|   |-- shared/             # auth, permissions, storage, search, embeddings, events
-|   |-- scripts/            # dev + link-skills scripts
-|   `-- tests/              # grouped by subsystem
-`-- pyproject.toml
+├── config/                 # Django project (settings, urls, asgi, wsgi) + runtime YAML
+├── data/                   # gitignored runtime state: artifacts, per-app SQLite, caches
+├── docs/
+│   ├── platform.md         # this file
+│   ├── api.md              # HTTP API contract
+│   ├── tool-groups.md      # the agent tool-group model
+│   ├── skills/             # agent instruction packs (symlinked into .cursor/, .claude/, .codex/)
+│   └── misc/               # brand token references behind the theme system
+├── web/                    # React/Vite SPA shell
+├── NewApps/                # gitignored drop-zone for apps awaiting migration
+├── utils/
+│   ├── agents/             # coordinator loop, tools, providers, schemas, skills
+│   ├── api/                # DRF route modules
+│   ├── apps/{name}/        # backend, frontend, agent, shared per app
+│   ├── shared/             # auth, search, llm, events (+ empty permissions/storage/embeddings)
+│   ├── scripts/            # dev + link-skills scripts
+│   └── tests/              # pytest suite
+├── manage.py
+├── run.py                  # starts Django and Vite together
+└── pyproject.toml
 ```
+
+## Architecture
+
+```text
+User → web/ ─────────────────────────→ utils/api/routes/ → utils/apps/{app}/backend/services/
+User → utils/agents/coordinator/graph → utils/agents/tools/ → utils/apps/{app}/agent/tools.py → same services
+```
+
+| Layer | Path | Role |
+| --- | --- | --- |
+| Frontend | `web/` | SPA shell and workspace; API clients only |
+| API | `utils/api/` | DRF route modules, one per app |
+| Agents | `utils/agents/` | The agent loop, tool registry, and LLM client |
+| Apps | `utils/apps/{name}/` | Domain services, UI fragments, agent tools |
+| Shared | `utils/shared/` | Auth, search, LLM config, artifact traces |
+
+There is no planner and no specialist workflow. `utils/agents/coordinator/graph.py`
+is a four-node LangGraph loop — `reason → act → observe → respond` — that
+iterates up to six steps per turn. `utils/agents/planner/` and
+`utils/agents/memory/` are empty placeholders.
+
+Access control is real but narrower than older docs implied. The enforced
+boundaries are the DRF `IsAuthenticated` default, the tool-group gate, and
+per-tool `confirm: true` flags on irreversible actions.
+`config/permissions.yaml` declares filesystem and network scopes but is read
+only by tests; see `utils/shared/permissions/README.md`.
+
+## Data Flow
+
+**UI:** `web/src/services/` → `utils/api/routes/` → app services → SQLite or
+`data/` files → TanStack Query → React.
+
+**Agents:** `POST /api/agent/{session_id}/agent_turn/` → coordinator graph →
+`utils/agents/tools/registry.py` (group gate) → `utils/apps/{app}/agent/tools.py`
+→ the same app services. Turn progress streams back as SSE and is not persisted.
+
+## Apps
+
+Eight apps are implemented: **mailbox**, **calendar**, **exercise**,
+**recipes**, **imdbspy**, **timekeeper**, **projectmanager**, and
+**media_viewer**. Each has services, DRF routes under `/api/{app}/`, agent tools
+in `config/tools.yaml`, and a workspace tab.
+
+`jobs/`, `notes/`, and `projects/` are empty placeholder directories.
+
+See `utils/apps/README.md` for tool counts, stores, and per-app layout
+deviations, and the per-app READMEs for detail.
 
 ### App Standard
 
 ```text
 utils/apps/{app_name}/
-|-- backend/{api,models,services,tasks}/
-|-- frontend/{components,pages,hooks}/
-|-- agent/{tools.py,prompts.py}/
-`-- shared/
+├── backend/{api,models,services,tasks}/
+├── frontend/{components,pages,hooks}/
+├── agent/{tools.py,prompts.py}
+└── shared/
 ```
 
-Registered apps: projects, notes, jobs, **media_viewer** (local artifacts and media viewer), **exercise** (workout/routine/equipment/history tracking with Strava import; migrated from the standalone WorkoutTracker app), **projectmanager** (projects, goals, deadlines, and a Gantt timeline; migrated from the standalone ProjectManager app), **calendar** (weekly schedules + a dated calendar of merged events with themed PDF export; migrated from a standalone Flask app), **imdbspy** (movie/TV tracker with IMDb scraping, weighted Fun/Grit/Comfort ratings, and a local media cache; migrated from a standalone Flask app), **timekeeper** (5-minute time tracking across user-defined categories with daily statistics; migrated from a standalone Flask app), **recipes** (browse/filter recipes, pantry ingredient matching, and recipe CRUD with an LLM recipe-text parser; migrated from a standalone Flask app). media_viewer, exercise, projectmanager, calendar, imdbspy, timekeeper, and recipes are fully implemented app modules.
+`models/` is absent from the three file-store apps (calendar, mailbox,
+media_viewer); `tasks/` exists in only four.
 
-**Code placement:** business logic in `backend/services/` or `shared/`; agent tools call services; UI in `web/src/` or `utils/apps/{app}/frontend/`; no business logic in `web/src/services/` beyond API clients.
-
-## Architecture
-
-```text
-User -> web/ -> utils/api/ -> utils/apps/{app}/backend/services/
-User -> utils/agents/coordinator -> utils/agents/planner OR utils/apps/{app}/agent/tools -> same services
-```
-
-| Layer | Path | Role |
-| --- | --- | --- |
-| Frontend | `web/` | Dashboard, chat, command palette; API clients only |
-| API | `utils/api/` | DRF surface for the UI |
-| Agents | `utils/agents/` | LangGraph orchestration |
-| Apps | `utils/apps/{name}/` | Domain logic, UI fragments, agent tools |
-| Shared | `utils/shared/` | Auth, permissions, storage, search, embeddings, events |
-
-The coordinator routes and validates. The planner reasons and delegates. Specialists use app tools with scoped permissions enforced in code, not prompts.
-
-## Data Flow
-
-**UI:** `web/src/services/` → `utils/api/routes/` → app services → PostgreSQL/S3/Redis → TanStack Query → React.
-
-**Agents:** coordinator → planner or app workflow → `utils/agents/tools/` → `utils/apps/{app}/agent/tools.py` → app services → events/artifacts.
-
-**Background:** API or agent trigger → Celery task → app services → `utils/shared/events/`.
+**Code placement:** business logic in `backend/services/` or `shared/`; agent
+tools call services rather than re-implementing them; app UI in
+`utils/apps/{app}/frontend/`; nothing beyond API clients in `web/src/services/`.
 
 ## Frontend
 
-Target: React/Vite SPA with swappable shadcn/Tailwind themes (Canva-inspired default). The `/chat` route uses `AgentWorkspaceLayout` for the agent workspace shell.
+React/Vite SPA with eight swappable shadcn/Tailwind themes across four families
+(mango, blue, fsu, pulse), selected by `data-theme` on `<html>`.
 
 ### Routes (TanStack Router)
 
-| Route | Data Source |
+| Route | Renders |
 | --- | --- |
-| `/dashboard` | `/api/tasks/`, app summaries |
-| `/chat` | `/api/tasks/`, agent endpoints, `/api/media-viewer/artifacts/`, `/api/exercise/` (Exercise opens as a persistent workspace tab), `/api/projectmanager/` (Project Manager opens as a persistent workspace tab), `/api/calendar/` (Calendar opens as a persistent workspace tab), `/api/imdbspy/` (IMDbSpy opens as a persistent workspace tab), `/api/timekeeper/` (Time Keeper opens as a persistent workspace tab), `/api/recipes/` (Recipes opens as a persistent workspace tab) |
-| `/projects`, `/projects/:id` | `/api/projects/` |
-| `/notes`, `/notes/:id` | `/api/notes/` |
-| `/jobs` | `/api/jobs/` |
-| `/calendar` | `/api/calendar/events/` |
-| `/agents` | `/api/agents/` |
-| `/workflows` | `/api/workflows/` |
-| `/tools` | `/api/tools/` |
-| `/memory` | `/api/memory/` |
-| `/traces/:taskId` | `/api/traces/{task_id}/` |
-| `/login`, `/signup` | `/api/auth/login|signup|csrf|registration-status/` |
-| `/onboarding` | `/api/auth/preferences/` |
-| `/settings` | `/api/auth/preferences/`, `/api/auth/security/*` (Apps + Security panels) |
+| `/` | Redirect to `/chat` |
+| `/login` | `LoginPage` — `/api/auth/login\|csrf/` |
+| `/signup` | `SignupPage` — `/api/auth/signup\|registration-status/` |
+| `/onboarding` | `OnboardingPage` — `/api/auth/preferences/` |
+| `/chat` | `ChatPage` — the entire application |
 
-Future: `/recipes`, `/imdbspy`. Do not implement a route until its endpoint exists in `docs/api.md`.
+That is the whole route tree. Apps are **not** routes; they are tabs inside
+`/chat`. Settings, security, and app enablement are panels within the workspace,
+not separate routes.
 
-The workspace at `/chat` is gated: unauthenticated users are redirected to
-`/login`, and a signed-in owner who has not finished onboarding is sent to
-`/onboarding` before the workspace renders.
+`/chat` and `/onboarding` are gated by `AuthGate`: unauthenticated visitors go
+to `/login`, and a signed-in owner who has not finished onboarding goes to
+`/onboarding` first.
 
 ### Component Map
 
 | Area | Path |
 | --- | --- |
-| Router, providers, layouts, stores | `web/src/app/` |
-| UI primitives (shadcn) | `web/src/components/ui/` |
-| Forms, tables, charts, markdown | `web/src/components/{forms,tables,charts,markdown}/` |
-| Features (chat, workspace, dashboard, command-palette, memory, settings) | `web/src/features/` |
-| Agent workspace layout (`/chat`) | `web/src/app/layouts/AgentWorkspaceLayout.tsx` composes `ChatNavRail`, resizable left `ChatWindow`, `WorkspaceHeader`, and `WorkspaceMainBody` |
-| Pages | `web/src/pages/` |
-| API clients, types, hooks, styles | `web/src/{services,types,hooks,lib,styles}/` |
-| App UI fragments | `utils/apps/{app}/frontend/` (e.g. `media_viewer` artifact grid and viewers) |
-| Apps registry | `web/src/features/workspace/apps/appRegistry.tsx` (one entry per workspace app) |
+| Router, providers, AuthGate, layouts, stores | `web/src/app/` |
+| UI primitives (shadcn) and markdown rendering | `web/src/components/` |
+| Features: agent turn runner, chat, workspace | `web/src/features/` |
+| Pages: auth, chat, onboarding | `web/src/pages/` |
+| API clients, types, hooks, theme, styles | `web/src/{services,types,hooks,lib,styles}/` |
+| App UI fragments | `utils/apps/{app}/frontend/`, via Vite aliases |
+| Apps registry | `web/src/features/workspace/apps/appRegistry.tsx` |
 
 ### `/chat` workspace layout
 
 ```text
-┌────┬──────────────────────────┬─────────────────────────────────────────────┐
+┌────┬───────────────────────────┬─────────────────────────────────────────────┐
 │Nav │  Left sidebar (resizable) │  Right workspace (main column)              │
 │rail│                           │                                             │
 │ 💬 │  ChatWindow               │  WorkspaceHeader (Apps home + app tabs)     │
-│ 📨 │  (left sidebar is chat)   │  WorkspaceMainBody: Apps overview or app    │
-│ 🏋│                           │  content (Mailbox / Exercise / Projects /   │
-│ 📁 │                           │  Artifacts) or ephemeral artifact viewer    │
-└────┴──────────────────────────┴─────────────────────────────────────────────┘
+│ 📨 │                           │  WorkspaceMainBody: Apps overview, an app,  │
+│ 🏋 │                           │  or an ephemeral artifact viewer            │
+│ 📁 │                           │                                             │
+└────┴───────────────────────────┴─────────────────────────────────────────────┘
 ```
 
-The nav rail (~48px) has a Chat button (re-opens the chat sidebar) plus one quick-launch icon per registered app; the left sidebar stays on chat and apps open as tabs in the right workspace.
+The nav rail (~48px) has a Chat button plus one quick-launch icon per registered
+app. The left sidebar stays on chat; apps open as tabs on the right.
 
-### Workspace tabs (Apps home + app tabs + ephemeral)
+### Workspace tabs
 
-The right column header tab bar has a single pinned **Apps** home tab plus **app tabs** and **ephemeral tabs**. The apps are defined by a registry (`web/src/features/workspace/apps/appRegistry.tsx`); adding an entry there wires the app into the launcher, header tabs, nav-rail quick-launch, and main-body routing.
+`appRegistry.tsx` is the single source of truth — adding an entry wires the app
+into the launcher, header tabs, nav-rail icon, and main-body routing at once.
 
 | Tab type | Behavior |
 | --- | --- |
-| Apps home | Always visible (leftmost); `WorkspaceMainBody` shows the Apps overview launcher — a card per registered app with name + description |
-| App tab | Opened from the overview card or the nav-rail icon; closeable; renders the app's `Component` (Mailbox, Exercise, Projects, Artifacts) |
-| Ephemeral | Opened when the user selects an artifact from the Artifacts tab; label is **Artifacts** (italic); viewer shows the selected file |
-| Default | When no app/ephemeral tab is active, the Apps overview is shown |
+| Apps home | Pinned leftmost, never closeable; shows the launcher grid |
+| App tab | Opened from a launcher card or nav-rail icon; closeable |
+| Ephemeral | Opened when an artifact is selected; italic label; shows the viewer |
 
-App tabs open/close through the generic store actions `openAppTab(id)` / `closeAppTab(id)`. Open app tabs and the ephemeral tab are **not persisted** across reloads; the Apps home is the landing surface on load.
+Open tabs are not persisted across reloads — Apps home is always the landing
+surface.
 
 ## Local runtime data
 
-User-uploaded artifacts are stored under `data/artifacts/` (gitignored). The backend creates this tree on first write:
+Everything under `data/` is gitignored and created on first use.
 
 ```text
-data/artifacts/
-├── manifest.json       # authoritative index
-├── storage/            # raw bytes ({id}{ext})
-└── thumbnails/         # generated previews ({id}.webp)
+data/
+├── artifacts/{manifest.json,storage/,thumbnails/,events.jsonl}
+├── calendar/{calendar.json,schedules/,instructions.md}
+├── mailbox/{accounts.json,secrets.json,cache/}
+├── exercise/workouttracker.db
+├── projectmanager/projectmanager.db
+├── imdbspy/{imdbtracker.db,media/}
+├── timekeeper/timekeeper.db
+└── recipes/recipes.db
 ```
 
-Configure via `config/artifacts.yaml` and optional `MANGO_ARTIFACTS_ROOT`. See `utils/apps/media_viewer/README.md` and `docs/api.md` for endpoints and permission boundaries (read/write scoped to `{artifacts.root}/**` only).
+Three storage patterns are in play:
 
-The **exercise** app preserves the legacy WorkoutTracker SQLite database at `data/exercise/workouttracker.db` (gitignored). It is bound through a dedicated `exercise` Django connection with `managed = False` models (schema unchanged); override the path with `MANGO_EXERCISE_DB`. See `utils/apps/exercise/README.md`.
+- **Legacy SQLite, bound read/write.** exercise, projectmanager, and timekeeper
+  bind `managed = False` models to a database an older standalone app created.
+  The schema is never migrated. Override with `MANGO_EXERCISE_DB`,
+  `MANGO_PROJECTMANAGER_DB`, `MANGO_TIMEKEEPER_DB`.
+- **Own SQLite.** imdbspy uses Django-managed models and real migrations
+  (`migrate --database=imdbspy`, override `MANGO_IMDBSPY_DB`). recipes owns its
+  schema in `backend/services/store.py` and seeds a sample dataset on first run
+  with no committed database (`MANGO_RECIPES_DB`).
+- **Files.** media_viewer, calendar, and mailbox have no models at all. calendar
+  seeds from a committed copy in `backend/seed/` on first run. mailbox writes
+  `secrets.json` with `0600`. Neither is in `INSTALLED_APPS`; they are wired by
+  URL include alone.
 
-The **projectmanager** app preserves the legacy ProjectManager SQLite database at `data/projectmanager/projectmanager.db` (gitignored). It is bound through a dedicated `projectmanager` Django connection with `managed = False` models (schema unchanged); override the path with `MANGO_PROJECTMANAGER_DB`. It opens as a persistent workspace tab (board / timeline / deadlines). See `utils/apps/projectmanager/README.md`.
-
-The **calendar** app has no database: it keeps its JSON stores (`calendar.json` + `schedules/*.json` + `instructions.md`) under `data/calendar/` (gitignored), seeded on first run from a committed copy in `backend/seed/` and overridable with `MANGO_CALENDAR_DATA_DIR`. Following the mailbox pattern, it is not a Django app (no models/migrations/INSTALLED_APPS entry); its routes mount at `/api/calendar/` and it opens as a persistent workspace tab (calendar / schedules). The filesystem scope is confined to `{calendar_root}/**` via `config/permissions.yaml`. See `utils/apps/calendar/README.md`.
-
-The **imdbspy** app owns a dedicated SQLite database at `data/imdbspy/imdbtracker.db` (gitignored). Unlike exercise/projectmanager (which bind to a legacy file), Django owns this schema (`managed = True` models routed by `ImdbspyRouter`); it is created by `migrate --database=imdbspy` and overridable with `MANGO_IMDBSPY_DB`. Scraped posters/headshots are cached under `data/imdbspy/media/` (override `MANGO_IMDBSPY_MEDIA_DIR`) and served through a path-sanitized asset endpoint. Its routes mount at `/api/imdbspy/` and it opens as a persistent workspace tab. Outbound scraping is confined to IMDb + its image CDN (`imdbspy_scrape` network scope) and the media cache to `{imdbspy_media_root}/**` (`imdbspy_media` filesystem scope) via `config/permissions.yaml`. See `utils/apps/imdbspy/README.md`.
-
-The **timekeeper** app preserves the legacy TimeKeeper SQLite database at `data/timekeeper/timekeeper.db` (gitignored). It is bound through a dedicated `timekeeper` Django connection with `managed = False` models (`time_logs` and `settings`, schema unchanged); override the path with `MANGO_TIMEKEEPER_DB`. Its routes mount at `/api/timekeeper/` and it opens as a persistent workspace tab (tracker / dashboard / logs / categories). It has no external I/O, so no `config/permissions.yaml` scope is needed; state-changing agent tools are confirm-gated. See `utils/apps/timekeeper/README.md`.
-
-The **recipes** app keeps its SQLite store at `data/recipes/recipes.db` (gitignored), bound through a dedicated `recipes` Django connection with `managed = False` models. Unlike the other legacy-SQLite apps there is no committed database: the schema (owned by `backend/services/store.py`) and a small sample dataset are seeded on first run; override the path with `MANGO_RECIPES_DB`. It opens as a persistent workspace tab (browse / editor). The "AI Chef" recipe-text parser reuses the shared OpenAI-compatible LLM client (`utils/shared/llm`, `LLM_*` config); filesystem scope is confined to `{recipes_root}/**` via `config/permissions.yaml`. See `utils/apps/recipes/README.md`.
+Artifact defaults come from `config/artifacts.yaml`; override the root with
+`MANGO_ARTIFACTS_ROOT`.
 
 ## Authentication & Security
 
-The platform is **single-owner and gated** so it is safe to expose publicly. The
-first visitor creates the owner account via `/signup`; registration then closes
-(further signups return `403`). Auth is a Django session in an **httpOnly**
-cookie, and DRF defaults every endpoint to `IsAuthenticated` (`SessionAuthentication`),
-so the whole API is closed unless signed in — only `/api/health/` and the public
-`/api/auth/` routes (login, signup, csrf, registration-status) opt out. CSRF is
-enforced on state-changing requests; the SPA echoes the `csrftoken` cookie in the
-`X-CSRFToken` header.
+The platform is **single-owner and gated**, so it is safe to expose publicly.
+The first visitor creates the owner account via `/signup`; registration then
+closes and further signups return `403`. Auth is a Django session in an
+**httpOnly** cookie, and DRF defaults every endpoint to `IsAuthenticated` with
+`SessionAuthentication` — the whole API is closed unless signed in. Only
+`/api/health/` and the public `/api/auth/` routes (login, signup, csrf,
+registration-status) opt out. CSRF is enforced on state-changing requests; the
+SPA echoes the `csrftoken` cookie in the `X-CSRFToken` header.
 
 Repeated failed logins from an IP are **locked out** (`429`) after a threshold
-within a rolling window (tunable via `MANGO_AUTH_*`); every attempt is recorded
-in an append-only log surfaced under Settings → Security, where the owner can
-review attempts (time, IP, outcome) and clear a lockout. Per-owner preferences
-(`enabled_apps`, `onboarding_completed`) drive onboarding and which workspace
-apps appear; only the media viewer ("Artifacts") is enabled by default.
+within a rolling window, tunable via `MANGO_AUTH_*`. Every attempt lands in an
+append-only log surfaced under Settings → Security, where the owner can review
+attempts and clear a lockout. Per-owner preferences (`enabled_apps`,
+`onboarding_completed`) drive onboarding and which workspace apps appear; only
+the media viewer ("Artifacts") is enabled by default.
 
-The auth models, services, and API live in `utils/shared/auth/` (Django app
-label `mango_auth`, tables on the `default` database). Production sets
-`DJANGO_ALLOWED_HOSTS` and `DJANGO_CSRF_TRUSTED_ORIGINS`; behind a TLS proxy set
-`DJANGO_BEHIND_TLS_PROXY=true`. Cookies are marked `Secure` by default when
-`DJANGO_DEBUG` is off. A `Secure` cookie is only sent over https, so a
-`DJANGO_DEBUG=false` box browsed over plain `http://localhost` would drop the
-session/CSRF cookies — login succeeds but the session never sticks and every
-request 403s. For that case (DEBUG off but served over http) set
-`DJANGO_COOKIE_SECURE=false` to override; leave it unset in production.
+Auth lives in `utils/shared/auth/` (Django app label `mango_auth`, tables on the
+`default` database). Production sets `DJANGO_ALLOWED_HOSTS` and
+`DJANGO_CSRF_TRUSTED_ORIGINS`; behind a TLS proxy set
+`DJANGO_BEHIND_TLS_PROXY=true`.
 
-## Build Sequence
+**The cookie trap.** Cookies are marked `Secure` whenever `DJANGO_DEBUG` is off.
+A `Secure` cookie is only sent over https, so a `DEBUG=false` box browsed over
+plain `http://` drops the session and CSRF cookies — login appears to succeed,
+the session never sticks, and every subsequent request 403s. For that case set
+`DJANGO_COOKIE_SECURE=false`. Leave it unset in production.
 
-1. ~~Replace `web/` Astro skeleton with React/Vite shell.~~ (done — workspace shell at `/chat`)
-2. Define app boundaries under `utils/apps/{app_name}`.
-3. Build shared API and tool interfaces.
-4. Migrate one app at a time (Flask apps: keep models/services/API; remove templates/static/routing).
-5. Connect agents to the same app tools used by the UI.
-6. Delete old frontend artifacts.
-
-## Deployment
-
-**Prerequisites:** Python 3.13+ (`uv`), Node/npm, PostgreSQL+pgvector, Redis, optional S3.
+## Running
 
 ```bash
-# Backend
-uv sync && uv run manage.py migrate && uv run manage.py runserver
-uv run uvicorn config.django.asgi:application --reload
-uv run celery -A config.django worker --loglevel=info
-uv run pytest
-
-# Frontend (target)
-cd web && npm install && npm run dev && npm run build
+uv sync --extra dev
+cp .env.example .env
+cd web && npm install && cd ..
+uv run manage.py migrate
+uv run manage.py migrate --database=imdbspy
+python run.py
 ```
 
-Config lives in `config/` (Django settings, models/agents/tools/permissions/workflows YAML). Secrets via `.env` only.
+`run.py` starts Django on **32553** and Vite on **5173** together. Open
+`http://localhost:5173`. Django serves `/api` only and 404s at its own root.
+
+To run them separately:
+
+```bash
+uv run manage.py runserver 32553
+```
+
+```bash
+cd web && npm run dev
+```
+
+An OpenAI-compatible LLM server on port **9090** is required for chat; a SearXNG
+instance on **8080** is optional and only needed for `search_web`.
 
 | Service | Default |
 | --- | --- |
-| PostgreSQL | localhost:5432 |
-| Redis | localhost:6379 |
-| Django/DRF | localhost:8000 |
-| Vite dev | localhost:5173 |
+| Vite dev server | localhost:5173 |
+| Django / DRF | localhost:32553 |
+| LLM (OpenAI-compatible) | localhost:9090 |
+| SearXNG (optional) | localhost:8080 |
+
+Configuration lives in `config/` (Django settings plus the artifacts, models,
+permissions, search, and tools YAML). Secrets go in `.env` only.
 
 ## Testing
 
-Tests prove routing, permissions, schemas, and boundaries — not just happy paths.
-
-```text
-utils/tests/{agents,api,utils/apps,utils/shared,web}/
+```bash
+uv run pytest
 ```
+
+```bash
+cd web && npm test
+```
+
+Backend tests live in `utils/tests/{agents,api,config,utils/apps,utils/shared}/`
+and are configured in `pyproject.toml`. Frontend tests sit beside their source
+as `*.test.ts(x)` and run under Vitest.
 
 Core rules:
 
-- Tools reject calls outside `allowed_tools`, paths, namespaces, and datasets.
-- DRF views and agent tools must enforce the same permissions for equivalent operations.
-- Agent tools must call the same services as DRF views.
 - Include denial cases, not only success flows.
-- Mock local inference unless testing the model runtime.
+- A tool in a disabled group must be refused at execution, not merely hidden
+  from the schema list.
+- Unauthenticated requests must be rejected.
+- Irreversible agent tools must refuse without `confirm: true`.
+- DRF views and agent tools must enforce the same rules for the same operation,
+  and must call the same services.
+- Mock the LLM and any network egress unless that is what is under test.
 
 ## Skills
 
-Detailed conventions live in `docs/skills/` (symlinked from `.cursor/skills/`, `.claude/skills/`, and `.codex/skills/`).
+Detailed conventions live in `docs/skills/`, symlinked into `.cursor/skills/`,
+`.claude/skills/`, and `.codex/skills/`.
 
-- **global** — always-on step-and-commit workflow for every implementation session
-- **repo-structure**, **django-backend**, **app-modules**, **website-architecture**, **ui-frontend**, **plan** — domain-specific guidance
+- **global** — always-on step-and-commit workflow for every session that edits files
+- **repo-structure**, **django-backend**, **app-modules**, **app-migration**,
+  **website-architecture**, **ui-frontend**, **plan** — domain guidance
 
-On Windows after clone, run `./utils/scripts/link-skills.ps1` if skill links check out as plain text files.
-
-## Migration Note
-
-The retired `src/agent_runtime/` layout maps to: orchestration → `utils/agents/coordinator/`, general agent → `utils/agents/planner/`, memory → `utils/agents/memory/`, tools → `utils/agents/tools/`, inference → `utils/agents/providers/`, specialists → `utils/apps/{app}/agent/`.
+On Windows after clone, run `./utils/scripts/link-skills.ps1` if the skill links
+appear as plain text files; `./utils/scripts/link-skills.sh` on macOS/Linux.
