@@ -1,19 +1,32 @@
 # Tests
 
-Automated tests grouped by layer and concern.
+Pytest suite for the backend, configured in `pyproject.toml`
+(`testpaths = ["utils/tests"]`, `DJANGO_SETTINGS_MODULE = "config.django.settings"`).
+
+```bash
+uv run pytest
+```
+
+Requires the dev extra: `uv sync --extra dev`.
 
 ## Layout
 
 ```text
-tests/
-├── agents/          # Coordinator, planner, memory, tools
-├── api/             # DRF routes and serializers
-├── utils/
-│   ├── apps/        # Per-app service, API, and agent tool tests
-│   └── shared/      # Auth, permissions, storage tests
-└── web/             # Frontend tests (when React/Vite scaffold exists)
+utils/tests/
+├── agents/        # coordinator graph, LLM provider, tool groups and their enforcement
+├── api/           # DRF route tests, one module per app, plus health and tools
+├── config/        # settings behaviour (cookie security)
+└── utils/
+    ├── apps/      # per-app service, API, and agent tool tests
+    └── shared/    # auth, events, search
 ```
 
-Tests must include denial cases for permission, path, namespace, dataset, schema, shell, and sandbox boundaries.
+Frontend tests are separate and live beside their source as `*.test.ts(x)`, run
+with `npm test` (Vitest) from `web/`.
 
-See the Testing section in `docs/platform.md`.
+## What to cover
+
+Include denial cases, not just happy paths — a disabled tool group must be
+refused at execution, an unauthenticated request must be rejected, an
+out-of-scope path or host must be denied, and irreversible tools must refuse
+without `confirm: true`.

@@ -1,16 +1,54 @@
 # Utils Apps
 
-Domain app modules. Each app follows the standard layout documented in `docs/skills/app-modules/`.
+Domain app modules. The standard layout is documented in
+`docs/skills/app-modules/`; per-app deviations are noted below.
 
-## Registered Apps
+## Implemented apps
 
-- `projects/` — Project management
-- `notes/` — Notes and rich text
-- `jobs/` — Job tracking
-- `calendar/` — Calendar (implemented; weekly schedules + a dated calendar of merged schedule/direct events, themed PDF export — file-based JSON store, migrated from a standalone Flask app)
-- `recipes/` — Recipe management (implemented; browse/filter recipes, pantry ingredient matching, and recipe CRUD with an LLM recipe-text parser — SQLite store bound `managed=False` and seeded on first run, migrated from a standalone Flask app)
-- `imdbspy/` — IMDbSpy (implemented; movie/TV tracker with IMDb scraping, weighted Fun/Grit/Comfort ratings, and a local media cache — dedicated managed SQLite store, migrated from a standalone Flask app)
-- `exercise/` — Exercise tracking (implemented; workouts, routines, equipment, history, Strava import — migrated from the standalone WorkoutTracker app)
-- `timekeeper/` — Time tracking (implemented; 5-minute block time logging across user-defined categories + daily statistics — legacy SQLite bound read/write with `managed = False` models, migrated from a standalone Flask app)
+Eight apps are built, routed under `/api/{app}/`, registered as agent tools in
+`config/tools.yaml`, and available as workspace tabs via
+`web/src/features/workspace/apps/appRegistry.tsx`.
 
-Each app contains `backend/`, `frontend/`, `agent/`, and `shared/` subdirectories.
+| App | Tools | Store | Notes |
+| --- | --- | --- | --- |
+| `mailbox/` | 10 | files under `data/mailbox/` | IMAP/SMTP accounts, folders, message read + move/mark/delete/reply. Irreversible tools require `confirm: true` |
+| `calendar/` | 12 | JSON under `data/calendar/` | Weekly schedules merged with dated events, free-slot search, themed PDF export |
+| `exercise/` | 15 | SQLite `data/exercise/workouttracker.db` | Workouts, routines, equipment, history, Strava import. `managed = False` |
+| `recipes/` | 7 | SQLite `data/recipes/recipes.db` | Recipe CRUD, pantry matching, LLM recipe-text parser. `managed = False`, seeded on first run |
+| `imdbspy/` | 6 | SQLite `data/imdbspy/imdbtracker.db` | IMDb scraper, weighted Fun/Grit/Comfort ratings, media cache. Django-managed with migrations |
+| `timekeeper/` | 5 | SQLite `data/timekeeper/timekeeper.db` | 5-minute block logging across categories, daily stats. `managed = False` |
+| `projectmanager/` | 4 | SQLite `data/projectmanager/projectmanager.db` | Projects, goals, deadlines, timeline. `managed = False` |
+| `media_viewer/` | 4 | files under `data/artifacts/` | Artifact upload, manifest, thumbnails, streaming |
+
+## Placeholders
+
+`jobs/`, `notes/`, and `projects/` contain a README and nothing else — no
+`backend/`, `frontend/`, `agent/`, or `shared/` directory, no routes, no tools,
+no workspace tab. Their READMEs describe the target layout, not what exists.
+
+## Layout in practice
+
+| Directory | Present in |
+| --- | --- |
+| `backend/api/`, `backend/services/` | all eight |
+| `backend/models/` | exercise, imdbspy, projectmanager, recipes, timekeeper. Absent from calendar, mailbox, media_viewer — those are file stores with no ORM models |
+| `backend/tasks/` | exercise, imdbspy, media_viewer, timekeeper only |
+| `agent/tools.py`, `agent/prompts.py` | all eight |
+| `frontend/` | all eight |
+| `shared/` | all eight |
+
+App UI is a hybrid: each app's own pages and components live in
+`utils/apps/{app}/frontend/` and are imported through Vite path aliases
+(`@calendar`, `@mailbox`, …) declared in `web/vite.config.ts`. Shared shell
+chrome — nav rail, tab strip, chat, settings — lives in `web/src/`.
+
+Not every app is a Django app. Only those with models are in `INSTALLED_APPS`;
+`calendar` and `mailbox` are wired by URL include alone.
+
+## Rules
+
+- Domain logic lives in `backend/services/` or `shared/`.
+- Agent tools call services; they never re-implement domain logic.
+- DRF views stay thin.
+- A new agent tool needs both a function in `agent/tools.py` and an entry in
+  `config/tools.yaml` — the registry is config-driven, not decorator-driven.

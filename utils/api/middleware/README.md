@@ -1,5 +1,5 @@
 # API Middleware
 
-DRF middleware for authentication, permissions, request logging, and error handling.
-
-See `docs/skills/django-backend/`.
+**Placeholder — no code here.** The project uses stock Django middleware only
+(security, sessions, common, CSRF, authentication — see
+`config/django/settings.py`). Add custom middleware here if that changes.

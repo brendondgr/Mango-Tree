@@ -1,5 +1,5 @@
 # API Serializers
 
-Shared and cross-app DRF serializers. App-specific serializers may live in `utils/apps/{app}/backend/api/`.
-
-See `docs/api.md`.
+**Placeholder — no code here.** Every serializer currently lives with its app,
+under `utils/apps/{app}/backend/api/` (and `utils/shared/auth/api/serializers.py`
+for auth). Use this package only for serializers genuinely shared across apps.

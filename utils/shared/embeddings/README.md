@@ -1,3 +1,4 @@
 # Embeddings
 
-Embedding generation and management using pgvector.
+**Placeholder — no code here.** No embedding model, vector store, or pgvector
+dependency exists in the repository.

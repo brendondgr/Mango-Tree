@@ -1,17 +1,20 @@
 # Agents
 
-LangGraph orchestration layer for the Mango platform.
+The agent orchestration layer.
 
-## Subdirectories
+| Directory | State | Role |
+| --- | --- | --- |
+| `coordinator/` | implemented | The reason/act/observe/respond LangGraph loop — the whole agent runtime |
+| `tools/` | implemented | Tool registry, `config/tools.yaml` loading, tool-group gate |
+| `providers/` | implemented | One streaming client for OpenAI-compatible chat completions |
+| `schemas/` | implemented | `ToolCall`, `ToolResult`, `AgentMessage` pydantic models |
+| `skills/` | implemented | Static instruction packs the `inspect_skills` / `read_skill` tools read |
+| `planner/` | **empty placeholder** | Nothing implemented; nothing imports it |
+| `memory/` | **empty placeholder** | Nothing implemented; nothing imports it |
 
-| Directory | Role |
-| --- | --- |
-| `coordinator/` | Request classification, routing, task packages, result validation, events |
-| `planner/` | Broad reasoning, inspection, planning, delegation |
-| `memory/` | Short-term memory, vector memory, namespaces |
-| `tools/` | Tool registry, execution context, permission enforcement |
-| `providers/` | Local (Llama-CPP) and cloud model provider abstraction |
+LangGraph is used in exactly one place: `coordinator/graph.py`. There are no
+specialist graphs. `utils/apps/{app}/agent/` holds plain tool functions and
+prompt strings, not workflows.
 
-App-specific specialist workflows live under `utils/apps/{app}/agent/`.
-
-See `docs/skills/repo-structure/structures/langgraph.md`.
+Entry point: `utils/api/routes/agent.py` streams
+`POST /api/agent/<session_id>/agent_turn/` through `coordinator.graph.agent_graph`.

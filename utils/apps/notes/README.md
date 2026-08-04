@@ -1,18 +1,7 @@
-﻿# Notes
+# Notes
 
-Domain app module under `utils/apps/notes/`.
+**Placeholder — not implemented.** This directory contains only this file. There
+is no backend, frontend, agent tool, API route, or workspace tab for notes.
 
-## Layout
-
-- `backend/` — Django models, services, API views, Celery tasks
-- `frontend/` — UI fragments consumed by the `web/` shell
-- `agent/` — LangGraph tools (`tools.py`) and prompts (`prompts.py`)
-- `shared/` — Domain logic used by both API and agent layers
-
-## Rules
-
-- Business logic lives in `backend/services/` or `shared/`.
-- Agent tools call services; never duplicate domain logic.
-- DRF views are thin wrappers over services.
-
-See `docs/skills/app-modules/`.
+To build it, follow `docs/skills/app-modules/` for the layout and
+`docs/skills/app-migration/` if porting an existing app.
