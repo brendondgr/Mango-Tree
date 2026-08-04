@@ -2,6 +2,13 @@
 
 Use LangGraph for explicit workflow state machines under `utils/agents/`, not as a place to hide unrestricted agent behavior.
 
+> **Status: target shape, not current state.** Today there is exactly one graph —
+> `utils/agents/coordinator/graph.py`, a `reason → act → observe → respond` loop.
+> `utils/agents/planner/` and `utils/agents/memory/` are empty placeholders, and
+> no specialist subgraphs exist: `utils/apps/{app}/agent/` holds plain tool
+> functions and prompt strings. The shape below is where the layer is headed;
+> do not write documentation or code that assumes any of it already runs.
+
 ## Recommended Package Shape
 
 ```text
