@@ -4,85 +4,111 @@
 
 # Mango Tree
 
-Mango Tree is a **local-first, permissioned agent platform**. It routes user requests through a coordinator, delegates broad reasoning to a planner, and executes focused work through LangGraph workflows and app-scoped tools. The web UI and agents both call the same backend services — agents never bypass the tool and permission layer.
+Mango Tree is a **local-first, single-owner agent platform**. A React workspace
+and a LangGraph agent loop both reach the same Django services — the UI through
+DRF endpoints, the agent through registered tools. What the agent can touch is
+decided by which tool groups you switch on, enforced in code rather than asked
+for in a prompt.
 
-## What it does
+Everything runs on your machine: SQLite databases, files under `data/`, and
+whatever OpenAI-compatible model server you point it at.
 
-At a high level, Mango Tree is built as a system of scoped workflows and modular apps rather than one unrestricted agent:
+## What's here
+
+Eight apps live inside one chat workspace, each usable by you through its UI and
+by the agent through its tools:
+
+| App | What it does | Agent tools |
+| --- | --- | --- |
+| **Mailbox** | IMAP/SMTP accounts, folders, read, move, mark, delete, reply | 10 |
+| **Calendar** | Weekly schedules mapped onto dates, merged with one-off events, themed PDF export | 12 |
+| **Exercise** | Workouts, routines, equipment, history, Strava import | 15 |
+| **Recipes** | Browse and filter, pantry matching, CRUD with an LLM recipe parser | 7 |
+| **IMDbSpy** | Movie/TV tracker with IMDb scraping and weighted Fun/Grit/Comfort ratings | 6 |
+| **Time Keeper** | 5-minute block tracking across categories, daily statistics | 5 |
+| **Projects** | Projects, goals, deadlines, timeline | 4 |
+| **Artifacts** | Upload, browse, and view images, video, PDF, markdown, LaTeX, text | 4 |
+
+Plus six core tools (artifacts, skills inspection, chat context, web search)
+that are always available.
+
+**Tool groups.** All 63 app tools start **off**. You enable a group per session
+from the composer, a slash command (`/enable mailbox`), or the chip that appears
+when the agent is refused. The gate runs twice — a disabled group's tools are
+never offered to the model, and are refused at execution if it calls one anyway.
+See [docs/tool-groups.md](docs/tool-groups.md).
+
+## Architecture
 
 ```text
-User → web/ → api/ → utils/apps/{app}/backend/services/
-User → agents/coordinator → agents/planner OR app specialist → agents/tools/ → same services
+You → web/ ─────────────────────────→ utils/api/routes/ → utils/apps/{app}/backend/services/
+You → utils/agents/coordinator/graph → utils/agents/tools/ → utils/apps/{app}/agent/tools.py → same services
 ```
 
-| Layer | Path | Role |
+| Layer | Path | Rule |
 | --- | --- | --- |
-| Frontend | `web/` | React/Vite dashboard, chat workspace, command palette |
-| API | `api/` | Django REST Framework surface for the UI |
-| Agents | `agents/` | LangGraph orchestration: coordinator, planner, memory, tools, providers |
-| Apps | `utils/apps/{name}/` | Domain logic, UI fragments, and agent tools per app |
-| Shared | `utils/shared/` | Auth, permissions, storage, search, embeddings, events |
-| Config | `config/` | Django settings and runtime YAML (agents, tools, permissions, workflows) |
+| Frontend | `web/` | React/Vite SPA. API clients only, no business logic |
+| API | `utils/api/` | DRF surface. Thin views that call services |
+| Agents | `utils/agents/` | The agent loop, tool registry, LLM client |
+| Apps | `utils/apps/{name}/` | Domain services, UI fragments, agent tools |
+| Shared | `utils/shared/` | Auth, search, LLM config |
+| Config | `config/` | Django settings and runtime YAML |
 
-**Coordinator** classifies requests, selects workflows, creates scoped task packages, validates structured results, and records events.
+The agent is one LangGraph graph in `utils/agents/coordinator/graph.py`:
+`reason → act → observe → respond`, up to six steps per turn, streamed to the
+browser as SSE. There is no separate planner and no specialist workflows —
+`utils/agents/planner/` and `utils/agents/memory/` are empty placeholders.
 
-**Planner** performs broad reasoning, light inspection, planning, and delegation.
-
-**Specialists** run narrow LangGraph workflows with app-scoped tools. Permissions are enforced in code through the tool execution context — not through prompt instructions.
-
-### Chat workspace
-
-The `/chat` route is the primary agent workspace. It combines:
-
-- A **chat panel** for conversation with a local or remote LLM
-- An **artifacts sidebar** for browsing uploaded and generated files
-- A **workspace** with pinned tabs (Overview, Assets, History) and ephemeral viewer tabs for opened artifacts
-
-The **media viewer** app (`utils/apps/media_viewer/`) is the first fully implemented app module. It stores artifacts under `data/artifacts/`, serves them through the API, and provides viewers for images, video, PDF, markdown, LaTeX, and text.
-
-Additional apps (projects, notes, jobs, calendar, recipes, imdbspy, exercise, timekeeper) follow the standard layout and are being migrated incrementally. See [docs/api.md](docs/api.md) for the full HTTP contract.
+Apps are **tabs inside `/chat`**, not routes. Adding an entry to
+`web/src/features/workspace/apps/appRegistry.tsx` wires an app into the
+launcher, tab strip, nav rail, and body routing at once.
 
 ## Tech stack
 
 | Layer | Technology |
 | --- | --- |
-| Frontend | React, TypeScript, Vite, TanStack Router/Query, Zustand, Tailwind CSS, shadcn/ui |
-| API | Django REST Framework |
-| Backend | Django, ASGI/Uvicorn, Celery, Redis |
-| Agents | LangGraph under `agents/` |
-| Database | PostgreSQL with pgvector (target); SQLite for current dev/tests |
-| Models | Llama-CPP and cloud provider abstraction |
-| Storage | S3-compatible object storage (target); local `data/artifacts/` for media viewer |
-| Python tooling | [uv](https://docs.astral.sh/uv/) |
+| Frontend | React 19, TypeScript, Vite 7, TanStack Router/Query, Zustand, Tailwind v4, shadcn/ui, Framer Motion |
+| API | Django 5.2, Django REST Framework |
+| Agents | LangGraph |
+| Database | SQLite — one `default` connection plus one per SQLite-backed app |
+| Models | Any OpenAI-compatible endpoint |
+| Storage | Local filesystem under `data/` |
+| Search | SearXNG (optional) |
+| Tooling | [uv](https://docs.astral.sh/uv/), Python 3.13+, npm |
 
-## Prerequisites
+No PostgreSQL, Redis, Celery, or S3 — by design, not by omission.
 
-Install these before setting up the project:
-
-| Requirement | Version / notes |
-| --- | --- |
-| Python | 3.13+ |
-| [uv](https://docs.astral.sh/uv/) | Python package and environment manager |
-| Node.js | LTS recommended (for `web/`) |
-| npm | Bundled with Node |
-| LLM server | OpenAI-compatible API (default: `http://localhost:9090/v1`) — e.g. [llama.cpp server](https://github.com/ggerganov/llama.cpp) or another compatible runtime |
-
-**Optional** (target production stack; not required for basic local development today):
-
-- PostgreSQL with the pgvector extension
-- Redis (for Celery background tasks)
-- S3-compatible object storage
-
-## Installation
-
-### 1. Clone the repository
+## Setup
 
 ```bash
 git clone <repository-url>
 cd Mango-Tree
 ```
 
-On Windows, if skill symlinks under `.cursor/`, `.claude/`, or `.codex/` appear as plain text files after clone, recreate them:
+```bash
+uv sync --extra dev
+```
+
+```bash
+cp .env.example .env
+```
+
+```bash
+cd web && npm install && cd ..
+```
+
+```bash
+uv run manage.py migrate
+```
+
+```bash
+uv run manage.py migrate --database=imdbspy
+```
+
+Edit `.env` if your model server is not at `http://localhost:9090/v1`.
+
+On Windows, if the skill links under `.cursor/`, `.claude/`, or `.codex/` appear
+as plain text files after cloning:
 
 ```powershell
 ./utils/scripts/link-skills.ps1
@@ -94,190 +120,166 @@ On macOS/Linux:
 ./utils/scripts/link-skills.sh
 ```
 
-### 2. Python backend
-
-Install dependencies and sync the virtual environment:
+## Running
 
 ```bash
-uv sync
+python run.py
 ```
 
-For development tools (pytest, pytest-django):
+That starts Django on **32553** and Vite on **5173** together. Open
+<http://localhost:5173> — the first visit creates your owner account, after
+which signup closes.
+
+To run them separately:
 
 ```bash
-uv sync --extra dev
+uv run manage.py runserver 32553
 ```
-
-Copy environment variables for agent/LLM configuration:
 
 ```bash
-cp .env.example .env
+cd web && npm run dev
 ```
 
-Edit `.env` if your LLM server uses a different URL, model name, or API key.
+Django serves `/api` only and returns 404 at its own root; browse the app
+through Vite, which proxies `/api` to it.
 
-### 3. Frontend
+| Service | URL | Required |
+| --- | --- | --- |
+| Vite dev server | `http://localhost:5173` | yes |
+| Django / DRF | `http://localhost:32553` | yes |
+| LLM (OpenAI-compatible) | `http://localhost:9090` | for chat |
+| SearXNG | `http://localhost:8080` | for web search |
 
-```bash
-cd web
-cp .env.example .env
-npm install
-cd ..
-```
+Health check: `GET http://localhost:32553/api/health/`.
 
-The frontend proxies `/api` to Django on port 32553 and `/v1` to the LLM server on port 9090 during development.
+## Security
 
-### 4. Artifact storage (media viewer)
+Single-owner and gated, so it is safe to expose. The first visitor creates the
+owner account and registration closes. Auth is a Django session in an httpOnly
+cookie, `IsAuthenticated` is the DRF default across the entire API, and repeated
+failed logins lock out an IP with every attempt written to an audit log you can
+review under Settings → Security.
 
-Artifact files are written to `data/artifacts/` (gitignored). The directory is created automatically on first upload. Defaults are in [config/artifacts.yaml](config/artifacts.yaml). Override the root with:
-
-```bash
-export MANGO_ARTIFACTS_ROOT=/path/to/artifacts   # bash
-$env:MANGO_ARTIFACTS_ROOT = "C:\path\to\artifacts"  # PowerShell
-```
-
-## Running locally
-
-Start each service in its own terminal.
-
-**Terminal 1 — Django API**
-
-```bash
-uv run manage.py runserver
-```
-
-API base: `http://localhost:8000`  
-Health check: `GET http://localhost:8000/api/health/`
-
-**Terminal 2 — Vite dev server**
-
-```bash
-cd web
-npm run dev
-```
-
-UI: `http://localhost:5173`  
-Open `/chat` for the agent workspace.
-
-**Terminal 3 — LLM server**
-
-Run your OpenAI-compatible inference server on port **9090** (or update `web/.env` and workspace LLM settings to match your endpoint).
-
-**Optional — ASGI server**
-
-```bash
-uv run uvicorn config.django.asgi:application --reload
-```
-
-**Optional — Celery worker** (when background tasks are configured)
-
-```bash
-uv run celery -A config.django worker --loglevel=info
-```
-
-### Default ports
-
-| Service | URL |
-| --- | --- |
-| Django / DRF | `http://localhost:32553` |
-| Vite dev server | `http://localhost:5173` |
-| LLM (OpenAI-compatible) | `http://localhost:9090` |
-| PostgreSQL (future) | `localhost:5432` |
-| Redis (future) | `localhost:6379` |
+**One trap worth knowing.** Cookies are marked `Secure` whenever `DJANGO_DEBUG`
+is off, and a `Secure` cookie is never sent over plain http. Running
+`DEBUG=false` on an http host therefore drops the session — login appears to
+work, then every request 403s. Set `DJANGO_COOKIE_SECURE=false` for that case,
+and leave it unset behind TLS.
 
 ## Configuration
 
 | Location | Purpose |
 | --- | --- |
-| `.env` | LLM base URL, model, API key for backend/agents |
-| `web/.env` | `VITE_LLM_*` defaults for the frontend |
-| `config/django/` | Django settings, URLs, WSGI/ASGI |
-| `config/artifacts.yaml` | Artifact root path, size limits, allowed kinds |
-| `config/models.yaml` | Model provider configuration |
-| `config/agents.yaml` | Agent definitions |
-| `config/tools.yaml` | Tool registry |
-| `config/permissions.yaml` | Permission policies |
-| `config/workflows.yaml` | Workflow manifests |
+| `.env` | LLM base URL, model, API key; OAuth and Strava credentials; database path overrides |
+| `web/.env` | Optional. `VITE_LLM_BASE_URL` / `VITE_LLM_MODEL` seed the frontend's LLM settings; without it they default to `http://localhost:9090/v1` and `local-model`. Copy from `web/.env.example` |
+| `config/django/settings.py` | Databases, DRF defaults, cookie and CSRF security |
+| `config/artifacts.yaml` | Artifact root, size limits, allowed kinds |
+| `config/models.yaml` | LLM provider defaults |
+| `config/tools.yaml` | Agent tool registry and tool groups |
+| `config/permissions.yaml` | Declared filesystem and network scopes (verified by tests) |
+| `config/search.yaml` | SearXNG endpoint and fetch limits |
 
-Secrets belong in `.env` only — do not commit them.
+Secrets belong in `.env` only.
 
 ## Testing
-
-Tests cover routing, permissions, schemas, and boundary denials — not only happy paths.
 
 ```bash
 uv run pytest
 ```
 
-Run a subset:
-
 ```bash
-uv run pytest tests/api/
-uv run pytest tests/utils/
+cd web && npm test
 ```
 
-Frontend tests:
-
-```bash
-cd web
-npm test
-```
-
-Test layout: `tests/{agents,api,utils/apps,utils/shared,web}/`. See [tests/README.md](tests/README.md) and the Testing section in [docs/platform.md](docs/platform.md).
+Backend tests live in `utils/tests/`, frontend tests beside their source as
+`*.test.ts(x)`. Tests cover denial cases, not only happy paths: a disabled tool
+group must be refused at execution, unauthenticated requests rejected, and
+irreversible tools must refuse without `confirm: true`.
 
 ## Repository layout
 
 ```text
 .
-├── agents/                 # coordinator, planner, memory, tools, providers
-├── api/                    # DRF routes, serializers, middleware, schemas
-├── config/                 # Django settings and runtime YAML
+├── config/            # Django settings, urls, and runtime YAML
+├── data/              # gitignored runtime state: artifacts, SQLite, caches
 ├── docs/
-│   ├── platform.md         # architecture, routes, deployment
-│   ├── api.md              # HTTP API contract
-│   └── skills/             # agent instruction packs
+│   ├── platform.md    # architecture, storage, security, running
+│   ├── api.md         # HTTP API contract
+│   ├── tool-groups.md # the agent tool-group model
+│   └── skills/        # conventions, symlinked into .claude/, .cursor/, .codex/
 ├── utils/
-│   ├── apps/{name}/        # backend, frontend, agent, shared per app
-│   └── shared/             # auth, permissions, storage, search, embeddings
-├── tests/
-├── web/                    # React/Vite SPA
+│   ├── agents/        # the agent loop, tools, providers
+│   ├── api/routes/    # one URLconf module per app
+│   ├── apps/{name}/   # backend, frontend, agent, shared per app
+│   ├── shared/        # auth, search, llm, events
+│   └── tests/
+├── web/               # React/Vite SPA shell
 ├── manage.py
+├── run.py
 └── pyproject.toml
 ```
 
-Each app under `utils/apps/{name}/` follows:
+Each app follows:
 
 ```text
 utils/apps/{app_name}/
 ├── backend/{api,models,services,tasks}/
 ├── frontend/{components,pages,hooks}/
-├── agent/{tools.py,prompts.py}/
+├── agent/{tools.py,prompts.py}
 └── shared/
 ```
+
+`models/` is absent from the three file-store apps. App UI lives with the app
+and is imported into `web/` through Vite aliases.
+
+## Contributing
+
+Read [docs/skills/global/SKILL.md](docs/skills/global/SKILL.md) before making
+changes — it defines the step-and-commit workflow, and commit messages must
+carry no AI or tool attribution.
+
+Then use the skill that matches the work:
+
+| Doing | Read |
+| --- | --- |
+| Anything that edits files | `docs/skills/global/` |
+| Backend, settings, migrations | `docs/skills/django-backend/` |
+| A new or changed app module | `docs/skills/app-modules/` |
+| Porting a standalone app in | `docs/skills/app-migration/` |
+| Frontend architecture | `docs/skills/website-architecture/` |
+| UI components and theming | `docs/skills/ui-frontend/` |
+| Repository layout | `docs/skills/repo-structure/` |
+| Planning phased work | `docs/skills/plan/` |
+
+A few rules worth stating up front:
+
+- Business logic lives in `backend/services/`. Views and agent tools are thin
+  callers, and the agent must reach a capability through the same service the
+  UI does.
+- Adding an agent tool takes two edits: the function in `agent/tools.py` and an
+  entry in `config/tools.yaml`. Registration is config-driven.
+- Never generate migrations for exercise, projectmanager, or timekeeper — their
+  models bind `managed = False` to databases a previous app created, and
+  applying a migration would corrupt real data.
+- An endpoint belongs in `docs/api.md` before frontend code calls it.
 
 ## Documentation
 
 | Document | Contents |
 | --- | --- |
-| [docs/platform.md](docs/platform.md) | Architecture, frontend routes, deployment, testing |
-| [docs/api.md](docs/api.md) | HTTP API contract between frontend and backend |
-| [AGENTS.md](AGENTS.md) | Agent and layer-boundary instructions for contributors |
-| [utils/apps/media_viewer/README.md](utils/apps/media_viewer/README.md) | Artifacts API, storage, and chat integration |
-| [docs/skills/](docs/skills/) | Detailed conventions (Django, frontend, app modules, repo structure) |
+| [docs/platform.md](docs/platform.md) | Architecture, storage, security, running, testing |
+| [docs/api.md](docs/api.md) | The full HTTP API contract |
+| [docs/tool-groups.md](docs/tool-groups.md) | How agent tool gating works |
+| [docs/skills/](docs/skills/) | Conventions for each layer |
+| `utils/apps/README.md` | Every app, its tools, and its store |
 
-## Development status
+## Status
 
-Mango Tree is under active development. What works today:
+Working today: the chat workspace with a streaming agent loop and gated tools,
+single-owner auth with onboarding and a security log, eight app modules with
+both UI and agent access, eight themes, and a test suite across the backend and
+frontend.
 
-- React/Vite shell with themed UI and the `/chat` agent workspace
-- Django health and media-viewer artifact APIs
-- Local artifact upload, listing, streaming, thumbnails, and permission-scoped agent tools
-- Test suite for API, artifact store, and agent tool boundaries
-
-Planned or in progress:
-
-- PostgreSQL + pgvector and Redis/Celery for production runtime
-- Remaining app modules (projects, notes, jobs, calendar, and others)
-- Full coordinator/planner wiring to production task and trace endpoints defined in `docs/api.md`
-
-For architecture decisions and migration notes, see [docs/platform.md](docs/platform.md).
+Not built, and documented as such rather than implied: the planner and memory
+layers, a shared permission engine, embeddings and vector search, object
+storage, and any background task queue.
