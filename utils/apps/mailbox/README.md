@@ -143,7 +143,7 @@ registry + `config/permissions.yaml`.
   Graph equivalents behind the same tool names (Graph has native move/reply/
   replyAll and `PATCH` read-state), with no contract change. Not wired yet — the
   Graph mutation path stays unregistered until that flow exists, like `organize`
-  today. See `docs/migrations/mailbox-operations.md`.
+  today.
 
 ## HTTP API
 
