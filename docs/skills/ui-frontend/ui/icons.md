@@ -8,22 +8,26 @@ Use Lucide React icons consistently across the application. Prefer rounded strok
 - Default icon size: `h-4 w-4` (16px) inline with text; `h-5 w-5` (20px) in toolbars.
 - Icon-only buttons require `aria-label`.
 - Status icons pair with text labels (e.g., CheckCircle + "Complete").
-- Navigation icons appear in the sidebar and command palette consistently.
+- An app's nav-rail icon, launcher-card icon, and tab icon must be the same one;
+  it is declared once in `appRegistry.tsx`.
 - Canva's fixture uses filled rounded iconography; Lucide outline icons are acceptable — do not switch libraries for fill style alone.
 
 ## Common Mappings
 
 | Action | Icon |
 | --- | --- |
-| Dashboard | LayoutDashboard |
+| Mailbox | Mail |
+| Exercise | Dumbbell |
 | Projects | FolderKanban |
-| Notes | FileText |
-| Jobs | Briefcase |
-| Calendar | Calendar |
+| Calendar | CalendarDays |
+| IMDbSpy | Film |
+| Recipes | ChefHat |
+| Artifacts | FolderOpen |
+| Time Keeper | Clock |
 | Chat | MessageSquare |
 | Settings | Settings |
 | Search | Search |
-| Command palette | Command |
+| Tool groups | SlidersHorizontal |
 | Success | CheckCircle |
 | Error | XCircle |
 | Warning | AlertTriangle |

@@ -23,26 +23,14 @@ docs/skills/app-migration/
     `-- express.md
 ```
 
-## Wiring into skill discovery
+## Skill discovery
 
-Add `app-migration` to the `skills` array in `utils/scripts/link-skills.sh` (and
-`utils/scripts/link-skills.ps1` on Windows) so Cursor, Claude Code, and Codex link it
-alongside the other skills:
+Already wired. `app-migration` is in the `skills` array of both
+`utils/scripts/link-skills.sh` and `utils/scripts/link-skills.ps1`, and resolves
+under `.cursor/skills/`, `.claude/skills/`, and `.codex/skills/`.
 
-```bash
-skills=(
-  global
-  plan
-  repo-structure
-  django-backend
-  app-modules
-  app-migration        # <-- add
-  website-architecture
-  ui-frontend
-)
-```
-
-Then re-run `./utils/scripts/link-skills.sh` (or `./utils/scripts/link-skills.ps1`).
+Re-run `./utils/scripts/link-skills.sh` (or `.ps1` on Windows) only if the links
+appear as plain text files after a clone.
 
 ## Relationship to existing skills
 

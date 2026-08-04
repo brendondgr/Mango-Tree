@@ -31,7 +31,7 @@ utils/apps/{app_name}/
 - Business logic → `backend/services/` or `shared/`.
 - Data models → `backend/models/`.
 - DRF views → `backend/api/` (registered through `utils/api/routes/`).
-- Celery tasks → `backend/tasks/`.
+- Background jobs → `backend/tasks/` (plain functions; there is no task queue).
 - Agent tools → `agent/tools.py` (call services, never duplicate logic).
 - App UI fragments → `frontend/` (imported by `web/` shell).
 - No business logic in `web/src/services/` beyond API client calls.
@@ -69,12 +69,21 @@ renders wrong (or never appears):
 
 ## Agent Tool Registration
 
-Tools in `agent/tools.py` must:
+Registration is **config-driven**, not decorator-driven. Writing the function is
+only half the job:
 
-1. Call the same service functions used by DRF views.
-2. Accept scoped inputs matching app schemas.
-3. Return structured outputs for coordinator validation.
-4. Respect permissions enforced by `utils/shared/permissions/`.
+1. Write the function in `agent/tools.py`, returning a plain dict (`{...}` or
+   `{"error": {...}}`) — the registry adapter wraps it in a `ToolResult`.
+2. Add an entry to `config/tools.yaml` with `app`, `module`, `function`,
+   `description`, and a `parameters` JSON schema. The app name becomes the tool
+   group, so a new app is a new toggleable group that starts **off**.
+3. Add the app's prompt block as `prompt: utils.apps.{name}.agent.prompts:{NAME}_TOOLS_PROMPT`
+   so guidance is appended to the system prompt only when the group is enabled.
+
+Tools must call the same service functions the DRF views use, accept scoped
+inputs, and return structured output. Gate irreversible actions behind an
+explicit `confirm: true` parameter — see mailbox's send/reply/delete tools.
+There is no shared permission layer that will do this for you.
 
 ## API ↔ Agent Parity
 
@@ -106,17 +115,35 @@ When migrating a Flask app into `utils/apps/{name}/`:
 
 ## Registered Apps
 
-- projects
-- notes
-- jobs
-- calendar (implemented — weekly schedules + a dated calendar of merged events; file-based JSON store; migrated from a standalone Flask app)
-- recipes (implemented — browse/filter recipes, pantry ingredient matching, and recipe CRUD with an LLM recipe-text parser; SQLite store bound managed=False and seeded on first run; migrated from a standalone Flask app)
-- imdbspy (implemented — movie/TV tracker with IMDb scraping + weighted Fun/Grit/Comfort ratings; dedicated managed SQLite store + media cache; migrated from a standalone Flask app)
-- exercise (implemented — workouts/routines/equipment/history + Strava import)
-- timekeeper (implemented — 5-minute time tracking with daily statistics; legacy SQLite bound with managed=False models; migrated from a standalone Flask app)
-- media_viewer (implemented)
+Eight apps are implemented — each has services, DRF routes under `/api/{app}/`,
+agent tools in `config/tools.yaml`, and a workspace tab:
 
-Each app directory includes a README describing its subfolder responsibilities.
+- **mailbox** — IMAP/SMTP accounts, folders, and message read plus
+  move/mark/delete/reply. File store under `data/mailbox/`. Irreversible tools
+  are confirm-gated.
+- **calendar** — weekly schedules mapped onto date ranges, merged with one-off
+  events; themed PDF export. JSON store, seeded on first run.
+- **exercise** — workouts, routines, equipment, history, Strava import. Legacy
+  SQLite bound `managed = False`.
+- **recipes** — browse/filter, pantry ingredient matching, CRUD with an LLM
+  recipe-text parser. SQLite `managed = False`, seeded on first run, no
+  committed database.
+- **imdbspy** — movie/TV tracker with IMDb scraping, weighted Fun/Grit/Comfort
+  ratings, and a media cache. Django-managed SQLite with migrations.
+- **timekeeper** — 5-minute block tracking with daily statistics. Legacy SQLite
+  bound `managed = False`.
+- **projectmanager** — projects, goals, deadlines, timeline. Legacy SQLite bound
+  `managed = False`.
+- **media_viewer** — artifact upload, manifest, thumbnails, streaming. File
+  store under `data/artifacts/`.
+
+`jobs/`, `notes/`, and `projects/` are placeholder directories containing only a
+README — no backend, frontend, tools, routes, or tab. Note that project
+management is implemented in `projectmanager/`, not `projects/`.
+
+Each app directory includes a README describing its actual layout. See
+`utils/apps/README.md` for tool counts and per-app deviations from the standard
+layout.
 
 ## Structured Output for App Work
 

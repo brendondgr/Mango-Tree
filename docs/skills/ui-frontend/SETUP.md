@@ -13,17 +13,30 @@ The frontend target is a React/Vite SPA with shadcn/ui and a swappable theme sys
 
 ## Implementation Expectations
 
-- Keep placeholders minimal and structural until the React/Vite scaffold replaces the legacy Astro skeleton.
 - Use `docs/platform.md` and `docs/api.md` as the source of truth.
-- Do not invent backend endpoints before `docs/api.md` defines them.
-- Do not extend the legacy Astro/UnoCSS skeleton.
-- Call `initTheme()` at app boot; add new themes by extending `web/src/styles/themes/` and `web/src/lib/theme.ts`.
+- Do not call a backend endpoint before `docs/api.md` defines it.
+- Do not import a library that is not in `web/package.json`. There is no form,
+  validation, charting, or command-palette library installed.
+- Call `initTheme()` at app boot; add new themes by extending
+  `web/src/styles/themes/` and `web/src/lib/theme.ts`. A new theme must define
+  every token in `web/src/lib/themeMeta.ts` or `themeContract.test.ts` fails.
+- Style from theme tokens, never raw hex. Chrome uses semantic tokens; distinct
+  colors are for data categories only.
 
 ## Commands
 
 ```bash
-cd web
-npm install
-npm run dev
-npm run build
+cd web && npm install
+```
+
+```bash
+cd web && npm run dev
+```
+
+```bash
+cd web && npm test
+```
+
+```bash
+cd web && npm run build
 ```

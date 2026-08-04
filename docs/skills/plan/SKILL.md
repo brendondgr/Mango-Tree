@@ -28,14 +28,17 @@ Plan work as a sequence of small, verifiable changes for a local-first agent pla
 
 ## Build Sequence Reference
 
-Follow the build sequence in `docs/platform.md`:
+The platform shell, API layer, agent loop, and eight app modules are built. New
+work is normally one of:
 
-1. Create the new `web/` application shell.
-2. Define app boundaries under `utils/apps/{app_name}`.
-3. Build the shared API and tool interfaces.
-4. Migrate one app at a time.
-5. Connect the agent layer to the same app tools used by the UI.
-6. Delete old frontend artifacts after replacement is complete.
+1. Add or extend an app under `utils/apps/{app_name}` — services first, then DRF
+   routes, then agent tools, then the workspace tab.
+2. Migrate a standalone app in, following `docs/skills/app-migration/`.
+3. Change the agent loop or tool registry under `utils/agents/`.
+4. Change shell UI under `web/src/`.
+
+Whichever it is, keep API and agent tool parity: a capability exposed to the UI
+should be reachable by the agent through a tool calling the same service.
 
 ## Expected Plan Shape
 

@@ -1,27 +1,50 @@
 # Website Architecture Setup
 
-Mango Tree uses a React/Vite frontend architecture. A legacy Astro skeleton may remain until Phase 1 of the rebuild replaces it.
+A React/Vite SPA under `web/`, fully built and wired to the backend.
 
 ## Decisions
 
-- Application type: React/Vite SPA with TanStack Router and Query.
-- Styling: Tailwind CSS, shadcn/ui, swappable theme tokens (Canva-inspired default).
+- Application type: React 19 / Vite 7 SPA with TanStack Router and Query.
+- Styling: Tailwind v4, shadcn/ui, eight swappable themes across four families.
 - Package manager: npm.
-- Auth: none implemented yet; docs should reserve future local operator or admin boundaries.
-- Data: static placeholder data only until DRF endpoints exist.
-- API: documented contract in `docs/api.md`.
-- Deployment: local development first.
+- Auth: implemented — single-owner session cookie, `AuthGate` on protected
+  routes, CSRF header on state-changing requests.
+- Data: live DRF endpoints for auth and all eight apps. No placeholder data.
+- API: contract in `docs/api.md`.
+- Testing: Vitest with Testing Library, `*.test.ts(x)` beside the source.
+- Deployment: local development.
+
+## Ports
+
+Vite runs on **5173** and proxies `/api` to Django on **32553** with
+`changeOrigin: false` — the Host header must survive for Django's CSRF origin
+check. `/v1` and `/tokenize` proxy to the LLM server on **9090**.
 
 ## Commands
 
 ```bash
-cd web
-npm install
-npm run dev
-npm run build
-npm run preview
+cd web && npm install
+```
+
+```bash
+cd web && npm run dev
+```
+
+```bash
+cd web && npm test
+```
+
+```bash
+cd web && npm run build
+```
+
+Or start Django and Vite together from the repo root:
+
+```bash
+python run.py
 ```
 
 ## Required Docs
 
-Keep `docs/platform.md` and `docs/api.md` synchronized with frontend changes.
+Keep `docs/platform.md` (routes, component map, workspace behaviour) and
+`docs/api.md` (endpoints) synchronized with frontend changes.

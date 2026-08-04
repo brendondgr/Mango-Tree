@@ -1,37 +1,53 @@
 # Data Visualization
 
-Use Recharts for analytics and dashboard charts. Colors come from the active theme tokens.
+**No charting library is installed.** There is no Recharts, no D3, no Chart.js.
+Existing charts — for example the Time Keeper dashboard
+(`utils/apps/timekeeper/frontend/components/DashboardView.tsx`) — are built from
+plain CSS: proportional bars sized with a percentage width and coloured from
+theme tokens.
 
-## Chart Types
+Build charts the same way, or add the dependency deliberately and update this
+document. Do not write code that imports a chart library that is not in
+`web/package.json`.
 
-| Type | Usage |
+## Approach
+
+| Need | Build with |
 | --- | --- |
-| LineChart | Time series, agent activity, job throughput |
-| BarChart | Comparisons, category counts |
-| AreaChart | Cumulative metrics, memory usage |
-| PieChart | Proportional breakdowns (use sparingly) |
+| Proportional comparison | Flex row of divs, each `width: {pct}%`, coloured by category token |
+| Time series | A row of bars keyed by bucket, height as a percentage of the max |
+| Proportional breakdown | Stacked bar, or `conic-gradient` for a ring |
+| Single scalar | A stat card, never a chart |
 
-## Theming
+## Colors
 
-- Primary series: `hsl(var(--primary))` (#7d2ae8 default).
-- Secondary series: `hsl(var(--accent))` (#00c4cc default).
-- Additional series: category tokens (`--category-coral`, `--category-mint`, `--category-sky`, `--category-lavender`, `--category-tangerine`).
-- Grid lines: `hsl(var(--border))`.
-- Axis text: `hsl(var(--muted-foreground))`.
-- Tooltip background: `hsl(var(--card))` with `border-border`.
+- Primary series: `hsl(var(--primary))` (`#7d2ae8` in the default theme).
+- Secondary series: `hsl(var(--accent))` (`#00c4cc`).
+- Additional series: the category tokens `--category-coral`, `--category-mint`,
+  `--category-sky`, `--category-lavender`, `--category-tangerine`.
+- Grid or track: `hsl(var(--border))`.
+- Axis and tick text: `hsl(var(--muted-foreground))`.
+- Tooltip surface: `hsl(var(--card))` with `border-border`.
+
+Never hardcode a hex value — a chart drawn in raw hex breaks in seven of the
+eight themes. Category tokens are the one place distinct colors are correct;
+chrome uses theme tokens.
 
 ## Rules
 
-- Always label axes and provide chart titles.
-- Include a legend when more than one series is present.
-- Empty states show a message and optional action, not a blank chart area.
-- Responsive containers use `ResponsiveContainer` with `width="100%"`.
-- Do not use charts for single scalar values; use stat cards instead.
+- Label axes and give every chart a title.
+- Show a legend when more than one series is present.
+- An empty state is a message and optional action, not a blank plotting area.
+- Charts must resize with their container — percentage widths, not fixed pixels.
+- Do not chart a single scalar; use a stat card.
 
 ## Stat Cards
 
-Use shadcn Card with large value text (`text-2xl font-semibold`) and muted label (`text-sm text-muted-foreground`). Trend indicators use success/destructive colors with arrow icons.
+shadcn `Card` with a large value (`text-2xl font-semibold`) and a muted label
+(`text-sm text-muted-foreground`). Trend indicators use success/destructive
+colors with arrow icons.
 
 ## Tables
 
-Use shadcn Table for tabular data. Sortable columns, pagination, and row selection for bulk actions. Header background uses `bg-secondary`.
+shadcn `Table`. Sortable columns, pagination, and row selection for bulk
+actions. Header background uses `bg-secondary`.

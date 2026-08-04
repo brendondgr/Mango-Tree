@@ -39,6 +39,9 @@ Solid purple primary: background `hsl(var(--primary))`, hover `hsl(var(--primary
 - Compact: `h-8` (32px) for dense toolbars and table rows.
 - Large: `h-11` for prominent empty-state CTAs.
 
-## Command Palette
+## Slash-command menu
 
-Command palette actions use cmdk items styled consistently with ghost buttons. Keyboard shortcuts display in muted text on the right.
+There is no command palette and no `cmdk` dependency. The chat composer's
+slash-command menu (`SlashCommandMenu.tsx`) styles its items like ghost buttons,
+with the command name on the left and its description in muted text on the
+right. Match that if you add a similar list.

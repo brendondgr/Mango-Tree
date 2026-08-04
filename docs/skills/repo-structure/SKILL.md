@@ -34,21 +34,25 @@ Mango Tree is a local personal agent platform. It routes user requests through a
     |   |-- middleware/
     |   `-- schemas/
     |-- apps/                  # per-app domain modules
-    |   |-- projects/
-    |   |-- notes/
-    |   |-- jobs/
-    |   |-- calendar/
-    |   |-- recipes/
-    |   |-- imdbspy/
-    |   |-- exercise/
-    |   `-- timekeeper/
+    |   |-- mailbox/           # implemented
+    |   |-- calendar/          # implemented
+    |   |-- exercise/          # implemented
+    |   |-- recipes/           # implemented
+    |   |-- imdbspy/           # implemented
+    |   |-- timekeeper/        # implemented
+    |   |-- projectmanager/    # implemented
+    |   |-- media_viewer/      # implemented
+    |   |-- jobs/              # placeholder — README only
+    |   |-- notes/             # placeholder — README only
+    |   `-- projects/          # placeholder — README only
     |-- shared/                # cross-app foundations
-    |   |-- auth/
-    |   |-- permissions/
-    |   |-- storage/
-    |   |-- search/
-    |   |-- embeddings/
-    |   `-- events/
+    |   |-- auth/              # implemented
+    |   |-- search/            # implemented
+    |   |-- llm/               # implemented
+    |   |-- events/            # artifact traces only
+    |   |-- permissions/       # placeholder — no code
+    |   |-- storage/           # placeholder — no code
+    |   `-- embeddings/        # placeholder — no code
     |-- scripts/               # dev + link-skills scripts
     `-- tests/                 # grouped by subsystem
 ```

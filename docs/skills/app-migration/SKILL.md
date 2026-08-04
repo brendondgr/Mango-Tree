@@ -59,9 +59,12 @@ must not violate them:
 2. **API ↔ agent parity.** Any capability the UI can reach through the API must be
    reachable by an agent through a registered tool that calls the *same* service
    function. Agent-only capabilities must be justified in the app README.
-3. **Permissions in code, not prompts.** Filesystem, network, dataset, and namespace
-   scopes are enforced through `utils/shared/permissions/` and the tool's
-   `ExecutionContext`, declared in `config/permissions.yaml`.
+3. **Permissions in code, not prompts.** Declare the app's filesystem and network
+   scopes in `config/permissions.yaml`, and add a test asserting the paths and
+   hosts the app actually uses match what it declared — that file is validated by
+   tests, not loaded at runtime, so the test is the enforcement. There is no
+   shared `ExecutionContext`. Enforce irreversible actions with an explicit
+   `confirm: true` parameter on the tool, as mailbox does.
 4. **Stable error codes.** Services raise typed errors that map to
    `validation_error`, `permission_denied`, `not_found`, `conflict`, `internal_error`.
 5. **Document before frontend.** Endpoints appear in `docs/api.md` before any
@@ -154,7 +157,7 @@ Goal: decide where every inventoried item lands, and in what order, before writi
    | Data models / schema | `utils/apps/{name}/backend/models/` |
    | Business rules / services | `utils/apps/{name}/backend/services/` |
    | Cross-layer domain helpers | `utils/apps/{name}/shared/` |
-   | Background jobs | `utils/apps/{name}/backend/tasks/` (Celery) |
+   | Background jobs | `utils/apps/{name}/backend/tasks/` (called inline — no broker) |
    | HTTP routes (the *behavior*) | `utils/apps/{name}/backend/api/` (DRF views) → `utils/api/routes/{name}.py` |
    | Each agent-exposable capability | `utils/apps/{name}/agent/tools.py` + `config/tools.yaml` |
    | External I/O scopes | `config/permissions.yaml` |
@@ -228,9 +231,10 @@ The short version of the three strategies (full detail in `database-preservation
 - **Inspect and adopt:** run `uv run manage.py inspectdb` against the legacy database
   to generate models from the live schema, then curate them into
   `backend/models/`. Decide per table whether Django manages it going forward.
-- **Migrate with data:** when consolidating into the platform's PostgreSQL/pgvector
-  instance, recreate the schema via Django migrations, then move the rows with a data
-  migration or an ETL script. Verify row counts and checksums before and after.
+- **Migrate with data:** when the app should own a Django-managed SQLite database
+  (as imdbspy does), recreate the schema via Django migrations, then move the rows
+  with a data migration or an ETL script. Verify row counts and checksums before
+  and after.
 
 **Validate:** a read-only script lists existing records through the new models and the
 counts match the legacy source.
@@ -250,8 +254,9 @@ web framework as you go.
 3. Define DTOs in `shared/schemas.py` (dataclasses or Pydantic, matching media_viewer)
    and typed errors in `shared/errors.py` that carry a stable `code`, `message`, and
    `details`, mapping to the five platform error codes.
-4. Move background jobs into `backend/tasks/` as Celery tasks whose bodies only
-   delegate to services.
+4. Move background jobs into `backend/tasks/` as plain functions whose bodies only
+   delegate to services. There is no task queue — a job runs inline when the API
+   or an agent tool calls it, so keep it fast or make it explicitly triggered.
 5. Do **not** duplicate logic between layers. A service is the single source of truth
    for one operation.
 

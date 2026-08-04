@@ -16,7 +16,7 @@ same problem as Flask.
 | Business logic | `crud.py`, service modules, or inline in path ops | `backend/services/` (move/extract) |
 | Dependencies (`Depends`) | `dependencies.py` | split: data access → services; auth → `utils/shared/auth` |
 | HTTP routes | `APIRouter` path operations | `backend/api/` + `utils/api/routes/{name}.py` |
-| Background jobs | `BackgroundTasks`, Celery, ARQ | `backend/tasks/` (Celery) |
+| Background jobs | `BackgroundTasks`, Celery, ARQ | `backend/tasks/` (inline — no broker) |
 | DB config | `database.py` engine/session | platform DB config (see DB preservation) |
 | Migrations | Alembic `versions/` | basis for DB preservation |
 | Auth | OAuth2/JWT dependencies | reconcile with `utils/shared/auth` + `permissions` |
@@ -29,13 +29,13 @@ same problem as Flask.
   Reuse the field definitions; don't keep FastAPI imports in services.
 - **`Depends` injection.** Database-session dependencies become explicit service
   arguments (and a session/store handle the agent tool can inject for testing). Auth
-  dependencies move to `utils/shared/auth` + `permissions`.
+  dependencies drop entirely — the platform gates every endpoint with its own
+  session auth (`utils/shared/auth`).
 - **`crud.py` is already most of a service layer** — moving it to `backend/services/`
   is usually low-friction; strip any FastAPI/`Session`-as-global coupling.
-- **Async.** Source code may be `async def`. Django/DRF here is ASGI (Uvicorn), so
-  async services are fine, but keep agent tools and Celery tasks consistent with how
-  the rest of the platform calls services; prefer making the service the boundary and
-  letting each caller adapt.
+- **Async.** Source code may be `async def`. This platform runs Django synchronously
+  under `runserver`, and both DRF views and agent tools call services synchronously.
+  Convert `async def` services to sync, or keep a sync wrapper as the boundary.
 - **SQLAlchemy/SQLModel → Django models:** same preservation rules as Flask — see
   `flask.md` and `../database-preservation.md`. Match `__tablename__`, columns,
   nullability, defaults, and indexes exactly.

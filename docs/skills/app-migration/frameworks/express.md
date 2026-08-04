@@ -15,7 +15,7 @@ effort and more tests. The data, however, can still be preserved unchanged.
 | Business logic | inline in route handlers, `controllers/`, `services/` | `backend/services/` (re-implement in Python) |
 | HTTP routes | `express.Router()`, `app.use()` | `backend/api/` + `utils/api/routes/{name}.py` |
 | Validation | Joi/Zod/express-validator | `shared/schemas.py` + DRF serializers |
-| Background jobs | BullMQ, Agenda, node-cron | `backend/tasks/` (Celery) |
+| Background jobs | BullMQ, Agenda, node-cron | `backend/tasks/` (inline — no broker) |
 | DB config | `DATABASE_URL` / ORM config | platform DB config (see DB preservation) |
 | Auth | Passport/JWT middleware | `utils/shared/auth` + `permissions` |
 | Views / static | EJS/Pug templates, `public/` | discard; rebuild as `frontend/` + tab |

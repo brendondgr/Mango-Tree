@@ -6,7 +6,7 @@ Use Framer Motion for purposeful transitions; avoid decorative animation. Durati
 
 - Page transitions within the SPA shell (subtle fade/slide).
 - Modal and sheet enter/exit.
-- Command palette open/close.
+- Popover and slash-command menu open/close.
 - Agent chat message appearance (fade-in, stagger for batches).
 - Loading skeleton pulse (prefer shadcn Skeleton component).
 - Card hover lift: `translateY(-2px)` + shadow grow.
@@ -18,7 +18,8 @@ Use Framer Motion for purposeful transitions; avoid decorative animation. Durati
 - Respect `prefers-reduced-motion`: disable or simplify animations when set.
 - Do not animate layout-critical properties (width, height) unless using layout animations intentionally.
 - Loading indicators use CSS spin on Loader2; avoid custom spinners.
-- Chart animations (Recharts) use default enter animations at reduced duration.
+- Charts are hand-built (see `data-viz.md`); animate a bar's width or height
+  with a `--motion-base` transition, and skip it under `prefers-reduced-motion`.
 
 ## Prohibited
 

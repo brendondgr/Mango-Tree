@@ -9,7 +9,12 @@ Use shadcn/ui DropdownMenu, Select, and Popover components.
 | DropdownMenu | Action menus, context menus, user menus |
 | Select | Form field with fixed options |
 | Popover | Date pickers, filters, compact panels |
-| Command (cmdk) | Searchable option lists, command palette |
+
+`cmdk` is **not installed**, so there is no shadcn `Command` component. The
+closest existing pattern is the chat slash-command menu
+(`web/src/features/chat/components/SlashCommandMenu.tsx`), a filtered list
+rendered inline above the composer. Follow it for searchable option lists rather
+than adding a dependency.
 
 ## Rules
 

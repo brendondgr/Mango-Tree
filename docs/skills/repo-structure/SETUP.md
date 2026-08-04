@@ -4,14 +4,15 @@ This repository is configured as a local-first Django/DRF platform with LangGrap
 
 ## Defaults
 
-- Primary runtime: Python with `uv`.
-- Backend: Django, DRF, Celery, PostgreSQL.
-- Agent layer: LangGraph under `utils/agents/`.
+- Primary runtime: Python 3.13+ with `uv`.
+- Backend: Django 5.2 and DRF over SQLite. No task queue, no PostgreSQL.
+- Agent layer: LangGraph under `utils/agents/` — one graph, in `coordinator/`.
 - Frontend runtime: Node with `npm`, under `web/`.
 - Repository shape: monorepo with modular apps under `utils/apps/`.
 - Shared code: app services in `utils/apps/{name}/`; cross-app utilities in `utils/shared/`.
-- API contracts: `docs/api.md` until generated OpenAPI schemas exist.
-- Tests: grouped by agents, api, utils/apps, utils/shared, and web.
+- API contracts: `docs/api.md`. There is no generated OpenAPI schema.
+- Tests: `utils/tests/` grouped by agents, api, config, utils/apps, utils/shared.
+  Frontend tests live beside their source under `web/src/`.
 
 ## Required Documentation
 
@@ -23,13 +24,13 @@ Maintain these files:
 ## Validation Commands
 
 ```bash
-# Backend (when implemented)
-uv run manage.py test
 uv run manage.py migrate
+```
 
-# Agents and utils
+```bash
 uv run pytest
+```
 
-# Frontend (when React/Vite scaffold exists)
-cd web && npm run dev && npm run build
+```bash
+cd web && npm test && npm run build
 ```

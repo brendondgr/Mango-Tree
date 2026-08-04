@@ -37,7 +37,8 @@ This is the easiest source because the target is also Django/DRF. The work is mo
 - **Signals.** Django signals are a common hiding place for business rules. Inventory
   `signals.py` and `apps.py` `ready()` hooks; decide whether each becomes a service
   call or stays a signal.
-- **Management commands** that do real work become Celery tasks or service entrypoints.
+- **Management commands** that do real work become service entrypoints, called
+  inline by a view or an agent tool. There is no task queue to hand them to.
 
 ## Parity mapping
 

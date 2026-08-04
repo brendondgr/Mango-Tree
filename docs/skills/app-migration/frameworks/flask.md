@@ -34,9 +34,9 @@ from `../database-preservation.md`:
   just reads/writes the existing rows.
 - **Inspect and adopt:** point Django's `DATABASES` at the legacy DB and run
   `uv run manage.py inspectdb` to generate models from the live schema, then curate.
-- **Migrate with data:** only if you are deliberately consolidating into the platform
-  PostgreSQL/pgvector instance; recreate via Django migrations and move rows with a
-  verified ETL.
+- **Migrate with data:** only if the app should own a Django-managed SQLite database
+  with real migrations (as imdbspy does); recreate via Django migrations and move
+  rows with a verified ETL.
 
 Map SQLAlchemy column types to Django fields carefully (e.g. `db.String(n)` →
 `CharField(max_length=n)`, `db.Text` → `TextField`, `db.Integer` → `IntegerField`,

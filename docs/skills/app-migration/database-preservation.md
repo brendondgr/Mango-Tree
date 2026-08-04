@@ -14,9 +14,10 @@ Pick exactly one strategy in Stage 1 and record why. The default is **Strategy A
 Best when the legacy database stays where it is and you only need the platform to read
 and write it. Nothing about the stored data changes.
 
-1. Add the legacy database to the platform's `DATABASES` (either as `default` if this
-   app owns the DB, or as a named connection with a database router if it coexists with
-   the platform's own Postgres).
+1. Add the legacy database to the platform's `DATABASES` as a **named connection**
+   with a `db_router.py` registered in `DATABASE_ROUTERS`, and give it a
+   `MANGO_{APP}_DB` environment override. Never make it `default` — that connection
+   holds the platform's own auth tables.
 2. Define Django models that map **exactly** to the existing tables, and set
    `managed = False` so Django never issues DDL against them:
 
@@ -76,11 +77,11 @@ app with hand-rolled SQL, or you want Django's view of the live schema).
 
 ---
 
-## Strategy C — Migrate the data into the platform database
+## Strategy C — Migrate the data into a Django-managed database
 
-Choose this only when you are deliberately consolidating the app into the platform's
-PostgreSQL/pgvector instance (e.g. to use shared search/embeddings/events). The schema
-is recreated by Django and the rows are moved with verification.
+Choose this when the app should own a Django-managed SQLite database with real
+migrations, as imdbspy does. The schema is recreated by Django and the rows are
+moved with verification.
 
 1. Define normal managed Django models in `backend/models/` matching the legacy schema's
    meaning (you may modernize column names here since data is being copied, not bound).
@@ -109,7 +110,7 @@ byte-for-byte equivalent in meaning. Document any intentional transformations.
 | --- | --- |
 | Legacy DB stays put; just need access | A — bind to existing |
 | No clean models; want Django's view of the live schema | B — inspect and adopt |
-| Consolidating into platform Postgres/pgvector | C — migrate with verification |
+| App should own a Django-managed schema | C — migrate with verification |
 
 When unsure, start with **A**: it is the lowest-risk way to satisfy "keep the data the
 same," and you can move to B or C later as a separate, verified milestone.
