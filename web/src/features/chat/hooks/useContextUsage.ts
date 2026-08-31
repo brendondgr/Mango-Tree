@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ChatMessage } from "@/app/stores/workspaceStore";
 import type { PendingAttachment } from "@/features/chat/types/attachment";
 import { buildLlmMessages } from "@/features/chat/utils/buildLlmMessageContent";
-import { estimateMessageTokens } from "@/services/estimateTokens";
+import { ensureTokenizer, estimateMessageTokens } from "@/services/estimateTokens";
 import { fetchModelMaxContext } from "@/services/llmModelInfo";
 import { tokenizeMessages } from "@/services/llmTokenize";
 import type { LlmConfig, LlmUsage } from "@/services/llmTypes";
@@ -126,9 +126,15 @@ export function useContextUsage(
             return;
           }
 
-          const estimate = estimateMessageTokens(payloadMessages);
-          setUsedTokens(estimate.count);
-          setIsEstimated(true);
+          // This path is already async and debounced, so it can afford to
+          // wait for the tokenizer chunk and give an exact count rather than
+          // the characters-per-token heuristic.
+          return ensureTokenizer().then(() => {
+            if (controller.signal.aborted) return;
+            const estimate = estimateMessageTokens(payloadMessages);
+            setUsedTokens(estimate.count);
+            setIsEstimated(true);
+          });
         })
         .finally(() => {
           if (!controller.signal.aborted) {
