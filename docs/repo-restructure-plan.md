@@ -3,8 +3,13 @@
 **Date** 2026-08-31 · **Findings** [`docs/repo-audit.md`](repo-audit.md) ·
 **Scope** [`repo-profile.yaml`](../repo-profile.yaml)
 
-Nothing below has been applied. Approve per stage or per line; partial approval
-is normal and expected, especially around Stage 1 and Stage 6, which change what
+**Status: Stages 1-3 applied 2026-08-31** — commits `022e2b0`, `b8f4724`,
+`76dea56`, with the measured before/after in
+[`docs/repo-audit.md`](repo-audit.md) §9. Stages 4-7 are not started. Items
+marked ⚠ BLOCKED ON YOU inside Stages 1-3 were left undone and are listed again
+at the foot of this file.
+
+Approve per stage or per line; partial approval is normal and expected, especially around Stage 1 and Stage 6, which change what
 the project *claims* rather than what it does.
 
 Stages are ordered by dependency, not by effort. **Stages 1 and 2 merge on their
@@ -15,7 +20,7 @@ appropriate (report §6).
 
 ---
 
-## Stage 1 — Truth
+## Stage 1 — Truth  ✅ applied, except the About line
 
 Nothing here is cosmetic. Each item is a claim the repository does not back.
 
@@ -56,7 +61,7 @@ is yours and its claims check out; §2 of the report is the evidence.
 
 ---
 
-## Stage 2 — Runnable  ⛔ the gate
+## Stage 2 — Runnable  ✅ applied — the gate now passes (29.5 s, one command)
 
 One root cause — `data/` is gitignored and nothing creates it — behind both
 blockers and the seven-step setup. One entrypoint fixes all three.
@@ -112,7 +117,7 @@ python3 <repo-audit>/scripts/check_runnable.py . --from-clean-clone --container 
 
 ---
 
-## Stage 3 — Legal and hygiene
+## Stage 3 — Legal and hygiene  ✅ applied
 
 ```
 NEW    LICENSE                MIT, © 2026 brendondgr        (your choice, B3)

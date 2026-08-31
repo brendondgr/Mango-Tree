@@ -54,7 +54,7 @@ Sampled every countable claim in `README.md` against the code:
 | `planner/` and `memory/` are empty placeholders | README:61 | `git ls-files` → `__init__.py` + `README.md` only | **true** |
 | No Postgres/Redis/Celery/S3 | README:80 | dependency scan of `pyproject.toml` | **true** |
 | Secure-cookie trap | README:167-171 | matches `config/django/settings.py` and `.env.example` | **true** |
-| Every documented file and command exists | whole file | `audit_docs.py --all` | **no stale paths** |
+| Every documented file and command exists | whole file | `audit_docs.py --all` | **no stale paths** — the 27 reported path misses are all false positives (a sentence saying `agents.yaml` does *not* exist, build outputs under `dist/`, and the two historical audit documents) |
 
 A README whose numbers all survive a recount is the strongest signal in this
 audit. The exception is not in the README at all — it is the repository
@@ -363,3 +363,92 @@ frame, and it is why B1–B4 outrank everything cosmetic.
 | Secrets in tree or history | none found |
 | LICENSE · topics · social preview | absent · none · none |
 | Commits unpushed | 16 |
+
+---
+
+## 9. Re-audit — Stages 1-3 applied, 2026-08-31
+
+Same instruments, same commands, so these are comparable numbers rather than an
+impression. Stages 4-7 are untouched.
+
+### The runnable gate
+
+Clean `git clone` into `node:22-bookworm` with uv installed, one command:
+
+| | Before | After |
+| --- | --- | --- |
+| Steps to first run | 7 | **1** (`./scripts/bootstrap`) |
+| Clean-clone setup | **fails at step 6** | **passes, 29.5 s** including `npm install` |
+| `migrate --database=imdbspy` | `OperationalError` | OK |
+| `uv run pytest` | 3 failed · 459 passed · **170 errors** | **65 failed · 567 passed · 0 errors** |
+
+**The gate passes.** B1 is closed outright. B2 is closed as far as it can be
+without a decision from you: the 170 errors were a missing schema and are gone,
+and the 65 remaining failures are a different problem the first one was hiding —
+those tests assert against *rows* in the legacy databases (`EXPECTED_COUNTS
+["workouts"] == 7`, a seeded category taxonomy), so they can only pass on an
+install holding that data. See §10.
+
+Verified separately: `init_data.py` run against this working install created
+nothing and changed nothing (`left alone: 4`), and the local suite is unmoved at
+9 failed / 623 passed.
+
+### Findings closed
+
+| # | Was | Now |
+| --- | --- | --- |
+| B1 | setup fails on clean clone | fixed — `utils/scripts/init_data.py` |
+| B2 | 170 test errors | 170 → 0; 65 data-dependent failures remain, §10 |
+| B3 | no LICENSE | MIT at root, `license = "MIT"` in `pyproject.toml` |
+| M1 | 7 steps, no entrypoint | `scripts/{bootstrap,server,test}` |
+| M4 | `bdgrskills` / "Add your description here" | named, described, licensed |
+| M6 | README claimed all SQLite lives under `data/` | corrected in `README.md` and `config/README.md`, which now also says the "test"-named file is not a test artifact |
+| m2 | layout tree missing four entries | trimmed and corrected |
+| m3 | no prerequisites line | git · uv · Python 3.13 · Node, above the command |
+| m4 | `git clone <repository-url>` | the real remote |
+
+`audit_structure.py` hygiene row is now
+`license: LICENSE · contributing: CONTRIBUTING.md · security: SECURITY.md`.
+`check_links.py`: 23 internal, 3 external, **all resolve** — one link written
+during this work (a GitHub advisory URL) was caught by the check as a 404 on a
+private repo and replaced with prose before it was committed.
+
+### Still open
+
+| # | Why it is still open |
+| --- | --- |
+| B4 | the About description — **blocked on your wording** |
+| M2 | no screenshots — Stage 5, needs credentials or a throwaway instance |
+| M3 | no Why — **blocked on you**; `audit_readme.py` still reports it |
+| M5 | now 20 commits unpushed |
+| m1 | status is at line 271 of 284 — moving it is part of the Stage 5 rewrite |
+| m5, m6, m7 | Stages 4, 6, 7 — not started |
+| m8 | the three `read_artifact` tests are still red |
+
+---
+
+## 10. The finding that only appeared once B2 was fixed
+
+```
+[MAJOR · FUNCTIONAL] 65 backend tests require the maintainer's own data
+  where:    utils/tests/utils/apps/{exercise,projectmanager,timekeeper}/
+  observed: assert Workout.objects.count() == EXPECTED_COUNTS["workouts"]
+            → assert 0 == 7
+            ValueError: max() iterable argument is empty
+            test_get_categories_returns_seeded_taxonomy → []
+  why:      These assert against rows in the databases the three apps were
+            migrated from. Schema is no longer the problem; content is. Nobody
+            who clones this repo can make them pass, which means the suite is
+            permanently red for every reader — and a permanently red suite
+            trains everyone to stop reading it.
+  three ways out, and it is your call:
+    (a) ship a small non-personal sample dataset that init_data.py seeds, and
+        recalibrate the count assertions against it. Most honest; most work.
+    (b) mark them `@pytest.mark.needs_legacy_data` and skip when the bound
+        database is empty. They stay green where the data exists and report as
+        skipped, with a reason, where it does not. Cheapest; ~65 annotations.
+    (c) leave them, and keep the README paragraph that explains the 65.
+        Applied today, and the correct interim state either way.
+  effort:   (b) is ~2 h and is my recommendation.
+  ⚠ BLOCKED ON YOU
+```
