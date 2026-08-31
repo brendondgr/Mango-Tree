@@ -111,9 +111,12 @@ def run(base: str, width: int, height: int, shot_dir: pathlib.Path | None) -> in
                        str(exc).splitlines()[0][:120])
 
         # 3. The chat surface must be reachable and usable.
+        #    Matched by accessible name, not by a specific attribute: the
+        #    control is an icon button with a visible label in one shell and an
+        #    aria-label in the other, and the gate should not care which.
         opened = False
-        for label in ("Chat", "Open chat"):
-            control = page.locator(f'[aria-label="{label}"]').first
+        for name in ("Chat", "Open chat"):
+            control = page.get_by_role("button", name=name, exact=True).first
             if control.count():
                 try:
                     control.tap(timeout=4000)

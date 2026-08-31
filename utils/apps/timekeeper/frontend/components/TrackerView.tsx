@@ -94,6 +94,7 @@ export function TrackerView({ categories }: Props) {
         <div className="flex items-center gap-2">
           <Input
             type="date"
+            aria-label="Day to track"
             value={date}
             onChange={(e) => setDate(e.target.value)}
             className="w-40"

@@ -403,7 +403,7 @@ export function ChatComposer({
       </label>
       <div
         className={cn(
-          "rounded-[var(--radius-lg)] border border-border bg-background transition-shadow focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/15",
+          "rounded-[var(--radius-lg)] border border-border bg-background transition-shadow focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/25",
           isDragging && "border-primary ring-[3px] ring-primary/15",
         )}
         onDragOver={(e) => {
@@ -441,6 +441,11 @@ export function ChatComposer({
             multiple
             accept={FILE_INPUT_ACCEPT}
             className="sr-only"
+            // Opened by the visible attach button, so it should not be its own
+            // tab stop — but it still needs a name, since sr-only leaves it in
+            // the accessibility tree.
+            aria-label="Attach files"
+            tabIndex={-1}
             disabled={inputDisabled}
             onChange={(e) => {
               if (e.target.files) {

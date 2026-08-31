@@ -103,6 +103,18 @@ describe("shipped theme contrast", () => {
       CONTRAST_AA_TEXT,
       "destructive button label",
     ],
+    [
+      "--primary-emphasis",
+      "--card",
+      CONTRAST_AA_TEXT,
+      "primary-coloured text on a card",
+    ],
+    [
+      "--primary-emphasis",
+      "--background",
+      CONTRAST_AA_TEXT,
+      "primary-coloured text on the page",
+    ],
     // 1.4.11: the focus ring is the whole basis of keyboard operability. Two
     // themes used to fail this because --ring was welded to --primary.
     ["--ring", "--background", CONTRAST_AA_NON_TEXT, "focus ring on the page"],

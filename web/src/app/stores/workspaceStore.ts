@@ -1,7 +1,11 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { SIDEBAR_DEFAULT, clampSidebarWidth } from "@/lib/shellGeometry";
+import {
+  MOBILE_BREAKPOINT,
+  SIDEBAR_DEFAULT,
+  clampSidebarWidth,
+} from "@/lib/shellGeometry";
 
 import type { ChatAttachment } from "@/features/chat/types/attachment";
 import type { ChatReference } from "@/features/agent/types";
@@ -177,9 +181,19 @@ export function clampViewerMediaFraction(fraction: number): number {
   );
 }
 
+/**
+ * Which destination the compact shell is showing.
+ *
+ * On a narrow viewport the chat is a full-screen view, not an overlay. The
+ * previous drawer sat under its own backdrop and 44px past the bottom of the
+ * viewport, so it could be opened but never used; a view swap has no z-order
+ * or height to get wrong.
+ */
+export type CompactView = "chat" | "workspace";
+
 interface WorkspaceState {
   sidebarWidth: number;
-  mobileDrawerOpen: boolean;
+  compactView: CompactView;
   lastWidth: number;
   isTyping: boolean;
   activeTab: WorkspaceTabId;
@@ -214,7 +228,7 @@ interface WorkspaceState {
   /** Whether the composer tool-toggle popover is open (driven by /tools too). */
   toolGroupsPopoverOpen: boolean;
   setSidebarWidth: (width: number, maxWidth?: number) => void;
-  setMobileDrawerOpen: (open: boolean) => void;
+  setCompactView: (view: CompactView) => void;
   setLastWidth: (width: number) => void;
   setIsTyping: (typing: boolean) => void;
   setActiveTab: (tab: WorkspaceTabId) => void;
@@ -279,7 +293,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
   persist(
     (set, get) => ({
       sidebarWidth: SIDEBAR_DEFAULT,
-      mobileDrawerOpen: false,
+      compactView: "workspace",
       lastWidth: SIDEBAR_DEFAULT,
       isTyping: false,
       activeTab: "apps",
@@ -317,7 +331,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         set(updates);
       },
 
-      setMobileDrawerOpen: (open) => set({ mobileDrawerOpen: open }),
+      setCompactView: (view) => set({ compactView: view }),
 
       setLastWidth: (width) => set({ lastWidth: width }),
 
@@ -427,15 +441,21 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
       setArtifactNotice: (message) => set({ artifactNotice: message }),
 
+      /**
+       * Bring the chat into view, whichever shell is active. On compact that
+       * means switching destination; on desktop, un-collapsing the sidebar.
+       * The breakpoint is read from shellGeometry rather than a literal, which
+       * is how this used to drift from the CSS.
+       */
       expandSidebar: () => {
-        const state = get();
-        const isMobile =
+        const isCompact =
           typeof window !== "undefined" &&
-          window.matchMedia(`(max-width: ${820}px)`).matches;
-        if (isMobile) {
-          set({ mobileDrawerOpen: true });
+          window.matchMedia(MOBILE_BREAKPOINT).matches;
+        if (isCompact) {
+          set({ compactView: "chat" });
           return;
         }
+        const state = get();
         if (state.sidebarWidth === 0) {
           set({ sidebarWidth: state.lastWidth || SIDEBAR_DEFAULT });
         }
@@ -523,7 +543,9 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
       toggleSidebar: (mobile) => {
         if (mobile) {
-          set((state) => ({ mobileDrawerOpen: !state.mobileDrawerOpen }));
+          set((state) => ({
+            compactView: state.compactView === "chat" ? "workspace" : "chat",
+          }));
           return;
         }
         const state = get();
@@ -578,9 +600,15 @@ export const useWorkspaceStore = create<WorkspaceState>()(
   ),
 );
 
+/**
+ * Whether the chat panel is currently hidden.
+ *
+ * The two shells hide it in different ways: compact switches to another
+ * destination, desktop collapses the sidebar to zero width.
+ */
 export function selectSidebarCollapsed(
-  isMobile: boolean,
-  state: Pick<WorkspaceState, "sidebarWidth" | "mobileDrawerOpen">,
+  isCompact: boolean,
+  state: Pick<WorkspaceState, "sidebarWidth" | "compactView">,
 ): boolean {
-  return isMobile ? !state.mobileDrawerOpen : state.sidebarWidth === 0;
+  return isCompact ? state.compactView !== "chat" : state.sidebarWidth === 0;
 }

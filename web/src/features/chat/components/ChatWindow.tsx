@@ -34,7 +34,6 @@ import { useLlmConfigStore } from "@/app/stores/llmConfigStore";
 import { runAgentTurn } from "@/features/agent/agentRunner";
 import { useAgentStore } from "@/features/agent/agentState";
 import { useTheme } from "@/hooks/useTheme";
-import { WorkspaceSidebarShell } from "@/features/workspace/components/WorkspaceSidebarShell";
 import { ARTIFACTS_QUERY_KEY } from "@media-viewer/hooks/useArtifacts";
 
 export function ChatWindow() {
@@ -222,15 +221,21 @@ export function ChatWindow() {
   };
 
   return (
-    <WorkspaceSidebarShell>
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-card/80 px-3 backdrop-blur-sm">
-          <div className="min-w-0">
+    <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-card">
+      <header
+        className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-card/80 px-3 backdrop-blur-sm"
+        style={{ minHeight: "var(--header-h)" }}
+      >
+          {/* The compact top bar already names this surface, so repeating the
+              title here would stack two headers in the shell's scarcest
+              vertical space. The actions still belong to the panel. */}
+          <div className="min-w-0 max-app:hidden">
             <p className="truncate text-sm font-semibold tracking-tight text-foreground">
               Mango agent
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1.5 max-app:w-full max-app:justify-end">
             <Button
               type="button"
               variant="outline"
@@ -334,6 +339,6 @@ export function ChatWindow() {
             onSubmit={handleSubmit}
           />
         </div>
-    </WorkspaceSidebarShell>
+    </div>
   );
 }

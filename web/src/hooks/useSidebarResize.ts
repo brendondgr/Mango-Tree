@@ -1,68 +1,63 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import {
-  getSidebarMaxWidth,
-  clampSidebarWidth,
   SIDEBAR_DEFAULT,
-  selectSidebarCollapsed,
-  useWorkspaceStore,
-} from "@/app/stores/workspaceStore";
-import { MOBILE_BREAKPOINT, useMediaQuery } from "@/hooks/useMediaQuery";
+  clampSidebarWidth,
+  getSidebarMaxWidth,
+} from "@/lib/shellGeometry";
 
 const DRAG_THRESHOLD = 4;
+const KEYBOARD_STEP = 24;
 
+/**
+ * Drag-to-resize for the desktop chat column.
+ *
+ * Desktop only: the compact shell has no resizable sidebar, so the mobile
+ * branches this hook used to carry are gone. It drives the drag with pointer
+ * events and `setPointerCapture` rather than four document-level mouse and
+ * touch listeners, so a drag that leaves the handle mid-gesture still tracks.
+ */
 export function useSidebarResize() {
-  const isMobile = useMediaQuery(MOBILE_BREAKPOINT);
   const [isResizing, setIsResizing] = useState(false);
   const [liveWidth, setLiveWidth] = useState<number | null>(null);
   const isResizingRef = useRef(false);
   const didDrag = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(0);
-  const commitWidthRef = useRef(0);
+  const commitWidth = useRef(0);
 
   const sidebarWidth = useWorkspaceStore((s) => s.sidebarWidth);
-  const mobileDrawerOpen = useWorkspaceStore((s) => s.mobileDrawerOpen);
-  const setSidebarWidth = useWorkspaceStore((s) => s.setSidebarWidth);
-  const setMobileDrawerOpen = useWorkspaceStore((s) => s.setMobileDrawerOpen);
-  const toggleSidebar = useWorkspaceStore((s) => s.toggleSidebar);
   const lastWidth = useWorkspaceStore((s) => s.lastWidth);
+  const setSidebarWidth = useWorkspaceStore((s) => s.setSidebarWidth);
+  const toggleSidebar = useWorkspaceStore((s) => s.toggleSidebar);
 
   const displayWidth = liveWidth ?? sidebarWidth;
 
-  const sidebarCollapsed = selectSidebarCollapsed(isMobile, {
-    sidebarWidth,
-    mobileDrawerOpen,
-  });
-
   const beginResize = useCallback(
     (clientX: number) => {
-      if (isMobile) return;
       isResizingRef.current = true;
       setIsResizing(true);
       didDrag.current = false;
       startX.current = clientX;
       const current = sidebarWidth > 0 ? sidebarWidth : lastWidth;
       startWidth.current = current;
-      commitWidthRef.current = current;
+      commitWidth.current = current;
       setLiveWidth(current);
       document.body.style.cursor = "col-resize";
       document.body.style.userSelect = "none";
     },
-    [isMobile, lastWidth, sidebarWidth],
+    [lastWidth, sidebarWidth],
   );
 
-  const onResizeMove = useCallback(
-    (clientX: number) => {
-      if (!isResizingRef.current || isMobile) return;
-      const dx = clientX - startX.current;
-      if (Math.abs(dx) > DRAG_THRESHOLD) didDrag.current = true;
-      const next = clampSidebarWidth(startWidth.current + dx);
-      commitWidthRef.current = next;
-      setLiveWidth(next);
-    },
-    [isMobile],
-  );
+  const onResizeMove = useCallback((clientX: number) => {
+    if (!isResizingRef.current) return;
+    const dx = clientX - startX.current;
+    if (Math.abs(dx) > DRAG_THRESHOLD) didDrag.current = true;
+    const next = clampSidebarWidth(startWidth.current + dx);
+    commitWidth.current = next;
+    setLiveWidth(next);
+  }, []);
 
   const endResize = useCallback(() => {
     if (!isResizingRef.current) return;
@@ -72,98 +67,71 @@ export function useSidebarResize() {
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
 
+    // A click without movement toggles; a real drag commits the width.
     if (didDrag.current) {
-      setSidebarWidth(commitWidthRef.current, getSidebarMaxWidth());
+      setSidebarWidth(commitWidth.current, getSidebarMaxWidth());
     } else {
       toggleSidebar(false);
     }
   }, [setSidebarWidth, toggleSidebar]);
 
+  const expandSidebar = useCallback(() => {
+    setSidebarWidth(lastWidth || SIDEBAR_DEFAULT, getSidebarMaxWidth());
+  }, [lastWidth, setSidebarWidth]);
+
   const onHandleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (isMobile) return;
+    (event: React.KeyboardEvent) => {
       const max = getSidebarMaxWidth();
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
         toggleSidebar(false);
-      } else if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        if (sidebarWidth === 0) {
-          setSidebarWidth(lastWidth || SIDEBAR_DEFAULT, max);
-        } else {
-          setSidebarWidth(sidebarWidth - 24, max);
-        }
-      } else if (e.key === "ArrowRight") {
-        e.preventDefault();
-        if (sidebarWidth === 0) {
-          setSidebarWidth(lastWidth || SIDEBAR_DEFAULT, max);
-        } else {
-          setSidebarWidth(sidebarWidth + 24, max);
-        }
+        return;
       }
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      if (sidebarWidth === 0) {
+        setSidebarWidth(lastWidth || SIDEBAR_DEFAULT, max);
+        return;
+      }
+      const delta = event.key === "ArrowLeft" ? -KEYBOARD_STEP : KEYBOARD_STEP;
+      setSidebarWidth(sidebarWidth + delta, max);
     },
-    [isMobile, lastWidth, setSidebarWidth, sidebarWidth, toggleSidebar],
+    [lastWidth, setSidebarWidth, sidebarWidth, toggleSidebar],
   );
 
   useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => onResizeMove(e.clientX);
-    const onMouseUp = () => endResize();
-    const onTouchMove = (e: TouchEvent) => {
-      if (isResizingRef.current && e.touches[0]) {
-        onResizeMove(e.touches[0].clientX);
-      }
-    };
-    const onTouchEnd = () => endResize();
-
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
-    document.addEventListener("touchmove", onTouchMove, { passive: true });
-    document.addEventListener("touchend", onTouchEnd);
-
+    if (!isResizing) return;
+    const onPointerMove = (event: PointerEvent) => onResizeMove(event.clientX);
+    const onPointerUp = () => endResize();
+    // Listeners are attached only while a drag is in flight, rather than for
+    // the lifetime of the component.
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", onPointerUp);
+    document.addEventListener("pointercancel", onPointerUp);
     return () => {
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
-      document.removeEventListener("touchmove", onTouchMove);
-      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerup", onPointerUp);
+      document.removeEventListener("pointercancel", onPointerUp);
     };
-  }, [endResize, onResizeMove]);
-
-  const wasMobile = useRef(isMobile);
-
-  useEffect(() => {
-    if (isMobile && !wasMobile.current) {
-      setMobileDrawerOpen(false);
-    } else if (!isMobile && wasMobile.current && sidebarWidth > 0) {
-      setSidebarWidth(lastWidth || SIDEBAR_DEFAULT, getSidebarMaxWidth());
-    }
-    wasMobile.current = isMobile;
-  }, [isMobile, lastWidth, setMobileDrawerOpen, setSidebarWidth, sidebarWidth]);
+  }, [endResize, isResizing, onResizeMove]);
 
   useEffect(() => {
     const onWindowResize = () => {
-      if (isMobile || isResizingRef.current) return;
+      if (isResizingRef.current) return;
       const max = getSidebarMaxWidth();
-      if (sidebarWidth > max) {
-        setSidebarWidth(max, max);
-      }
+      if (sidebarWidth > max) setSidebarWidth(max, max);
     };
     window.addEventListener("resize", onWindowResize);
     return () => window.removeEventListener("resize", onWindowResize);
-  }, [isMobile, setSidebarWidth, sidebarWidth]);
+  }, [setSidebarWidth, sidebarWidth]);
 
   return {
-    isMobile,
     isResizing,
-    sidebarCollapsed,
     displayWidth,
     beginResize,
     onHandleKeyDown,
-    collapseSidebar: () =>
-      isMobile ? setMobileDrawerOpen(false) : setSidebarWidth(0),
-    expandSidebar: () =>
-      isMobile
-        ? setMobileDrawerOpen(true)
-        : setSidebarWidth(lastWidth || SIDEBAR_DEFAULT, getSidebarMaxWidth()),
-    toggleSidebar: () => toggleSidebar(isMobile),
+    expandSidebar,
+    collapseSidebar: () => setSidebarWidth(0),
+    toggleSidebar: () => toggleSidebar(false),
   };
 }

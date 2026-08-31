@@ -186,11 +186,27 @@ def login(page, base: str) -> None:
 
 
 def open_surface(page, rail_label: str) -> bool:
-    button = page.locator(f'nav button[aria-label="{rail_label}"]').first
+    """Open an app surface in whichever shell is active.
+
+    The expanded shell has a persistent icon rail; the compact shell keeps the
+    app list in a sheet behind "More". Matching by accessible name works for
+    both, so the audit covers the same nine surfaces either way.
+    """
+    button = page.get_by_role("button", name=rail_label, exact=True).first
     if button.count() == 0:
-        button = page.locator(f'[aria-label="{rail_label}"]').first
-    if button.count() == 0:
-        return False
+        # Compact shell: reveal the app list first.
+        more = page.get_by_role("button", name="More", exact=True).first
+        if more.count() == 0:
+            return False
+        try:
+            more.click(timeout=4000)
+            page.wait_for_timeout(600)
+        except Exception:
+            return False
+        button = page.get_by_role("button", name=rail_label, exact=True).first
+        if button.count() == 0:
+            page.keyboard.press("Escape")
+            return False
     try:
         button.click(timeout=4000)
     except Exception:

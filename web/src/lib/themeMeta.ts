@@ -44,6 +44,7 @@ export const REQUIRED_THEME_CSS_VARS = [
   "--success",
   "--brand-gradient",
   "--brand-gradient-pro",
+  "--primary-emphasis",
   "--primary-hover",
   "--surface-inset",
   "--surface-cool",

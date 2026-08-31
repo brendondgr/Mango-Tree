@@ -116,6 +116,7 @@
   --color-popover-foreground: hsl(var(--popover-foreground));
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-emphasis: hsl(var(--primary-emphasis));
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
   --color-muted: hsl(var(--muted));
@@ -195,9 +196,16 @@ body {
   min-height: 100dvh;
 }
 
-:focus-visible {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: 2px;
+/* The default focus indicator, in @layer base so a component can opt out.
+   Tailwind's utilities layer always beats base regardless of source order, so
+   `outline-none` on a control that draws its own focus treatment now actually
+   wins — the chat composer rings the whole container on focus-within, and this
+   rule was drawing a second, tighter ring around the bare textarea inside it. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
 }
 
 /* ---------------------------------------------------------------------------

@@ -2,7 +2,13 @@
 <html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover is required for the env(safe-area-inset-*)
+         variables the compact shell pads with to be non-zero; without it
+         the bottom navigation sits under the home indicator. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
     <title>Mango Tree</title>
     <script>
       (function () {

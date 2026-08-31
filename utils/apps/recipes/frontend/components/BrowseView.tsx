@@ -108,7 +108,7 @@ export function BrowseView({ onSelect }: BrowseViewProps) {
       </aside>
 
       {/* Recipe grid */}
-      <main className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
         <div className="mb-3 flex items-baseline justify-between">
           <h1 className="text-lg font-semibold">Recipes</h1>
           <span className="text-sm text-muted-foreground">
@@ -164,7 +164,7 @@ export function BrowseView({ onSelect }: BrowseViewProps) {
             );
           })}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

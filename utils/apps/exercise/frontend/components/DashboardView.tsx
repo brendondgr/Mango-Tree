@@ -140,12 +140,14 @@ export function DashboardView() {
           <div className="flex gap-2">
             <input
               type="date"
+              aria-label="Range start date"
               className="exercise-input min-w-0 flex-1"
               value={toInput(range.start)}
               onChange={(e) => setRange((r) => ({ ...r, start: new Date(`${e.target.value}T12:00:00`) }))}
             />
             <input
               type="date"
+              aria-label="Range end date"
               className="exercise-input min-w-0 flex-1"
               value={toInput(range.end)}
               onChange={(e) => setRange((r) => ({ ...r, end: new Date(`${e.target.value}T12:00:00`) }))}

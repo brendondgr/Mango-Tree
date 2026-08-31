@@ -27,6 +27,8 @@
 
   --brand-gradient: linear-gradient(135deg, #20588d, #40b1d7);
   --brand-gradient-pro: linear-gradient(135deg, #20588d, #153a5d);
+  /* Readable as text on a surface; --primary is a fill colour. */
+  --primary-emphasis: 209 62% 30%;
   --primary-hover: 209 62% 22%;
   --surface-inset: 210 35% 90%;
   --surface-cool: 199 68% 95%;

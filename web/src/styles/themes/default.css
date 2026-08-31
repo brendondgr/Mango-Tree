@@ -31,6 +31,8 @@
   /* Extended brand tokens — theme-local, not shadcn core */
   --brand-gradient: linear-gradient(135deg, #7d2ae8, #00c4cc);
   --brand-gradient-pro: linear-gradient(135deg, #7d2ae8, #ff5757);
+  /* Readable as text on a surface; --primary is a fill colour. */
+  --primary-emphasis: 271 79% 44%;
   --primary-hover: 271 82% 46%;
   --surface-inset: 40 10% 88%;
   --surface-cool: 234 40% 94%;
