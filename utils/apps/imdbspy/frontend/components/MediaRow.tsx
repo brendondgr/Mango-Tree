@@ -1,99 +1,83 @@
-import { Pencil, Star, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
+import type { CSSProperties } from "react";
 
 import { Button } from "@/components/ui/button";
-import { assetUrl } from "@/services/imdbspyClient";
 import type { MediaItem } from "@/types/imdbspy";
 
+import {
+  GenrePill,
+  KindBadge,
+  RatingBadge,
+} from "@imdbspy/components/MediaBadges";
+import { Poster } from "@imdbspy/components/Poster";
 import { StatusMenu } from "@imdbspy/components/StatusMenu";
 
 interface MediaRowProps {
   item: MediaItem;
+  /** Position in the list, for the staggered enter animation. */
+  index?: number;
   onReview: (item: MediaItem) => void;
   onDelete: (item: MediaItem) => void;
 }
 
-function RowThumb({ item }: { item: MediaItem }) {
-  if (!item.title_image_path) {
-    return (
-      <div className="imdbspy-row-thumb">
-        <div className="imdbspy-row-thumb-fallback">
-          {item.title.charAt(0).toUpperCase()}
-        </div>
-      </div>
-    );
-  }
+export function MediaRow({ item, index = 0, onReview, onDelete }: MediaRowProps) {
+  const tv = item.kind === "tv";
+
   return (
-    <div className="imdbspy-row-thumb">
-      <img
-        src={assetUrl(item.title_image_path)}
-        alt={item.title}
-        loading="lazy"
-        onError={(e) => {
-          const target = e.currentTarget;
-          target.style.display = "none";
-          const fallback = target.nextElementSibling as HTMLElement | null;
-          if (fallback) fallback.style.display = "flex";
-        }}
+    <div
+      data-enter
+      style={{ "--i": index } as CSSProperties}
+      className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius-md)] border border-border bg-card p-2 shadow-xs transition-[border-color,box-shadow] duration-[var(--motion-duration-md)] ease-[var(--motion-ease-standard)] hover:border-primary/40 hover:shadow-sm focus-within:border-primary/40"
+    >
+      <Poster
+        path={item.title_image_path}
+        letter={item.title.charAt(0).toUpperCase()}
+        className="h-16 w-11 shrink-0 rounded-[var(--radius-sm)] border border-border"
+        letterClassName="text-sm"
       />
-      <div className="imdbspy-row-thumb-fallback" style={{ display: "none" }}>
-        {item.title.charAt(0).toUpperCase()}
-      </div>
-    </div>
-  );
-}
 
-export function MediaRow({ item, onReview, onDelete }: MediaRowProps) {
-  return (
-    <div className="imdbspy-row">
-      <RowThumb item={item} />
-
-      <div className="imdbspy-row-body">
-        <p className="imdbspy-row-title">{item.title}</p>
-        <div className="imdbspy-row-meta">
-          <span
-            className="imdbspy-kind-badge"
-            data-kind={item.kind === "tv" ? "tv" : undefined}
-          >
-            {item.kind === "tv" ? "TV" : "Movie"}
-          </span>
-          {item.years ? <span>{item.years}</span> : null}
+      <div className="flex min-w-[9rem] flex-1 flex-col gap-1">
+        <p
+          title={item.title}
+          className="truncate text-sm font-bold text-foreground"
+        >
+          {item.title}
+        </p>
+        <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+          <KindBadge tv={tv} />
+          {item.years ? <span className="tabular-nums">{item.years}</span> : null}
           {item.genres?.slice(0, 2).map((g) => (
-            <span key={g} className="imdbspy-genre-pill">{g}</span>
+            <GenrePill key={g}>{g}</GenrePill>
           ))}
           {item.rating !== null ? (
-            <span className="imdbspy-card-rating">
-              <Star className="h-3 w-3 fill-current" />
-              {item.rating.toFixed(1)}
-            </span>
+            <RatingBadge tone="imdb" value={item.rating} className="text-xs" />
           ) : null}
           {item.user_rating !== null ? (
-            <span className="imdbspy-card-user-rating">
-              <Star className="h-3 w-3 fill-current" />
-              {item.user_rating.toFixed(1)} you
-            </span>
+            <RatingBadge tone="user" value={item.user_rating} className="text-xs" />
           ) : null}
         </div>
       </div>
 
-      <div className="imdbspy-row-actions">
+      <div className="ml-auto flex items-center gap-1">
         <StatusMenu item={item} />
         <Button
           variant="ghost"
-          size="sm"
-          className="h-7 w-7 p-0"
+          size="icon"
+          aria-label={`Edit rating and review for ${item.title}`}
           title="Write review"
           onClick={() => onReview(item)}
         >
-          <Pencil className="h-3.5 w-3.5" />
+          <Pencil aria-hidden />
         </Button>
         <Button
           variant="ghost"
-          size="sm"
-          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+          size="icon"
+          className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          aria-label={`Remove ${item.title} from library`}
           title="Remove"
           onClick={() => onDelete(item)}
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <Trash2 aria-hidden />
         </Button>
       </div>
     </div>

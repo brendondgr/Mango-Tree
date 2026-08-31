@@ -1,74 +1,81 @@
 import { useState } from "react";
-import { CalendarClock, GanttChartSquare, LayoutGrid, Plus } from "lucide-react";
+import {
+  CalendarClock,
+  FolderKanban,
+  GanttChartSquare,
+  LayoutGrid,
+  Plus,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import {
   type ProjectManagerView,
   useWorkspaceStore,
 } from "@/app/stores/workspaceStore";
+import { AppHeader } from "@/components/app-shell/AppHeader";
+import { SegmentedControl } from "@/components/app-shell/SegmentedControl";
 import { Button } from "@/components/ui/button";
 import { BoardView } from "@projectmanager/components/BoardView";
 import { DeadlinesView } from "@projectmanager/components/DeadlinesView";
 import { NewProjectDialog } from "@projectmanager/components/NewProjectDialog";
 import { TimelineView } from "@projectmanager/components/TimelineView";
 
-import "@projectmanager/styles/projectmanager.css";
-
-const NAV: Array<{ id: ProjectManagerView; label: string; icon: LucideIcon }> =
+const NAV: Array<{ value: ProjectManagerView; label: string; icon: LucideIcon }> =
   [
-    { id: "board", label: "Board", icon: LayoutGrid },
-    { id: "timeline", label: "Timeline", icon: GanttChartSquare },
-    { id: "deadlines", label: "Deadlines", icon: CalendarClock },
+    { value: "board", label: "Board", icon: LayoutGrid },
+    { value: "timeline", label: "Timeline", icon: GanttChartSquare },
+    { value: "deadlines", label: "Deadlines", icon: CalendarClock },
   ];
 
+/**
+ * The Project Manager pane.
+ *
+ * `containerType: inline-size` here makes the pane itself the query container,
+ * so every view below reflows against the width the user actually gave this
+ * app by dragging the chat sidebar — not against the browser window, which is
+ * what the old `max-width: 768px` media queries measured.
+ */
 export function ProjectManagerWorkspace() {
   const view = useWorkspaceStore((s) => s.projectManagerView);
   const setView = useWorkspaceStore((s) => s.setProjectManagerView);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
 
   return (
-    <div className="projectmanager-app flex min-h-0 flex-1 flex-col bg-background">
-      {/* Top navigation bar */}
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-4 py-3">
-        <nav
-          className="flex flex-wrap items-center gap-1.5"
-          aria-label="Project Manager sections"
-        >
-          {NAV.map((item) => {
-            const Icon = item.icon;
-            const active = view === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className="projectmanager-tab"
-                data-active={active}
-                aria-current={active ? "page" : undefined}
-                onClick={() => setView(item.id)}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className="ml-auto">
-          <Button size="sm" onClick={() => setNewProjectOpen(true)}>
-            <Plus className="h-4 w-4" />
-            New Project
+    <div
+      className="flex min-h-0 flex-1 flex-col bg-background"
+      style={{ containerType: "inline-size" }}
+    >
+      <AppHeader
+        icon={FolderKanban}
+        title="Projects"
+        description="Projects, goals and deadlines"
+        nav={
+          <SegmentedControl
+            segments={NAV}
+            value={view}
+            onValueChange={setView}
+            label="Project Manager sections"
+            // See BoardView: lift the 36px segments to a 44px touch target on
+            // compact only.
+            className="max-app:[&_button]:h-11"
+          />
+        }
+        actions={
+          <Button onClick={() => setNewProjectOpen(true)}>
+            <Plus />
+            New project
           </Button>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Content. The board fills the viewport and scrolls internally; the
-          other views scroll as a centred page. */}
+      {/* The board fills the pane and scrolls internally; the other views
+          scroll as a centred page. */}
       <div className="min-h-0 flex-1 overflow-hidden">
         {view === "board" ? (
           <BoardView />
         ) : (
-          <div className="projectmanager-scroll h-full overflow-y-auto">
-            <div className="mx-auto w-full max-w-7xl p-4 lg:p-6">
+          <div className="h-full overflow-y-auto">
+            <div className="mx-auto w-full max-w-5xl p-4 @[48rem]:p-6">
               {view === "timeline" ? <TimelineView /> : <DeadlinesView />}
             </div>
           </div>

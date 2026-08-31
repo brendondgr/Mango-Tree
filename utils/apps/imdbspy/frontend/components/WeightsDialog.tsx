@@ -1,18 +1,22 @@
+import { AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { AsyncBoundary } from "@/components/ui/async-boundary";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { RatingWeights, ScaleType } from "@/types/imdbspy";
 import { SCALE_CRITERIA } from "@/types/imdbspy";
 
+import { CriterionSlider } from "@imdbspy/components/CriterionSlider";
 import { useUpdateWeights, useWeights } from "@imdbspy/hooks/useImdbspy";
 
 interface WeightsDialogProps {
@@ -98,31 +102,68 @@ function weightsToLocal(data: RatingWeights[]): LocalWeights {
   return local;
 }
 
+/** Three scales, four sliders each — the shape the loaded form settles into. */
+function WeightsSkeleton() {
+  return (
+    <div className="space-y-5">
+      {SCALES.map((scale) => (
+        <div key={scale} className="space-y-2">
+          <Skeleton className="h-4 w-20" />
+          <div className="flex flex-col gap-3 rounded-[var(--radius-md)] border border-border bg-surface-1 p-2">
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton className="h-3.5 w-28 shrink-0" />
+                <Skeleton className="h-3.5 flex-1" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function WeightsDialog({ open, onOpenChange }: WeightsDialogProps) {
-  const { data: weightsData } = useWeights();
+  const {
+    data: weightsData,
+    isLoading,
+    isError,
+    error: loadError,
+    refetch,
+  } = useWeights();
   const updateWeights = useUpdateWeights();
 
-  const [local, setLocal] = useState<LocalWeights>(defaultLocalWeights());
+  // `null` until real weights arrive. Seeding this with defaultLocalWeights()
+  // was a data-loss path: while the query was in flight (or after it failed)
+  // the sliders showed hardcoded defaults that looked exactly like saved
+  // values, and Save wrote them over the stored ones — silently recomputing
+  // every title's rating, since useUpdateWeights invalidates the media query.
+  const [local, setLocal] = useState<LocalWeights | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    if (weightsData) {
-      setLocal(weightsToLocal(weightsData));
-    } else {
-      setLocal(defaultLocalWeights());
-    }
+    setLocal(weightsData ? weightsToLocal(weightsData) : null);
     setError(null);
   }, [open, weightsData]);
 
+  // A failed refetch leaves the last-good data in place, so gate on the query
+  // state too rather than on `local` alone.
+  const ready = !isError && local !== null;
+
   const handleChange = (scale: ScaleType, key: WeightKey, value: number) => {
-    setLocal((prev) => ({
-      ...prev,
-      [scale]: { ...prev[scale], [key]: value },
-    }));
+    setLocal((prev) =>
+      prev
+        ? {
+            ...prev,
+            [scale]: { ...prev[scale], [key]: value },
+          }
+        : prev,
+    );
   };
 
   const handleSave = () => {
+    if (!local) return;
     setError(null);
     const payload = SCALES.map((scale) => ({
       scale_type: scale,
@@ -136,47 +177,69 @@ export function WeightsDialog({ open, onOpenChange }: WeightsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="imdbspy-app max-w-lg">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Rating Weights</DialogTitle>
+          <DialogTitle>Rating weights</DialogTitle>
           <DialogDescription>
             Adjust how each criterion contributes to the final 0–10 score.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="imdbspy-dialog-body max-h-[60vh] overflow-y-auto">
-          {SCALES.map((scale) => (
-            <div key={scale} className="flex flex-col gap-2">
-              <p className="text-sm font-semibold text-foreground">{SCALE_LABELS[scale]}</p>
-              {SCALE_CRITERIA[scale].map((criterion) => {
-                const key = CRITERION_TO_WEIGHT[criterion];
-                if (!key) return null;
-                return (
-                  <div key={criterion} className="imdbspy-slider-row">
-                    <Label className="imdbspy-slider-label">{criterion}</Label>
-                    <input
-                      type="range"
-                      className="imdbspy-slider"
-                      min={0}
-                      max={5}
-                      step={0.5}
-                      value={local[scale][key]}
-                      onChange={(e) =>
-                        handleChange(scale, key, parseFloat(e.target.value))
-                      }
-                    />
-                    <span className="imdbspy-slider-value">{local[scale][key]}</span>
-                  </div>
-                );
-              })}
-              <div className="h-px bg-border my-1" />
-            </div>
-          ))}
+        {/* Replaces a hand-rolled `max-h-[60vh] overflow-y-auto`, which scrolled
+            the header and the Save button out of reach along with the content. */}
+        <DialogBody>
+          {/* `local === null` folds the frame between open and the seeding
+              effect into the loading state; AsyncBoundary gives the error
+              branch precedence over it. */}
+          <AsyncBoundary
+            loading={isLoading || local === null}
+            error={isError ? loadError : undefined}
+            onRetry={() => void refetch()}
+            label="rating weights"
+            skeleton={<WeightsSkeleton />}
+            className="space-y-5"
+          >
+            {local ? (
+              <>
+                {SCALES.map((scale) => (
+                  <fieldset key={scale} className="space-y-2">
+                    <legend className="text-sm font-semibold text-foreground">
+                      {SCALE_LABELS[scale]}
+                    </legend>
+                    <div className="flex flex-col gap-1 rounded-[var(--radius-md)] border border-border bg-surface-1 p-2">
+                      {SCALE_CRITERIA[scale].map((criterion) => {
+                        const key = CRITERION_TO_WEIGHT[criterion];
+                        if (!key) return null;
+                        return (
+                          <CriterionSlider
+                            key={criterion}
+                            label={criterion}
+                            value={local[scale][key]}
+                            disabled={updateWeights.isPending}
+                            onChange={(value) => handleChange(scale, key, value)}
+                          />
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                ))}
 
-          {error ? (
-            <p className="text-sm text-destructive">{error}</p>
-          ) : null}
-        </div>
+                {error ? (
+                  <p
+                    role="alert"
+                    className="flex items-start gap-2 rounded-[var(--radius-md)] border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm font-medium text-foreground"
+                  >
+                    <AlertCircle
+                      className="mt-0.5 h-4 w-4 shrink-0 text-destructive"
+                      aria-hidden
+                    />
+                    {error}
+                  </p>
+                ) : null}
+              </>
+            ) : null}
+          </AsyncBoundary>
+        </DialogBody>
 
         <DialogFooter>
           <Button
@@ -186,8 +249,12 @@ export function WeightsDialog({ open, onOpenChange }: WeightsDialogProps) {
           >
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={updateWeights.isPending}>
-            {updateWeights.isPending ? "Saving…" : "Save Weights"}
+          <Button
+            onClick={handleSave}
+            // Never savable until real weights are on screen.
+            disabled={updateWeights.isPending || !ready}
+          >
+            {updateWeights.isPending ? "Saving…" : "Save weights"}
           </Button>
         </DialogFooter>
       </DialogContent>

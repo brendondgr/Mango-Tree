@@ -18,14 +18,16 @@ export function ArtifactsSidebarSettings() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
+        {/* No height override: `size="icon"` is already 44px on compact and
+            steps down to 36px at the shell breakpoint. */}
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          className="h-8 w-8 shrink-0"
+          className="shrink-0"
           aria-label="Artifact grid settings"
         >
-          <LayoutGrid className="h-4 w-4" />
+          <LayoutGrid />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">

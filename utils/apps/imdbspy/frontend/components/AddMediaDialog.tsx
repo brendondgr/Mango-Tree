@@ -1,16 +1,19 @@
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/ui/field";
 
+import { Textarea } from "@imdbspy/components/Textarea";
 import { useAddMedia } from "@imdbspy/hooks/useImdbspy";
 
 interface AddMediaDialogProps {
@@ -44,7 +47,9 @@ export function AddMediaDialog({ open, onOpenChange }: AddMediaDialogProps) {
 
     addMedia.mutate(lines, {
       onSuccess: (result) => {
-        setResultMsg(`Added ${result.added.length} title${result.added.length !== 1 ? "s" : ""}.`);
+        setResultMsg(
+          `Added ${result.added.length} title${result.added.length !== 1 ? "s" : ""}.`,
+        );
         setErrors(result.errors);
         if (result.errors.length === 0 && result.added.length > 0) {
           onOpenChange(false);
@@ -60,46 +65,64 @@ export function AddMediaDialog({ open, onOpenChange }: AddMediaDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="imdbspy-app max-w-lg">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Titles</DialogTitle>
+          <DialogTitle>Add titles</DialogTitle>
           <DialogDescription>
             Paste one or more IMDb URLs or IDs (e.g. tt0111161), one per line.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="imdbspy-dialog-body">
-          <div className="imdbspy-field">
-            <Label htmlFor="imdbspy-add-urls">IMDb URLs / IDs</Label>
-            <textarea
-              id="imdbspy-add-urls"
-              className="imdbspy-textarea"
+        {/* DialogBody scrolls while the title and the Add button stay pinned —
+            without it a long error list pushes both off a short viewport. */}
+        <DialogBody className="space-y-4">
+          <Field
+            label="IMDb URLs or IDs"
+            hint="One per line. A full URL or a bare tt id both work."
+          >
+            <Textarea
               rows={5}
+              className="min-h-24"
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={"https://www.imdb.com/title/tt0111161/\ntt0468569"}
               disabled={addMedia.isPending}
               autoFocus
             />
-          </div>
+          </Field>
 
           {resultMsg && errors.length === 0 ? (
-            <div className="imdbspy-success-summary">{resultMsg}</div>
+            <p
+              role="status"
+              className="flex items-start gap-2 rounded-[var(--radius-md)] border border-[hsl(var(--category-mint)/0.5)] bg-[hsl(var(--category-mint)/0.16)] px-3 py-2 text-sm font-medium text-foreground"
+            >
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              {resultMsg}
+            </p>
           ) : null}
 
           {errors.length > 0 ? (
-            <div className="imdbspy-error-list">
-              {resultMsg ? (
-                <p className="text-sm font-semibold">{resultMsg} The following had errors:</p>
-              ) : null}
-              {errors.map((e, i) => (
-                <p key={i} className="imdbspy-error-item">
-                  {e.url ? <strong>{e.url}:</strong> : null} {e.message}
-                </p>
-              ))}
+            <div
+              role="alert"
+              className="space-y-1.5 rounded-[var(--radius-md)] border border-destructive/50 bg-destructive/10 px-3 py-2"
+            >
+              <p className="flex items-start gap-2 text-sm font-semibold text-foreground">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
+                {resultMsg
+                  ? `${resultMsg} The following had errors:`
+                  : "Could not add these titles:"}
+              </p>
+              <ul className="space-y-1 pl-6 text-sm text-foreground">
+                {errors.map((e, i) => (
+                  <li key={i}>
+                    {e.url ? <strong className="font-semibold">{e.url}: </strong> : null}
+                    {e.message}
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : null}
-        </div>
+        </DialogBody>
 
         <DialogFooter>
           <Button

@@ -17,6 +17,13 @@ interface DeleteConfirmDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+/**
+ * The confirmation step for the destructive action.
+ *
+ * It is reached from a permanent, labelled Remove button in the card and row
+ * action rows — not from an invisible hover-only overlay on the poster, which
+ * is what a touch user used to hit by accident.
+ */
 export function DeleteConfirmDialog({ item, onOpenChange }: DeleteConfirmDialogProps) {
   const deleteMedia = useDeleteMedia();
 
@@ -29,14 +36,15 @@ export function DeleteConfirmDialog({ item, onOpenChange }: DeleteConfirmDialogP
 
   return (
     <AlertDialog open={item !== null} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="imdbspy-app">
+      <AlertDialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] overflow-y-auto sm:w-full">
         <AlertDialogHeader>
           <AlertDialogTitle>Remove from library?</AlertDialogTitle>
           <AlertDialogDescription>
             {item ? (
               <>
-                This will permanently remove <strong>{item.title}</strong> and all
-                associated reviews from your library.
+                This will permanently remove{" "}
+                <strong className="font-semibold text-foreground">{item.title}</strong>{" "}
+                and all associated reviews from your library. This cannot be undone.
               </>
             ) : null}
           </AlertDialogDescription>

@@ -1,43 +1,93 @@
-import { CalendarClock } from "lucide-react";
+import { AlertTriangle, CalendarClock } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useMemo } from "react";
+import type { CSSProperties } from "react";
 
-import { deadlineClass } from "@projectmanager/utils/colors";
+import { AsyncBoundary } from "@/components/ui/async-boundary";
+import { SkeletonList } from "@/components/ui/skeleton";
+import type { Goal } from "@/types/projectmanager";
+import { DeadlinePill } from "@projectmanager/components/DeadlinePill";
 import {
   useGoalsWithDeadlines,
   useProjects,
 } from "@projectmanager/hooks/useProjectManager";
-import type { Goal } from "@/types/projectmanager";
 
-interface GoalRowProps {
+function GoalRow({
+  goal,
+  projectTitle,
+  index,
+}: {
   goal: Goal;
   projectTitle: string;
-}
-
-function GoalRow({ goal, projectTitle }: GoalRowProps) {
-  const cls = deadlineClass(goal.deadline_status?.css_class ?? null);
-
+  index: number;
+}) {
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
-      {/* Project name */}
-      <div className="w-40 shrink-0 truncate text-xs font-semibold text-muted-foreground">
+    <li
+      data-enter
+      style={{ "--i": index } as CSSProperties}
+      className="flex flex-col gap-1 border-b border-border px-4 py-2.5 last:border-0 @[34rem]:flex-row @[34rem]:items-center @[34rem]:gap-3"
+    >
+      <span className="truncate text-xs font-semibold text-muted-foreground @[34rem]:w-40 @[34rem]:shrink-0">
         {projectTitle}
-      </div>
-
-      {/* Goal title */}
-      <div className="flex-1 min-w-0 truncate text-sm text-foreground">
+      </span>
+      <span className="min-w-0 flex-1 truncate text-sm text-foreground">
         {goal.title}
-      </div>
-
-      {/* Deadline pill */}
+      </span>
       {goal.deadline_status && (
-        <span className={cls}>
-          {goal.deadline_status.date_short ?? goal.deadline_status.display}
-        </span>
+        <DeadlinePill status={goal.deadline_status} short className="self-start" />
       )}
-    </div>
+    </li>
   );
 }
 
+function DeadlineSection({
+  title,
+  icon: Icon,
+  tone,
+  goals,
+  projectMap,
+}: {
+  title: string;
+  icon: LucideIcon;
+  tone: "overdue" | "upcoming";
+  goals: Goal[];
+  projectMap: Map<number, string>;
+}) {
+  if (goals.length === 0) return null;
+
+  return (
+    <section className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-card shadow-xs">
+      <h3 className="flex items-center gap-2 border-b border-border bg-surface-1 px-4 py-2.5 text-sm font-semibold text-foreground">
+        <Icon
+          className={
+            tone === "overdue"
+              ? "h-4 w-4 shrink-0 text-destructive"
+              : "h-4 w-4 shrink-0 text-muted-foreground"
+          }
+          aria-hidden
+        />
+        {title}
+        <span className="text-xs font-normal tabular-nums text-muted-foreground">
+          {goals.length} goal{goals.length === 1 ? "" : "s"}
+        </span>
+      </h3>
+      <ul>
+        {goals.map((goal, index) => (
+          <GoalRow
+            key={goal.id}
+            goal={goal}
+            index={index}
+            projectTitle={
+              projectMap.get(goal.project_id) ?? `Project #${goal.project_id}`
+            }
+          />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** Every goal that has a deadline, split into overdue and still upcoming. */
 export function DeadlinesView() {
   const goalsQuery = useGoalsWithDeadlines();
   const projectsQuery = useProjects();
@@ -50,40 +100,14 @@ export function DeadlinesView() {
     return m;
   }, [projectsQuery.data]);
 
-  if (goalsQuery.isLoading || projectsQuery.isLoading) {
-    return (
-      <p className="text-sm text-muted-foreground">Loading deadlines…</p>
-    );
-  }
-
-  if (goalsQuery.isError) {
-    return (
-      <p className="text-sm text-destructive">
-        {(goalsQuery.error as Error).message}
-      </p>
-    );
-  }
-
   const goals = goalsQuery.data ?? [];
-
-  if (goals.length === 0) {
-    return (
-      <div className="projectmanager-glass flex flex-col items-center gap-3 rounded-[var(--radius-lg)] p-10 text-center">
-        <CalendarClock className="h-8 w-8 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">
-          No goals with deadlines.
-        </p>
-      </div>
-    );
-  }
-
   const overdue = goals.filter((g) => g.deadline_status?.is_overdue);
   const upcoming = goals.filter((g) => !g.deadline_status?.is_overdue);
 
   return (
-    <div className="projectmanager-fade-in flex flex-col gap-6">
+    <section className="flex flex-col gap-4">
       <header>
-        <h2 className="text-2xl font-bold tracking-tight text-foreground">
+        <h2 className="text-xl font-semibold tracking-tight text-foreground @[45rem]:text-2xl">
           Deadlines
         </h2>
         <p className="text-sm text-muted-foreground">
@@ -91,53 +115,41 @@ export function DeadlinesView() {
         </p>
       </header>
 
-      {overdue.length > 0 && (
-        <section className="projectmanager-glass rounded-[var(--radius-lg)] overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-            <span className="projectmanager-deadline-overdue">
-              Overdue
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {overdue.length} goal{overdue.length === 1 ? "" : "s"}
-            </span>
+      <AsyncBoundary
+        label="deadlines"
+        loading={goalsQuery.isLoading || projectsQuery.isLoading}
+        error={goalsQuery.error ?? projectsQuery.error}
+        empty={goals.length === 0}
+        onRetry={() => {
+          void goalsQuery.refetch();
+          void projectsQuery.refetch();
+        }}
+        skeleton={
+          <div className="rounded-[var(--radius-lg)] border border-border bg-card px-4 shadow-xs">
+            <SkeletonList count={5} />
           </div>
-          <div className="px-4">
-            {overdue.map((goal) => (
-              <GoalRow
-                key={goal.id}
-                goal={goal}
-                projectTitle={
-                  projectMap.get(goal.project_id) ?? `Project #${goal.project_id}`
-                }
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {upcoming.length > 0 && (
-        <section className="projectmanager-glass rounded-[var(--radius-lg)] overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-            <span className="projectmanager-deadline-warning">
-              Upcoming
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {upcoming.length} goal{upcoming.length === 1 ? "" : "s"}
-            </span>
-          </div>
-          <div className="px-4">
-            {upcoming.map((goal) => (
-              <GoalRow
-                key={goal.id}
-                goal={goal}
-                projectTitle={
-                  projectMap.get(goal.project_id) ?? `Project #${goal.project_id}`
-                }
-              />
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
+        }
+        emptyIcon={CalendarClock}
+        emptyTitle="No goals with deadlines"
+        emptyDescription="Give a goal a deadline and it will show up here, soonest first."
+      >
+        <div className="flex flex-col gap-4">
+          <DeadlineSection
+            title="Overdue"
+            icon={AlertTriangle}
+            tone="overdue"
+            goals={overdue}
+            projectMap={projectMap}
+          />
+          <DeadlineSection
+            title="Upcoming"
+            icon={CalendarClock}
+            tone="upcoming"
+            goals={upcoming}
+            projectMap={projectMap}
+          />
+        </div>
+      </AsyncBoundary>
+    </section>
   );
 }

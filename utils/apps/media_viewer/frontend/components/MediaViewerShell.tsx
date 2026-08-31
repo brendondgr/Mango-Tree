@@ -1,6 +1,7 @@
-import { useRef } from "react";
-import { Loader2 } from "lucide-react";
+import { useCallback, useRef } from "react";
 
+import { AsyncBoundary } from "@/components/ui/async-boundary";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useViewerSplitResize } from "@/hooks/useViewerSplitResize";
 
@@ -49,9 +50,37 @@ export function MediaViewerShell({ artifactId }: MediaViewerShellProps) {
     onHandlePointerDown,
     onHandleKeyDown,
   } = useViewerSplitResize(splitContainerRef);
-  const { data: artifact, isLoading, isError, error } = useArtifact(artifactId);
+  const { data: artifact, isLoading, error, refetch } = useArtifact(artifactId);
 
   const propertiesFraction = 1 - displayFraction;
+
+  // The shared hook maps ArrowUp to a *larger* media fraction, which grows the
+  // top row and pushes the separator down — the same direction as dragging
+  // down, and the opposite of the number this separator reports, since
+  // aria-valuenow is the properties share. The hook is shared with the other
+  // split views, so the direction is corrected here by handing it the opposite
+  // key: Up moves the separator up (properties grow), Down moves it down.
+  const onSeparatorKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      const flipped =
+        event.key === "ArrowUp"
+          ? "ArrowDown"
+          : event.key === "ArrowDown"
+            ? "ArrowUp"
+            : null;
+      if (flipped === null) {
+        onHandleKeyDown(event);
+        return;
+      }
+      event.preventDefault();
+      onHandleKeyDown({
+        ...event,
+        key: flipped,
+        preventDefault: () => event.preventDefault(),
+      });
+    },
+    [onHandleKeyDown],
+  );
 
   return (
     <section
@@ -76,31 +105,42 @@ export function MediaViewerShell({ artifactId }: MediaViewerShellProps) {
           role="region"
           aria-label="Media canvas"
         >
-          {isLoading && (
-            <div className="flex flex-1 items-center justify-center text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
-            </div>
-          )}
-          {isError && (
-            <div className="p-6 text-sm text-destructive">
-              {error instanceof Error ? error.message : "Failed to load artifact"}
-            </div>
-          )}
-          {artifact && <ViewerBody artifact={artifact} />}
+          <AsyncBoundary
+            className="flex min-h-0 flex-1 flex-col"
+            label="this artifact"
+            loading={isLoading}
+            error={error}
+            onRetry={() => void refetch()}
+            skeleton={
+              <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+                <Skeleton className="min-h-0 w-full flex-1" />
+                <Skeleton className="h-3.5 w-48 shrink-0" />
+              </div>
+            }
+          >
+            {artifact ? <ViewerBody artifact={artifact} /> : null}
+          </AsyncBoundary>
         </div>
 
         {artifact && (
           <>
             <div
               role="separator"
-              aria-label="Resize properties panel — drag up or down"
+              aria-label="Resize properties panel — drag, or use the arrow keys"
               aria-orientation="horizontal"
+              // Bounds mirror clampViewerMediaFraction (0.2–0.8), and
+              // aria-valuetext gives the announcement a unit, the way the
+              // shell's sidebar separator does.
               aria-valuemin={20}
               aria-valuemax={80}
               aria-valuenow={Math.round(propertiesFraction * 100)}
+              aria-valuetext={`Properties panel ${Math.round(
+                propertiesFraction * 100,
+              )}% of the viewer`}
               tabIndex={0}
               className={cn(
-                "relative z-10 flex cursor-row-resize touch-none items-center justify-center border-y border-border bg-muted/40 transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "relative flex cursor-row-resize touch-none items-center justify-center border-y border-border bg-surface-2 transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                "z-[var(--z-header)]",
                 isResizing && "bg-primary/10",
               )}
               onMouseDown={(event) => {
@@ -115,10 +155,15 @@ export function MediaViewerShell({ artifactId }: MediaViewerShellProps) {
                   onHandlePointerDown(event.touches[0].clientY);
                 }
               }}
-              onKeyDown={onHandleKeyDown}
+              onKeyDown={onSeparatorKeyDown}
             >
-              <span className="h-px w-10 rounded-full bg-border" />
-              <span className="absolute inset-x-0 -top-1 -bottom-1" aria-hidden />
+              <span className="h-px w-10 rounded-full bg-border" aria-hidden />
+              {/* The grid row itself is 10px, which is under the 24px pointer
+                  minimum, so the hit area is grown past the visible bar. */}
+              <span
+                className="absolute inset-x-0 -bottom-[7px] -top-[7px]"
+                aria-hidden
+              />
             </div>
 
             <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-t border-border bg-card">

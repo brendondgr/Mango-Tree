@@ -46,5 +46,11 @@
     "../utils/apps/recipes/frontend",
     "../utils/apps/timekeeper/frontend"
   ],
-  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
+  "// exclude": "Tests are not typechecked here — vitest transpiles them, and its own types resolve through the bundler aliases rather than tsconfig paths. App-module tests get the same treatment as src ones.",
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "../utils/apps/*/frontend/**/*.test.ts",
+    "../utils/apps/*/frontend/**/*.test.tsx"
+  ]
 }

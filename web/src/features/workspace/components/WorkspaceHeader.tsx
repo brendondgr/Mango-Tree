@@ -173,8 +173,8 @@ function TabButton({
           aria-label={closeLabel}
           onClick={onClose}
           className={cn(
-            "mr-1.5 inline-flex w-5 shrink-0 items-center justify-center self-center",
-            "h-5 rounded-[var(--radius-sm)] text-muted-foreground transition-colors",
+            "mr-1 inline-flex h-6 w-6 shrink-0 items-center justify-center self-center",
+            "rounded-[var(--radius-sm)] text-muted-foreground transition-colors",
             "hover:bg-muted hover:text-foreground",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           )}

@@ -6,7 +6,17 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "jsdom",
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    // App modules live outside the Vite root, so a test placed beside one was
+    // never collected — the eight modules were structurally untestable, which
+    // three separate restructures independently ran into. Their tests resolve
+    // @testing-library/react and vitest through web/node_modules, so they run
+    // under this config without any per-module setup.
+    include: [
+      "src/**/*.test.ts",
+      "src/**/*.test.tsx",
+      "../utils/apps/*/frontend/**/*.test.ts",
+      "../utils/apps/*/frontend/**/*.test.tsx",
+    ],
   },
   plugins: [react(), tailwindcss()],
   build: {
@@ -61,11 +71,26 @@ export default defineConfig({
         "./node_modules/@tanstack/react-router",
       ),
       "pdfjs-dist": path.resolve(__dirname, "./node_modules/pdfjs-dist"),
+      // Test-only, for the same reason as the runtime aliases above: a test
+      // file inside utils/apps/*/frontend cannot resolve web/node_modules by
+      // walking up from its own directory.
+      "@testing-library/react": path.resolve(
+        __dirname,
+        "./node_modules/@testing-library/react",
+      ),
+      vitest: path.resolve(__dirname, "./node_modules/vitest"),
     },
   },
   server: {
     host: true,
     port: 5173,
+    fs: {
+      // App modules live outside the Vite root, and both the dev server and
+      // vitest refuse to serve a file above it without this. The aliases have
+      // always pointed there; this is what lets a test file beside a module be
+      // loaded as well as imported.
+      allow: [path.resolve(__dirname, ".."), path.resolve(__dirname)],
+    },
     allowedHosts: ["mango.brendondgr.com"],
     proxy: {
       "/v1": {

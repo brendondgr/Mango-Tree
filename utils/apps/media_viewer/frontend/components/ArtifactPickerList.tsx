@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ArtifactKind, ArtifactRecord } from "@/types/mediaViewer";
 import { cn } from "@/lib/utils";
@@ -42,74 +42,68 @@ export function ArtifactPickerList({
 
   if (artifacts.length === 0) {
     return (
-      <p
-        className={cn(
-          "text-center text-muted-foreground",
-          compact ? "px-2 py-4 text-xs" : "px-4 py-8 text-sm",
-          className,
-        )}
-      >
-        No matching artifacts
-      </p>
+      <EmptyState
+        compact
+        title="No matching artifacts"
+        description={compact ? undefined : "Try a different search or file type."}
+        className={className}
+      />
     );
   }
 
   return (
-    <ScrollArea
-      className={cn(
-        compact ? "max-h-48" : "max-h-none",
-        className,
-      )}
-    >
+    <ScrollArea className={cn(compact ? "max-h-48" : "max-h-none", className)}>
       <ul className={cn(compact ? "p-1" : "p-2")}>
         {artifacts.map((artifact) => (
           <li key={artifact.id}>
-            <div
+            {/*
+              The row itself is the control. It used to be a hover-highlighted
+              div whose only activation point was a 24px icon button — the
+              hover state promised a target that was not there, and the button
+              was below the touch minimum. One full-width button is the target
+              the row already looked like.
+            */}
+            <button
+              type="button"
               className={cn(
-                "flex items-center gap-2 rounded-[var(--radius-sm)] hover:bg-muted/60",
-                compact ? "px-1.5 py-1" : "px-2 py-1.5",
+                "flex w-full items-center gap-2 rounded-[var(--radius-sm)] text-left transition-colors",
+                "hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                compact ? "min-h-11 px-2 py-1.5 app:min-h-9" : "min-h-11 px-2 py-2 app:min-h-10",
               )}
+              aria-label={`Add ${artifact.filename} to chat context`}
+              title={artifact.filename}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onAdd(artifact.id);
+              }}
             >
-              <div className="min-w-0 flex-1">
-                <p
+              <span className="min-w-0 flex-1">
+                <span
                   className={cn(
-                    "font-medium text-foreground",
+                    "block font-medium text-foreground",
                     compact ? "text-xs" : "truncate text-sm",
                   )}
-                  title={artifact.filename}
                 >
                   {compact
                     ? truncateDisplayName(artifact.filename)
                     : artifact.filename}
-                </p>
+                </span>
                 <span
                   className={cn(
-                    "text-muted-foreground",
+                    "block text-muted-foreground",
                     compact ? "text-[10px]" : "text-xs",
                   )}
                 >
                   {kindLabel(artifact.kind)}
                 </span>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "shrink-0 text-muted-foreground hover:text-foreground",
-                  compact ? "h-6 w-6" : "h-7 w-7",
-                )}
-                aria-label={`Add ${artifact.filename} to chat context`}
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onAdd(artifact.id);
-                }}
-              >
-                <Plus className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
-              </Button>
-            </div>
+              </span>
+              <Plus
+                className="h-4 w-4 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+            </button>
           </li>
         ))}
       </ul>

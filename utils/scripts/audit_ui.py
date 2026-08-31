@@ -71,12 +71,26 @@ OVERFLOW_JS = """() => {
   const d = document.documentElement;
   const limit = d.clientWidth + 1;
   const out = [];
+
+  // Content inside a scrollable ancestor is reachable, so it is not clipped.
+  // Without this the probe flags every horizontally-scrolling tab strip and
+  // data table — the very pattern used to FIX clipping — as a defect.
+  const inScroller = (el) => {
+    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+      const overflowX = getComputedStyle(p).overflowX;
+      if ((overflowX === 'auto' || overflowX === 'scroll') && p.scrollWidth > p.clientWidth) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   for (const e of document.querySelectorAll('body *')) {
     const r = e.getBoundingClientRect();
     if (r.width === 0 || r.height === 0) continue;
     // Only elements spilling past the RIGHT edge are defects. Elements at
     // negative left are usually an intentionally off-canvas drawer.
-    if (r.right > limit) {
+    if (r.right > limit && !inScroller(e)) {
       out.push({
         tag: e.tagName.toLowerCase(),
         cls: String(e.className && e.className.baseVal !== undefined

@@ -1,56 +1,72 @@
 import { BarChart3, Clock, ListChecks, Tags } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 import { type TimekeeperView, useWorkspaceStore } from "@/app/stores/workspaceStore";
+import { AppHeader } from "@/components/app-shell/AppHeader";
+import {
+  SegmentedControl,
+  type Segment,
+} from "@/components/app-shell/SegmentedControl";
 
 import { CategoriesView } from "@timekeeper/components/CategoriesView";
 import { DashboardView } from "@timekeeper/components/DashboardView";
 import { LogsView } from "@timekeeper/components/LogsView";
 import { TrackerView } from "@timekeeper/components/TrackerView";
-import { useCategories } from "@timekeeper/hooks/useTimekeeper";
 
-import "@timekeeper/styles/timekeeper.css";
-
-const NAV: Array<{ id: TimekeeperView; label: string; icon: LucideIcon }> = [
-  { id: "tracker", label: "Tracker", icon: Clock },
-  { id: "dashboard", label: "Dashboard", icon: BarChart3 },
-  { id: "logs", label: "Logs", icon: ListChecks },
-  { id: "categories", label: "Categories", icon: Tags },
+const NAV: Segment<TimekeeperView>[] = [
+  { value: "tracker", label: "Tracker", icon: Clock },
+  { value: "dashboard", label: "Dashboard", icon: BarChart3 },
+  { value: "logs", label: "Logs", icon: ListChecks },
+  { value: "categories", label: "Categories", icon: Tags },
 ];
 
+const DESCRIPTION: Record<TimekeeperView, string> = {
+  tracker: "Paint your day in five-minute blocks",
+  dashboard: "Where the tracked hours went",
+  logs: "Every interval you have saved",
+  categories: "The colours you paint with",
+};
+
+function ActiveView({ view }: { view: TimekeeperView }) {
+  switch (view) {
+    case "dashboard":
+      return <DashboardView />;
+    case "logs":
+      return <LogsView />;
+    case "categories":
+      return <CategoriesView />;
+    default:
+      return <TrackerView />;
+  }
+}
+
 export function TimekeeperWorkspace() {
-  const view = useWorkspaceStore((s) => s.timekeeperView);
-  const setView = useWorkspaceStore((s) => s.setTimekeeperView);
-  const { data: categories = [] } = useCategories();
+  const view = useWorkspaceStore((state) => state.timekeeperView);
+  const setView = useWorkspaceStore((state) => state.setTimekeeperView);
 
   return (
-    <div className="timekeeper-app flex min-h-0 flex-1 flex-col bg-background">
-      <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border px-4 py-3">
-        <nav className="flex flex-wrap items-center gap-1.5" aria-label="Time Keeper sections">
-          {NAV.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className="timekeeper-tab"
-                data-active={view === item.id}
-                aria-current={view === item.id ? "page" : undefined}
-                onClick={() => setView(item.id)}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
+    // `containerType` makes the pane itself the query container, so every
+    // `@[…]` rule below reflows when the chat sidebar is dragged, not only when
+    // the browser window changes size.
+    <div
+      className="flex min-h-0 flex-1 flex-col bg-background"
+      style={{ containerType: "inline-size" }}
+    >
+      <AppHeader
+        icon={Clock}
+        title="Time Keeper"
+        description={DESCRIPTION[view]}
+        nav={
+          <SegmentedControl
+            segments={NAV}
+            value={view}
+            onValueChange={setView}
+            label="Time Keeper sections"
+          />
+        }
+      />
 
-      <div className="timekeeper-scroll min-h-0 flex-1 overflow-y-auto">
-        {view === "tracker" && <TrackerView categories={categories} />}
-        {view === "dashboard" && <DashboardView categories={categories} />}
-        {view === "logs" && <LogsView categories={categories} />}
-        {view === "categories" && <CategoriesView categories={categories} />}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <ActiveView view={view} />
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 import type { ArtifactTypeFilter } from "@media-viewer/utils/filterArtifacts";
@@ -38,6 +39,10 @@ export function ArtifactSearchControls({
   onTypeFilterChange,
   variant = "full",
 }: ArtifactSearchControlsProps) {
+  // `compact` is the in-composer placement. It now only changes the surrounding
+  // chrome: the control heights come from the primitives, which are already
+  // 44px on compact and 36px at the shell breakpoint, so both placements clear
+  // the touch minimum without a bespoke height in this file.
   const compact = variant === "compact";
 
   return (
@@ -47,28 +52,17 @@ export function ArtifactSearchControls({
         compact ? "p-2" : "border-b border-border px-3 py-2",
       )}
     >
-      <div
-        className={cn(
-          "flex min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-sm)] border border-input bg-background px-2 shadow-sm focus-within:ring-2 focus-within:ring-ring",
-          compact ? "h-7" : "h-9",
-        )}
-      >
+      <div className="relative min-w-0 flex-1">
         <Search
-          className={cn(
-            "shrink-0 text-muted-foreground",
-            compact ? "h-3 w-3" : "h-3.5 w-3.5",
-          )}
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
           aria-hidden
         />
-        <input
+        <Input
           type="search"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Search artifacts…"
-          className={cn(
-            "min-w-0 flex-1 border-0 bg-transparent text-foreground outline-none placeholder:text-muted-foreground",
-            compact ? "text-xs" : "text-sm",
-          )}
+          className="pl-9"
           aria-label="Search artifacts by filename"
         />
       </div>
@@ -78,21 +72,12 @@ export function ArtifactSearchControls({
           <Button
             type="button"
             variant="outline"
-            className={cn(
-              "shrink-0 gap-1 border-input bg-background text-foreground",
-              compact ? "h-7 px-2 text-xs" : "h-9 px-2.5 text-sm",
-            )}
-            aria-label="Filter artifacts by type"
+            className="shrink-0 gap-1 px-3"
+            aria-label={`Filter artifacts by type, currently ${typeFilterLabel(typeFilter)}`}
             onPointerDown={(event) => event.stopPropagation()}
           >
             <span className="truncate">{typeFilterLabel(typeFilter)}</span>
-            <ChevronDown
-              className={cn(
-                "shrink-0 text-muted-foreground",
-                compact ? "h-3 w-3" : "h-3.5 w-3.5",
-              )}
-              aria-hidden
-            />
+            <ChevronDown className="text-muted-foreground" aria-hidden />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent

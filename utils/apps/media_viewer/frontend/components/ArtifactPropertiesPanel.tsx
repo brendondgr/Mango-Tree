@@ -1,4 +1,5 @@
 import { Trash2 } from "lucide-react";
+import { useRef } from "react";
 
 import { formatBytes } from "@/features/chat/utils/fileType";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,7 @@ function PropertyCard({ title, fields, className }: PropertyCardProps) {
   return (
     <article
       className={cn(
-        "flex flex-col rounded-[var(--radius-sm)] border border-border bg-muted/20 p-3 shadow-sm",
+        "flex flex-col rounded-[var(--radius-md)] border border-border bg-surface-1 p-3 shadow-xs",
         className,
       )}
     >
@@ -65,7 +66,9 @@ export function ArtifactPropertiesPanel({ artifact }: ArtifactPropertiesPanelPro
     cancelDelete,
     handleDelete,
     isPending,
+    error: deleteError,
   } = useArtifactDeleteFlow(artifact.id);
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
   const cards: PropertyCardProps[] = [
     {
@@ -120,43 +123,53 @@ export function ArtifactPropertiesPanel({ artifact }: ArtifactPropertiesPanelPro
   ];
 
   return (
-    <aside className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-card">
+    <aside
+      className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-card"
+      // The card grid below sizes against this panel, not the viewport: the
+      // pane narrows whenever the chat sidebar is dragged open, and `sm:` /
+      // `xl:` cannot see that.
+      style={{ containerType: "inline-size" }}
+    >
       <div className="shrink-0 border-b border-border px-4 py-2">
         <h3 className="text-sm font-semibold text-foreground">Properties</h3>
         <p className="truncate text-xs text-muted-foreground">{artifact.filename}</p>
       </div>
       <ScrollArea className="h-full min-h-0 flex-1">
-        <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 p-3 @[34rem]:grid-cols-2 @[56rem]:grid-cols-3">
           {cards.map((card) => (
             <PropertyCard key={card.title} {...card} />
           ))}
         </div>
       </ScrollArea>
 
-      <div className="shrink-0 border-t border-border px-4 py-2">
-        {confirmDelete ? (
-          <ArtifactDeleteConfirm
-            layout="inline"
-            filename={artifact.filename}
-            isPending={isPending}
-            onCancel={cancelDelete}
-            onConfirm={handleDelete}
-          />
-        ) : (
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={requestDelete}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Delete artifact
-            </Button>
-          </div>
-        )}
+      <div className="flex shrink-0 justify-end border-t border-border px-4 py-2">
+        <Button
+          ref={deleteButtonRef}
+          type="button"
+          variant="outline"
+          className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive hover:[&_svg]:text-destructive"
+          onClick={requestDelete}
+        >
+          <Trash2 />
+          Delete artifact
+        </Button>
       </div>
+
+      {/*
+        Deleting the artifact this panel describes closes its viewer tab, so
+        the whole panel — Delete button included — unmounts on success and the
+        dialog has nothing of its own left to hand focus back to. The confirm
+        falls back to the shell's main landmark in that case.
+      */}
+      <ArtifactDeleteConfirm
+        open={confirmDelete}
+        filename={artifact.filename}
+        isPending={isPending}
+        error={deleteError}
+        triggerRef={deleteButtonRef}
+        onCancel={cancelDelete}
+        onConfirm={handleDelete}
+      />
     </aside>
   );
 }

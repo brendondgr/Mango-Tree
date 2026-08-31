@@ -90,6 +90,12 @@ describe("shipped theme contrast", () => {
     ["--card-foreground", "--card", CONTRAST_AA_TEXT, "text on cards"],
     ["--popover-foreground", "--popover", CONTRAST_AA_TEXT, "text in overlays"],
     ["--muted-foreground", "--background", CONTRAST_AA_TEXT, "secondary text"],
+    // Inactive segmented-control labels and other secondary text sit on the
+    // raised surfaces, not on the page. axe caught this on the app section
+    // switchers, which the contrast gate could not see without the pair.
+    ["--muted-foreground", "--surface-1", CONTRAST_AA_TEXT, "secondary text on surface-1"],
+    ["--muted-foreground", "--surface-2", CONTRAST_AA_TEXT, "secondary text on surface-2"],
+    ["--muted-foreground", "--card", CONTRAST_AA_TEXT, "secondary text on a card"],
     ["--primary-foreground", "--primary", CONTRAST_AA_TEXT, "primary button label"],
     [
       "--secondary-foreground",

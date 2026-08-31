@@ -60,8 +60,14 @@ rendering inside `WorkspaceMainBody` via
 **Deadlines** (goals due/overdue). The active view is persisted in the workspace
 store (`projectManagerView`).
 
-All component styles live in `frontend/styles/projectmanager.css` and every class
-is prefixed `projectmanager-` so they never collide with the rest of the app.
+There is no app-local stylesheet. Every surface is built from the shared design
+tokens and the primitives in `web/src/components/` (`AppHeader`,
+`SegmentedControl`, `MasterDetail`, `AsyncBoundary`, `Field`, `Select`,
+`Dialog`), so the module tracks the active theme and the shell's spacing rhythm
+without a private copy of either. Category colours map onto the shared
+`--category-*` palette in `frontend/utils/colors.ts`; the backend's
+`deadline_status.css_class` is read there as a semantic tone rather than applied
+as a class name, so the API contract is unchanged.
 
 ## Rules
 

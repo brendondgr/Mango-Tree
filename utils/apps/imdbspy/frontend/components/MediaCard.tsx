@@ -1,12 +1,23 @@
-import { ExternalLink, Pencil, Star, Trash2 } from "lucide-react";
+import { ExternalLink, Pencil, Trash2 } from "lucide-react";
+import type { CSSProperties } from "react";
 
-import { assetUrl } from "@/services/imdbspyClient";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { MediaItem, PersonRef } from "@/types/imdbspy";
 
+import {
+  GenrePill,
+  KindBadge,
+  RatingBadge,
+  categoryStyle,
+} from "@imdbspy/components/MediaBadges";
+import { Poster } from "@imdbspy/components/Poster";
 import { StatusMenu } from "@imdbspy/components/StatusMenu";
 
 interface MediaCardProps {
   item: MediaItem;
+  /** Position in the grid, for the staggered enter animation. */
+  index?: number;
   onReview: (item: MediaItem) => void;
   onDelete: (item: MediaItem) => void;
 }
@@ -37,26 +48,35 @@ function formatAdded(iso: string | null): string {
   });
 }
 
-function onImgError(e: React.SyntheticEvent<HTMLImageElement>) {
-  const target = e.currentTarget;
-  target.style.display = "none";
-  const fallback = target.nextElementSibling as HTMLElement | null;
-  if (fallback) fallback.style.display = "flex";
-}
+/**
+ * An inline link inside running text.
+ *
+ * `inline-flex` with a 24px minimum is what keeps a 12px crew name from being
+ * a 16px-tall tap target while still flowing inside the sentence.
+ */
+const INLINE_LINK =
+  "inline-flex min-h-6 items-center rounded-[var(--radius-sm)] px-0.5 underline-offset-2 hover:text-primary-emphasis hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /** A comma-separated list of people, each linked to IMDb when an id is known. */
 function PeopleLine({ label, people }: { label: string; people: PersonRef[] }) {
   return (
-    <div className="imdbspy-crew-line">
-      <span className="imdbspy-crew-label">{label}</span>
-      <span className="imdbspy-crew-names">
+    <div className="flex gap-2">
+      <dt className="shrink-0 pt-1 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="min-w-0 text-xs leading-6 text-foreground">
         {people.map((person, i) => {
           const url = personUrl(person);
           return (
             <span key={`${person.name}-${i}`}>
               {i > 0 ? ", " : ""}
               {url ? (
-                <a href={url} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={INLINE_LINK}
+                >
                   {person.name}
                 </a>
               ) : (
@@ -65,46 +85,87 @@ function PeopleLine({ label, people }: { label: string; people: PersonRef[] }) {
             </span>
           );
         })}
+      </dd>
+    </div>
+  );
+}
+
+function ActorThumb({
+  person,
+  imgPath,
+}: {
+  person: PersonRef;
+  imgPath: string | null;
+}) {
+  const url = personUrl(person);
+  const inner = (
+    <>
+      <Poster
+        path={imgPath}
+        letter={person.name.charAt(0).toUpperCase()}
+        className="h-12 w-12 rounded-[var(--radius-pill)] border border-border"
+        letterClassName="text-base"
+      />
+      <span className="line-clamp-2 text-center text-[0.625rem] leading-tight text-muted-foreground transition-colors group-hover:text-foreground">
+        {person.name}
+      </span>
+    </>
+  );
+
+  const shell = "flex w-[4.25rem] shrink-0 flex-col items-center gap-1 rounded-[var(--radius-md)] p-1";
+
+  return url ? (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={person.name}
+      className={cn(
+        shell,
+        "group transition-colors hover:bg-surface-2",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      )}
+    >
+      {inner}
+    </a>
+  ) : (
+    <div className={shell} title={person.name}>
+      {inner}
+    </div>
+  );
+}
+
+/** A label/value pair in the card footer. */
+function Stat({
+  label,
+  value,
+  emphasis = false,
+}: {
+  label: string;
+  value: string;
+  emphasis?: boolean;
+}) {
+  return (
+    <div className="flex flex-col leading-tight">
+      <span className="text-[0.5625rem] font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <span
+        className={cn(
+          "text-xs tabular-nums",
+          // Weight, not hue: the `--category-*` scale is identical on the light
+          // and dark themes, so a token used as 12px text fails contrast on
+          // half of them.
+          emphasis ? "font-bold text-foreground" : "text-muted-foreground",
+        )}
+      >
+        {value}
       </span>
     </div>
   );
 }
 
-function ActorThumb({ person, imgPath }: { person: PersonRef; imgPath: string | null }) {
-  const name = person.name;
-  const url = personUrl(person);
-  const photo = (
-    <div className="imdbspy-actor-photo">
-      {imgPath ? (
-        <>
-          <img src={assetUrl(imgPath)} alt={name} loading="lazy" onError={onImgError} />
-          <div className="imdbspy-actor-fallback" style={{ display: "none" }}>
-            {name.charAt(0).toUpperCase()}
-          </div>
-        </>
-      ) : (
-        <div className="imdbspy-actor-fallback">{name.charAt(0).toUpperCase()}</div>
-      )}
-    </div>
-  );
-  return (
-    <div className="imdbspy-actor" title={name}>
-      {url ? (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="imdbspy-actor-link">
-          {photo}
-          <span className="imdbspy-actor-name">{name}</span>
-        </a>
-      ) : (
-        <>
-          {photo}
-          <span className="imdbspy-actor-name">{name}</span>
-        </>
-      )}
-    </div>
-  );
-}
-
-export function MediaCard({ item, onReview, onDelete }: MediaCardProps) {
+export function MediaCard({ item, index = 0, onReview, onDelete }: MediaCardProps) {
   const tv = isTv(item);
   const seen = item.status === "seen" || item.status === "abandoned";
   const cast = item.cast?.slice(0, 5) ?? [];
@@ -112,108 +173,95 @@ export function MediaCard({ item, onReview, onDelete }: MediaCardProps) {
   const imdbUrl = `https://www.imdb.com/title/tt${item.imdb_id}/`;
 
   return (
-    <div className="imdbspy-card">
-      {/* Top: poster (sized to match this row's info block) + headline/desc/crew */}
-      <div className="imdbspy-card-main">
-        <div className="imdbspy-card-poster">
-          <button
-            type="button"
-            className="imdbspy-card-delete"
-            title="Remove from library"
-            onClick={() => onDelete(item)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-          {item.title_image_path ? (
-            <>
-              <img
-                src={assetUrl(item.title_image_path)}
-                alt={item.title}
-                loading="lazy"
-                onError={onImgError}
-              />
-              <div className="imdbspy-card-poster-fallback" style={{ display: "none" }}>
-                {item.title.charAt(0).toUpperCase()}
-              </div>
-            </>
-          ) : (
-            <div className="imdbspy-card-poster-fallback">
-              {item.title.charAt(0).toUpperCase()}
-            </div>
-          )}
-        </div>
+    <article
+      data-enter
+      // A container query, not a viewport one: this card lives in a pane the
+      // user resizes by dragging the chat sidebar.
+      style={{ "--i": index, containerType: "inline-size" } as CSSProperties}
+      className={cn(
+        "flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-card shadow-xs",
+        "transition-[border-color,box-shadow] duration-[var(--motion-duration-md)] ease-[var(--motion-ease-standard)]",
+        "hover:border-primary/40 hover:shadow-md focus-within:border-primary/40",
+      )}
+    >
+      <div className="flex">
+        <Poster
+          path={item.title_image_path}
+          letter={item.title.charAt(0).toUpperCase()}
+          // A definite width plus `self-stretch` lets the poster follow the
+          // info column's height instead of dragging the row to its own
+          // intrinsic aspect ratio; `object-cover` keeps it looking ~2:3.
+          className="w-[32%] min-w-[5rem] max-w-[11.875rem] shrink-0 self-stretch"
+          letterClassName="text-4xl"
+        />
 
-        <div className="imdbspy-card-info">
-          {/* Headline + ratings */}
-          <div className="imdbspy-card-top">
-            <div className="imdbspy-card-headline">
-              <h3 className="imdbspy-card-title" title={item.title}>
+        <div className="flex min-h-[11.25rem] min-w-0 flex-1 flex-col justify-center gap-2 p-3 @[26rem]:p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h3
+                title={item.title}
+                className="text-[0.95rem] font-bold leading-tight text-foreground @[26rem]:text-base"
+              >
                 {item.title}
               </h3>
-              <div className="imdbspy-card-sub">
+              <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
                 <span>({item.years || "—"})</span>
                 {!tv && item.runtime_minutes ? (
                   <>
-                    <span>•</span>
+                    <span aria-hidden>•</span>
                     <span>{formatRuntime(item.runtime_minutes)}</span>
                   </>
                 ) : null}
-              </div>
-              <div className="imdbspy-card-tags">
-                <span className="imdbspy-kind-badge" data-kind={tv ? "tv" : undefined}>
-                  {tv ? "TV Series" : "Movie"}
-                </span>
+              </p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                <KindBadge tv={tv} />
                 {genres.map((g) => (
-                  <span key={g} className="imdbspy-genre-pill">
-                    {g}
-                  </span>
+                  <GenrePill key={g}>{g}</GenrePill>
                 ))}
               </div>
             </div>
 
-            <div className="imdbspy-card-ratings">
-              <div className="imdbspy-rating-badges">
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <div className="flex items-center gap-1.5">
                 {seen && item.user_rating !== null ? (
-                  <span className="imdbspy-rating-badge imdbspy-rating-user" title="Your rating">
-                    <Star className="h-3.5 w-3.5 fill-current" />
-                    {item.user_rating.toFixed(1)}
-                  </span>
+                  <RatingBadge tone="user" value={item.user_rating} />
                 ) : null}
                 {item.rating !== null ? (
-                  <span className="imdbspy-rating-badge imdbspy-rating-imdb" title="IMDb rating">
-                    <Star className="h-3.5 w-3.5 fill-current" />
-                    {item.rating.toFixed(1)}
-                  </span>
+                  <RatingBadge tone="imdb" value={item.rating} />
                 ) : null}
               </div>
               {item.rating_count ? (
-                <span className="imdbspy-rating-count">
+                <span className="text-[0.625rem] tabular-nums text-muted-foreground">
                   {item.rating_count.toLocaleString()} reviews
                 </span>
               ) : null}
             </div>
           </div>
 
-          {/* Description/crew (not seen) OR review (seen) */}
           {seen ? (
             item.user_review ? (
-              <p className="imdbspy-card-review">“{item.user_review}”</p>
+              <p className="line-clamp-3 text-sm italic leading-relaxed text-muted-foreground">
+                “{item.user_review}”
+              </p>
             ) : (
-              <button
-                type="button"
-                className="imdbspy-card-review-prompt"
+              <Button
+                variant="outline"
+                className="self-start"
                 onClick={() => onReview(item)}
               >
-                + Write a review
-              </button>
+                <Pencil aria-hidden />
+                Write a review
+              </Button>
             )
           ) : (
             <>
               {item.description ? (
-                <p className="imdbspy-card-desc">“{item.description}”</p>
+                <p className="line-clamp-3 text-sm italic leading-relaxed text-muted-foreground">
+                  “{item.description}”
+                </p>
               ) : null}
 
-              <div className="imdbspy-card-crew">
+              <dl className="flex flex-col gap-0.5">
                 {tv && item.creators && item.creators.length > 0 ? (
                   <PeopleLine label="Created by" people={item.creators} />
                 ) : null}
@@ -223,17 +271,25 @@ export function MediaCard({ item, onReview, onDelete }: MediaCardProps) {
                 {!tv && item.writers && item.writers.length > 0 ? (
                   <PeopleLine label="Written by" people={item.writers} />
                 ) : null}
-              </div>
+              </dl>
             </>
           )}
         </div>
       </div>
 
-      {/* Cast: full-width row below the poster/info block */}
       {!seen && cast.length > 0 ? (
-        <div className="imdbspy-card-cast">
-          <div className="imdbspy-cast-label">Cast</div>
-          <div className="imdbspy-cast-row">
+        <div className="flex flex-col gap-1.5 px-3 pb-3 @[26rem]:px-4">
+          <p className="text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
+            Cast
+          </p>
+          {/* `.scroll-region` keeps its own overflow and is keyboard-scrollable,
+              rather than being clipped by an overflow-hidden ancestor. */}
+          <div
+            className="scroll-region flex gap-1 pb-1"
+            tabIndex={0}
+            role="group"
+            aria-label={`Cast of ${item.title}`}
+          >
             {cast.map((person) => (
               <ActorThumb
                 key={person.name}
@@ -245,56 +301,69 @@ export function MediaCard({ item, onReview, onDelete }: MediaCardProps) {
         </div>
       ) : null}
 
-      {/* Footer */}
-      <div className="imdbspy-card-footer">
-        <div className="imdbspy-footer-left">
-          <a
-            href={imdbUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="imdbspy-imdb-link"
-            title="View on IMDb"
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
+      <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border px-3 py-2 @[26rem]:px-4">
+        {/* Everything but href/target/rel goes on Button: `asChild` merges the
+            two class strings by concatenation, not by tailwind-merge, so a
+            utility placed on the anchor would race the variant's own. */}
+        <Button
+          asChild
+          variant="ghost"
+          style={categoryStyle("amber")}
+          className="border border-[hsl(var(--c)/0.5)] bg-[hsl(var(--c)/0.16)] px-2 text-[0.6875rem] font-bold uppercase tracking-wide text-foreground"
+        >
+          <a href={imdbUrl} target="_blank" rel="noopener noreferrer">
+            <ExternalLink aria-hidden />
             IMDb
+            <span className="sr-only"> — open {item.title} on IMDb</span>
           </a>
-          <div className="imdbspy-footer-stat">
-            <span className="imdbspy-footer-stat-label">Added</span>
-            <span className="imdbspy-footer-stat-value">{formatAdded(item.added_at)}</span>
-          </div>
-        </div>
+        </Button>
 
-        <div className="imdbspy-footer-right">
-          {tv && item.seasons ? (
-            <div className="imdbspy-footer-stat">
-              <span className="imdbspy-footer-stat-label">Seasons</span>
-              <span
-                className="imdbspy-footer-stat-value"
-                data-progress={item.seasons_seen != null ? "true" : undefined}
-              >
-                {item.seasons_seen != null
-                  ? `${item.seasons_seen}/${item.seasons}`
-                  : item.seasons}
-              </span>
-            </div>
-          ) : null}
-          {tv && item.episodes ? (
-            <div className="imdbspy-footer-stat">
-              <span className="imdbspy-footer-stat-label">Episodes</span>
-              <span className="imdbspy-footer-stat-value">{item.episodes}</span>
-            </div>
-          ) : null}
+        <Stat label="Added" value={formatAdded(item.added_at)} />
+
+        {tv && item.seasons ? (
+          <Stat
+            label="Seasons"
+            value={
+              item.seasons_seen != null
+                ? `${item.seasons_seen}/${item.seasons}`
+                : String(item.seasons)
+            }
+            emphasis={item.seasons_seen != null}
+          />
+        ) : null}
+        {tv && item.episodes ? (
+          <Stat label="Episodes" value={String(item.episodes)} />
+        ) : null}
+
+        <div className="ml-auto flex items-center gap-1">
           <StatusMenu item={item} />
-          <button
-            type="button"
-            className="imdbspy-icon-btn"
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Edit rating and review for ${item.title}`}
             title="Edit rating & review"
             onClick={() => onReview(item)}
           >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
+            <Pencil aria-hidden />
+          </Button>
+          {/* Was a 30px transparent circle revealed only on `:hover`, sitting
+              over the top-left of the poster — invisible on touch, and the
+              first tap that landed there fired the destructive flow while the
+              user believed they had tapped the poster. It is now a permanent,
+              labelled control in the action row, and it still routes through
+              the confirm dialog. */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            aria-label={`Remove ${item.title} from library`}
+            title="Remove from library"
+            onClick={() => onDelete(item)}
+          >
+            <Trash2 aria-hidden />
+          </Button>
         </div>
       </div>
-    </div>
+    </article>
   );
 }

@@ -53,8 +53,13 @@ export function useArtifactDeleteFlow(artifactId: string) {
   return {
     confirmDelete,
     requestDelete: () => setConfirmDelete(true),
-    cancelDelete: () => setConfirmDelete(false),
+    cancelDelete: () => {
+      setConfirmDelete(false);
+      // Clear a previous failure so reopening the confirm starts clean.
+      deleteMutation.reset();
+    },
     handleDelete,
     isPending: deleteMutation.isPending,
+    error: deleteMutation.error,
   };
 }

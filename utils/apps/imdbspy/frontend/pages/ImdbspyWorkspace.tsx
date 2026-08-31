@@ -1,36 +1,64 @@
 import { useState } from "react";
-import { Film, Grid, LayoutList, Loader2, Plus, RefreshCw, Settings } from "lucide-react";
+import {
+  Film,
+  LayoutGrid,
+  List,
+  Plus,
+  RefreshCw,
+  SearchX,
+  Settings2,
+} from "lucide-react";
 
+import { AppHeader } from "@/components/app-shell/AppHeader";
+import {
+  SegmentedControl,
+  type Segment,
+} from "@/components/app-shell/SegmentedControl";
+import { AsyncBoundary } from "@/components/ui/async-boundary";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import type { KindFilter, MediaItem, MediaStatus } from "@/types/imdbspy";
 
 import { AddMediaDialog } from "@imdbspy/components/AddMediaDialog";
 import { DeleteConfirmDialog } from "@imdbspy/components/DeleteConfirmDialog";
 import { MediaCard } from "@imdbspy/components/MediaCard";
 import { MediaRow } from "@imdbspy/components/MediaRow";
+import {
+  GRID_COLUMNS,
+  MediaGridSkeleton,
+  MediaListSkeleton,
+} from "@imdbspy/components/MediaSkeletons";
 import { ReviewDialog } from "@imdbspy/components/ReviewDialog";
 import { WeightsDialog } from "@imdbspy/components/WeightsDialog";
 import { useMedia, useRefreshMetadata } from "@imdbspy/hooks/useImdbspy";
 import "@imdbspy/styles/imdbspy.css";
 
 type LayoutMode = "grid" | "list";
+type KindValue = KindFilter | "all";
 
-const STATUS_TABS: Array<{ value: MediaStatus; label: string }> = [
+const STATUS_SEGMENTS: Segment<MediaStatus>[] = [
   { value: "not_seen", label: "Not Seen" },
   { value: "seen", label: "Seen" },
   { value: "abandoned", label: "Abandoned" },
 ];
 
-const KIND_TABS: Array<{ value: KindFilter | "all"; label: string }> = [
+const KIND_SEGMENTS: Segment<KindValue>[] = [
   { value: "all", label: "All" },
   { value: "movie", label: "Movies" },
   { value: "tv", label: "TV" },
 ];
 
+const LAYOUTS: Array<{ value: LayoutMode; label: string; icon: typeof LayoutGrid }> =
+  [
+    { value: "grid", label: "Grid view", icon: LayoutGrid },
+    { value: "list", label: "List view", icon: List },
+  ];
+
 export function ImdbspyWorkspace() {
   const [statusFilter, setStatusFilter] = useState<MediaStatus>("not_seen");
-  const [kindFilter, setKindFilter] = useState<KindFilter | "all">("all");
+  const [kindFilter, setKindFilter] = useState<KindValue>("all");
   const [search, setSearch] = useState("");
   const [layout, setLayout] = useState<LayoutMode>("grid");
   const [addOpen, setAddOpen] = useState(false);
@@ -47,178 +75,227 @@ export function ImdbspyWorkspace() {
     limit: 200,
   };
 
-  const { data, isLoading, isError, error } = useMedia(queryParams);
+  const { data, isLoading, isError, error, refetch } = useMedia(queryParams);
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
 
+  // Nothing-here and nothing-matched are different situations with different
+  // exits: one wants the Add dialog, the other wants the filters cleared.
+  const filtered = search.trim() !== "" || kindFilter !== "all";
+
+  const refreshMessage = refresh.isError
+    ? (refresh.error as Error).message
+    : refresh.isSuccess
+      ? `Refreshed metadata — ${refresh.data?.updated_count ?? 0} title${
+          refresh.data?.updated_count === 1 ? "" : "s"
+        } updated.`
+      : null;
+
+  const clearFilters = () => {
+    setSearch("");
+    setKindFilter("all");
+  };
+
   return (
-    <div className="imdbspy-app flex min-h-0 flex-1 flex-col bg-background">
-      {/* Header */}
-      <div className="imdbspy-header">
-        <h1 className="imdbspy-title">
-          <Film className="h-5 w-5 text-primary" />
-          IMDbSpy
-        </h1>
-
-        {/* Status segmented control */}
-        <div className="imdbspy-status-tabs" role="tablist" aria-label="Status filter">
-          {STATUS_TABS.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              className="imdbspy-status-tab"
-              data-active={statusFilter === value}
-              aria-selected={statusFilter === value}
-              onClick={() => setStatusFilter(value)}
+    <div
+      // Container query, not viewport: app modules render inside a pane the
+      // user resizes by dragging the chat sidebar, so the pane's own width is
+      // the only honest breakpoint.
+      style={{ containerType: "inline-size" }}
+      className="flex min-h-0 w-full flex-1 flex-col bg-background text-foreground"
+    >
+      <AppHeader
+        icon={Film}
+        title="IMDbSpy"
+        description="Your watchlist, rated on your own scale"
+        nav={
+          <SegmentedControl
+            segments={STATUS_SEGMENTS}
+            value={statusFilter}
+            onValueChange={setStatusFilter}
+            label="Filter by watch status"
+          />
+        }
+        actions={
+          <>
+            <Button onClick={() => setAddOpen(true)}>
+              <Plus aria-hidden />
+              Add
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => refresh.mutate()}
+              disabled={refresh.isPending}
+              aria-label="Refresh metadata from IMDb"
+              title="Refresh metadata from IMDb"
             >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <div className="ml-auto flex items-center gap-1.5">
-          {/* Add */}
-          <Button size="sm" onClick={() => setAddOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Add
-          </Button>
-
-          {/* Refresh */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refresh.mutate()}
-            disabled={refresh.isPending}
-            title="Refresh metadata from IMDb"
-          >
-            <RefreshCw
-              className={`h-4 w-4 ${refresh.isPending ? "imdbspy-spin" : ""}`}
-            />
-          </Button>
-
-          {/* Weights / settings */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            title="Rating weights"
-            onClick={() => setWeightsOpen(true)}
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Control bar */}
-      <div className="imdbspy-controls">
-        <span className="imdbspy-count">{isLoading ? "…" : `${total} title${total !== 1 ? "s" : ""}`}</span>
-
-        {/* Kind filter */}
-        <div className="imdbspy-filter-tabs" role="group" aria-label="Kind filter">
-          {KIND_TABS.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              className="imdbspy-filter-tab"
-              data-active={kindFilter === value}
-              onClick={() => setKindFilter(value)}
+              <RefreshCw
+                className={cn(refresh.isPending && "motion-safe:animate-spin")}
+                aria-hidden
+              />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setWeightsOpen(true)}
+              aria-label="Rating weights"
+              title="Rating weights"
             >
-              {label}
-            </button>
-          ))}
-        </div>
+              <Settings2 aria-hidden />
+            </Button>
+          </>
+        }
+      />
 
-        {/* Layout toggle */}
-        <div className="imdbspy-layout-toggle" role="group" aria-label="Layout">
-          <button
-            type="button"
-            className="imdbspy-layout-btn"
-            data-active={layout === "grid"}
-            title="Grid view"
-            onClick={() => setLayout("grid")}
-          >
-            <Grid className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            className="imdbspy-layout-btn"
-            data-active={layout === "list"}
-            title="List view"
-            onClick={() => setLayout("list")}
-          >
-            <LayoutList className="h-4 w-4" />
-          </button>
-        </div>
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-surface-1 px-3 py-2 @[48rem]:px-4">
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-xs font-semibold tabular-nums text-muted-foreground"
+        >
+          {/* Same class of bug as the weights dialog: `total` falls back to 0,
+              so a failed request used to report "0 titles" — the empty result,
+              stated as fact — right above the boundary's error panel. */}
+          {isLoading
+            ? "Loading…"
+            : isError
+              ? "Couldn't load"
+              : `${total} title${total !== 1 ? "s" : ""}`}
+        </p>
 
-        {/* Search */}
-        <div className="imdbspy-search">
+        <SegmentedControl
+          segments={KIND_SEGMENTS}
+          value={kindFilter}
+          onValueChange={setKindFilter}
+          label="Filter by kind"
+        />
+
+        <Field
+          label="Search titles"
+          hideLabel
+          // space-y-0: the sr-only label is still a flow child, and
+          // Field's default space-y-1.5 would push the input off-centre
+          // against the segmented control beside it.
+          className="min-w-[9rem] flex-1 basis-48 space-y-0"
+        >
           <Input
+            type="search"
             placeholder="Search titles…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-8 text-sm"
           />
+        </Field>
+
+        <div className="flex items-center gap-1" role="group" aria-label="Layout">
+          {LAYOUTS.map(({ value, label, icon: Icon }) => (
+            <Button
+              key={value}
+              variant={layout === value ? "default" : "ghost"}
+              size="icon"
+              aria-pressed={layout === value}
+              aria-label={label}
+              title={label}
+              onClick={() => setLayout(value)}
+            >
+              <Icon aria-hidden />
+            </Button>
+          ))}
         </div>
       </div>
 
-      {/* Content */}
-      <div className="imdbspy-content">
-        {isLoading ? (
-          <div className="imdbspy-empty">
-            <Loader2 className="h-8 w-8 imdbspy-spin imdbspy-empty-icon" />
-            <p className="text-sm">Loading…</p>
-          </div>
-        ) : isError ? (
-          <div className="imdbspy-empty">
-            <p className="text-sm text-destructive">
-              {(error as Error).message}
-            </p>
-          </div>
-        ) : items.length === 0 ? (
-          <div className="imdbspy-empty">
-            <Film className="h-12 w-12 imdbspy-empty-icon" />
-            <p className="text-sm font-semibold">No titles yet</p>
-            <p className="text-xs">
-              Click <strong>Add</strong> and paste an IMDb URL to get started.
-            </p>
-          </div>
-        ) : layout === "grid" ? (
-          <div className="imdbspy-grid">
-            {items.map((item) => (
+      {/* The refresh mutation used to spin and then say nothing either way.
+          The region stays mounted and merely swaps between `sr-only` and the
+          visible banner: a `role="status"` element inserted at the same moment
+          as its own text is frequently not announced at all. */}
+      <p
+        role="status"
+        aria-live="polite"
+        className={cn(
+          refreshMessage
+            ? cn(
+                "shrink-0 border-b border-border px-3 py-1.5 text-xs @[48rem]:px-4",
+                refresh.isError
+                  ? "bg-destructive/10 font-medium text-foreground"
+                  : "bg-surface-1 text-muted-foreground",
+              )
+            : "sr-only",
+        )}
+      >
+        {refreshMessage}
+      </p>
+
+      <AsyncBoundary
+        loading={isLoading}
+        error={isError ? error : undefined}
+        empty={items.length === 0}
+        onRetry={() => void refetch()}
+        label="your library"
+        skeleton={
+          layout === "grid" ? <MediaGridSkeleton /> : <MediaListSkeleton />
+        }
+        emptyIcon={filtered ? SearchX : Film}
+        emptyTitle={filtered ? "No matching titles" : "No titles yet"}
+        emptyDescription={
+          filtered
+            ? "Nothing in this status matches the current search and kind filter."
+            : "Add an IMDb URL or id and IMDbSpy will pull in the poster, cast and ratings."
+        }
+        emptyAction={
+          filtered ? (
+            <Button variant="outline" onClick={clearFilters}>
+              Clear filters
+            </Button>
+          ) : (
+            <Button onClick={() => setAddOpen(true)}>
+              <Plus aria-hidden />
+              Add titles
+            </Button>
+          )
+        }
+        className="min-h-0 flex-1 overflow-y-auto p-3 @[48rem]:p-4"
+      >
+        {layout === "grid" ? (
+          <div className={cn("grid gap-3 @[48rem]:gap-4", GRID_COLUMNS)}>
+            {items.map((item, i) => (
               <MediaCard
                 key={item.id}
                 item={item}
+                index={i}
                 onReview={setReviewItem}
                 onDelete={setDeleteItem}
               />
             ))}
           </div>
         ) : (
-          <div className="imdbspy-list">
-            {items.map((item) => (
+          <div className="flex flex-col gap-2">
+            {items.map((item, i) => (
               <MediaRow
                 key={item.id}
                 item={item}
+                index={i}
                 onReview={setReviewItem}
                 onDelete={setDeleteItem}
               />
             ))}
           </div>
         )}
-      </div>
+      </AsyncBoundary>
 
-      {/* Dialogs */}
       <AddMediaDialog open={addOpen} onOpenChange={setAddOpen} />
       <WeightsDialog open={weightsOpen} onOpenChange={setWeightsOpen} />
       <ReviewDialog
         item={reviewItem}
-        onOpenChange={(open) => { if (!open) setReviewItem(null); }}
+        onOpenChange={(open) => {
+          if (!open) setReviewItem(null);
+        }}
       />
       <DeleteConfirmDialog
         item={deleteItem}
-        onOpenChange={(open) => { if (!open) setDeleteItem(null); }}
+        onOpenChange={(open) => {
+          if (!open) setDeleteItem(null);
+        }}
       />
     </div>
   );

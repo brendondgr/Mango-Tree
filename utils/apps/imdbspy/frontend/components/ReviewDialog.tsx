@@ -1,18 +1,27 @@
+import { AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import {
+  SegmentedControl,
+  type Segment,
+} from "@/components/app-shell/SegmentedControl";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import type { MediaItem, ReviewInput, ScaleType } from "@/types/imdbspy";
 import { SCALE_CRITERIA } from "@/types/imdbspy";
 
+import { CriterionSlider } from "@imdbspy/components/CriterionSlider";
+import { Textarea } from "@imdbspy/components/Textarea";
 import { useUpdateReview } from "@imdbspy/hooks/useImdbspy";
 
 interface ReviewDialogProps {
@@ -39,11 +48,11 @@ const CRITERION_TO_KEY: Record<string, CriterionKey> = {
   heart: "heart_rating",
 };
 
-const SCALE_LABELS: Record<ScaleType, string> = {
-  fun: "Fun",
-  grit: "Grit",
-  comfort: "Comfort",
-};
+const SCALE_SEGMENTS: Segment<ScaleType>[] = [
+  { value: "fun", label: "Fun" },
+  { value: "grit", label: "Grit" },
+  { value: "comfort", label: "Comfort" },
+];
 
 function buildInitialRatings(item: MediaItem): Record<CriterionKey, number> {
   return {
@@ -73,6 +82,9 @@ export function ReviewDialog({ item, onOpenChange }: ReviewDialogProps) {
   const [reviewText, setReviewText] = useState("");
   const [seasonsSeen, setSeasonsSeen] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
+  // Kept apart from `error`: the save confirmation used to reuse the error
+  // slot, so a success would have rendered in destructive red.
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (!item) return;
@@ -81,6 +93,7 @@ export function ReviewDialog({ item, onOpenChange }: ReviewDialogProps) {
     setReviewText(item.user_review ?? "");
     setSeasonsSeen(item.seasons_seen ?? 0);
     setError(null);
+    setNotice(null);
   }, [item]);
 
   const criteria = SCALE_CRITERIA[scaleType];
@@ -88,6 +101,7 @@ export function ReviewDialog({ item, onOpenChange }: ReviewDialogProps) {
   const handleSubmit = () => {
     if (!item) return;
     setError(null);
+    setNotice(null);
 
     const input: ReviewInput = {
       scale_type: scaleType,
@@ -109,11 +123,9 @@ export function ReviewDialog({ item, onOpenChange }: ReviewDialogProps) {
       { id: item.id, input },
       {
         onSuccess: (updated) => {
-          // Show computed rating briefly then close
           setError(null);
-          // Update display of computed rating
           if (updated.user_rating !== null) {
-            setError(`Saved! Your rating: ${updated.user_rating.toFixed(1)} / 10`);
+            setNotice(`Saved. Your rating: ${updated.user_rating.toFixed(1)} / 10`);
           }
           onOpenChange(false);
         },
@@ -126,108 +138,106 @@ export function ReviewDialog({ item, onOpenChange }: ReviewDialogProps) {
 
   return (
     <Dialog open={item !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="imdbspy-app max-w-lg">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Review: {item.title}</DialogTitle>
+          <DialogTitle className="truncate">Review: {item.title}</DialogTitle>
           <DialogDescription>
-            Rate this title and write your thoughts.
+            Rate this title and write your thoughts. The 0–10 score is derived
+            from these criteria and the weights for the chosen scale.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="imdbspy-dialog-body">
-          {/* Scale picker */}
-          <div className="imdbspy-field">
-            <Label>Rating Scale</Label>
-            <div className="imdbspy-scale-tabs">
-              {(["fun", "grit", "comfort"] as ScaleType[]).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className="imdbspy-scale-tab"
-                  data-active={scaleType === s}
-                  onClick={() => setScaleType(s)}
-                >
-                  {SCALE_LABELS[s]}
-                </button>
-              ))}
-            </div>
+        {/* Seven sliders plus a textarea outgrow a phone in landscape; the body
+            scrolls so Save never leaves the screen. */}
+        <DialogBody className="space-y-5">
+          <div className="space-y-1.5">
+            <p className="text-sm font-medium leading-none text-foreground">
+              Rating scale
+            </p>
+            <SegmentedControl
+              segments={SCALE_SEGMENTS}
+              value={scaleType}
+              onValueChange={setScaleType}
+              label="Rating scale"
+              className="flex w-full"
+            />
           </div>
 
-          {/* Criterion sliders */}
-          <div className="imdbspy-field">
-            <Label>Criteria (0–5)</Label>
-            <div className="flex flex-col gap-2 pt-1">
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium leading-none text-foreground">
+              Criteria (0–5)
+            </legend>
+            <div className="flex flex-col gap-1 pt-1">
               {criteria.map((criterion) => {
                 const key = CRITERION_TO_KEY[criterion];
                 if (!key) return null;
                 return (
-                  <div key={criterion} className="imdbspy-slider-row">
-                    <span className="imdbspy-slider-label">{criterion}</span>
-                    <input
-                      type="range"
-                      className="imdbspy-slider"
-                      min={0}
-                      max={5}
-                      step={0.5}
-                      value={ratings[key]}
-                      onChange={(e) =>
-                        setRatings((prev) => ({
-                          ...prev,
-                          [key]: parseFloat(e.target.value),
-                        }))
-                      }
-                    />
-                    <span className="imdbspy-slider-value">{ratings[key]}</span>
-                  </div>
+                  <CriterionSlider
+                    key={criterion}
+                    label={criterion}
+                    value={ratings[key]}
+                    disabled={updateReview.isPending}
+                    onChange={(value) =>
+                      setRatings((prev) => ({ ...prev, [key]: value }))
+                    }
+                  />
                 );
               })}
             </div>
-          </div>
+          </fieldset>
 
-          {/* Seasons seen (TV only) */}
           {item.kind === "tv" && item.seasons !== null ? (
-            <div className="imdbspy-field">
-              <Label htmlFor="imdbspy-seasons-seen">
-                Seasons Seen (0–{item.seasons})
-              </Label>
-              <input
-                id="imdbspy-seasons-seen"
+            <Field label={`Seasons seen (0–${item.seasons})`}>
+              <Input
                 type="number"
+                inputMode="numeric"
                 min={0}
                 max={item.seasons}
                 value={seasonsSeen}
-                onChange={(e) => setSeasonsSeen(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                className="w-24 rounded border border-border bg-muted px-2 py-1 text-sm text-foreground"
+                onChange={(e) =>
+                  setSeasonsSeen(Math.max(0, parseInt(e.target.value, 10) || 0))
+                }
+                className="w-28"
               />
-            </div>
+            </Field>
           ) : null}
 
-          {/* Review text */}
-          <div className="imdbspy-field">
-            <Label htmlFor="imdbspy-review-text">Your Review (optional)</Label>
-            <textarea
-              id="imdbspy-review-text"
-              className="imdbspy-textarea"
+          <Field label="Your review" hint="Optional.">
+            <Textarea
               rows={4}
+              className="min-h-20"
               value={reviewText}
               onChange={(e) => setReviewText(e.target.value)}
               placeholder="Write your thoughts…"
               disabled={updateReview.isPending}
             />
-          </div>
+          </Field>
 
-          {/* Error / info */}
           {error ? (
-            <p className="text-sm text-destructive">{error}</p>
+            <p
+              role="alert"
+              className="flex items-start gap-2 rounded-[var(--radius-md)] border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm font-medium text-foreground"
+            >
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
+              {error}
+            </p>
           ) : null}
 
-          {/* Existing rating */}
-          {item.user_rating !== null ? (
-            <div className="imdbspy-computed-rating">
-              Current rating: {item.user_rating.toFixed(1)} / 10
-            </div>
+          {notice ? (
+            <p
+              role="status"
+              className="rounded-[var(--radius-md)] border border-[hsl(var(--category-mint)/0.5)] bg-[hsl(var(--category-mint)/0.16)] px-3 py-2 text-sm font-medium text-foreground"
+            >
+              {notice}
+            </p>
           ) : null}
-        </div>
+
+          {item.user_rating !== null ? (
+            <p className="flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-border bg-surface-2 px-3 py-3 text-base font-extrabold tabular-nums text-primary-emphasis">
+              Current rating: {item.user_rating.toFixed(1)} / 10
+            </p>
+          ) : null}
+        </DialogBody>
 
         <DialogFooter>
           <Button
@@ -238,7 +248,7 @@ export function ReviewDialog({ item, onOpenChange }: ReviewDialogProps) {
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={updateReview.isPending}>
-            {updateReview.isPending ? "Saving…" : "Save Review"}
+            {updateReview.isPending ? "Saving…" : "Save review"}
           </Button>
         </DialogFooter>
       </DialogContent>

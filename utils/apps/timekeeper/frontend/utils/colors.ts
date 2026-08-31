@@ -49,11 +49,6 @@ export function subcategoryColor(colorId: string | undefined, l: number | undefi
   return `hsl(${h} ${s}% ${shadeLightness(l)}%)`;
 }
 
-/** Readable text colour (black/white) for a given shade level. */
-export function shadeText(l: number | undefined): string {
-  return shadeLightness(l) > 55 ? "#111827" : "#f9fafb";
-}
-
 // --- lookup helpers ----------------------------------------------------------
 
 export interface Resolved {
@@ -93,7 +88,14 @@ export function buildResolver(categories: Category[]) {
         colorId: cat.colorId,
       };
     }
-    return { categoryName: "Untracked", subcategoryName: "", color: "hsl(220 8% 60%)", colorId: "" };
+    // The one colour here that is not derived from a category: the shared
+    // neutral data token, so it tracks the theme like every other surface.
+    return {
+      categoryName: "Untracked",
+      subcategoryName: "",
+      color: "hsl(var(--category-slate))",
+      colorId: "",
+    };
   }
 
   return { resolve, byCat, bySub };
