@@ -26,11 +26,13 @@ def _relax_api_auth_for_legacy_tests(request, monkeypatch):
     time — overriding the setting afterward would not reach already-imported
     views.
 
-    The auth suite under ``utils/tests/utils/shared/auth/`` is exempt so it keeps
-    exercising real enforcement — that is where the lockdown (unauthenticated →
-    403) is proven."""
+    Two suites are exempt so they keep exercising real enforcement:
+    ``utils/tests/utils/shared/auth/``, where the lockdown (unauthenticated →
+    403) is proven, and ``utils/tests/utils/shared/llm/``, where the provider
+    API must stay refused to anonymous callers — it can trigger outbound
+    requests and it handles API keys."""
     path = str(getattr(request.node, "fspath", "")).replace("\\", "/")
-    if "/utils/shared/auth/" in path:
+    if "/utils/shared/auth/" in path or "/utils/shared/llm/" in path:
         return
     monkeypatch.setattr(IsAuthenticated, "has_permission", lambda self, req, view: True)
 

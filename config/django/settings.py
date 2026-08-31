@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "rest_framework",
     "utils.shared.auth.apps.MangoAuthConfig",
+    "utils.shared.llm.apps.MangoLlmConfig",
     "utils.apps.media_viewer.backend.apps.MediaViewerBackendConfig",
     "utils.apps.exercise.backend.apps.ExerciseBackendConfig",
     "utils.apps.projectmanager.backend.apps.ProjectManagerBackendConfig",

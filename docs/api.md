@@ -123,6 +123,65 @@ group whose `requires` capability is unmet → `permission_denied`).
 A group may also carry `"requires": "<capability>"` when it is gated behind a
 session precondition (none today). `core` is always listed first.
 
+### LLM providers (`/api/llm/`)
+
+Where the owner configures which model backend the agent talks to. Every route
+requires a session.
+
+**The browser never calls a model endpoint.** Discovery, the connection test and
+token counting all run server-side. They used to run in the browser against the
+configured base URL, which worked only because the Vite dev proxy forwarded
+`/v1`; point that at `api.anthropic.com` and the CORS preflight is refused, so
+the UI would report "unreachable" for a provider that works perfectly from the
+server. The `/v1` and `/tokenize` dev proxies exist for the legacy path only.
+
+**An API key is written, never read.** No response from these routes contains a
+key — only `key_hint`, a masked tail (`…9f2c`) or `env:VAR_NAME`, which is
+enough to tell two keys apart when rotating one.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/kinds/` | Adapter kinds for the add-provider form, each with `needs_key` / `needs_base_url` |
+| `GET` | `/providers/` | Configured endpoints plus `default_provider` |
+| `POST` | `/providers/` | Add an owner-defined provider (`201`; `409` on a duplicate slug) |
+| `PATCH` | `/providers/{slug}/` | Update one. Omitting `api_key` leaves the stored key alone; `""` clears it |
+| `DELETE` | `/providers/{slug}/` | Remove one (`204`; `404` if absent) |
+| `GET` | `/models/?provider={slug}&refresh=1` | Live model discovery |
+| `POST` | `/test/` | Reachability **and** a real one-token generation |
+
+Providers come from two sources. `config/models.yaml` declares endpoints in the
+repo and names its secrets (`api_key_env: ANTHROPIC_API_KEY`); those are listed
+with `"source": "config"` and `"editable": false`. Rows the owner adds through
+the settings UI are `"source": "owner"` and editable. An owner row wins a slug
+collision.
+
+`GET /api/llm/models/` returns **200 with `ok: false`** when an endpoint cannot
+be reached:
+
+```json
+{ "ok": false, "provider": "gpu-box", "error": "Connection refused", "models": [] }
+```
+
+That is deliberate. An unreachable local server is a normal state, not a server
+error — someone's GPU box being switched off must render as a message beside the
+dropdown, not as a failed request. A `404` means the *provider* is unknown.
+
+On success each model reports what discovery could establish, including
+`capability_source`: whether a capability was reported by the server, derived
+from a second endpoint, guessed from the model id, or read from config. A UI
+that greys out an attachment button based on a guess is worse than one that lets
+the user try and shows the error.
+
+`POST /api/llm/test/` reports reachability and generation separately, because
+listing models proves the endpoint answers but not that the key is accepted for
+generation — which is the failure that actually matters:
+
+```json
+{ "provider": "anthropic", "reachable": true, "model_count": 14,
+  "model": "claude-sonnet-5", "generated": true, "sample": "ok",
+  "usage": { "input_tokens": 12, "output_tokens": 2 } }
+```
+
 ## App Endpoints
 
 Eight apps are routed: calendar, media viewer, mailbox, exercise, project

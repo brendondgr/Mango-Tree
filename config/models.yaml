@@ -1,7 +1,51 @@
+# Provider registry.
+#
+# Endpoints declared here are read-only in the settings UI — this file is the
+# source of truth for them. The owner can add, edit and remove their own
+# providers from Settings -> LLM, which are stored in the database instead.
+#
+# Secrets are NAMED here, never embedded: `api_key_env` is read from the
+# environment at call time, so this file stays safe to commit.
+#
+# `default_model` is only a preselection hint. Discovery is the source of truth
+# for what a provider actually serves, and the registry falls back to the first
+# discovered model when a saved one no longer exists — so nothing here needs
+# updating when a vendor ships a new model.
+
 default_provider: local
 
 providers:
   local:
-    type: openai_compatible
+    kind: openai_compatible
+    label: Local model server
     base_url: http://localhost:9090/v1
-    model: default-model
+    # A local box that is switched off should fail fast; local generation
+    # itself can legitimately take minutes. One timeout cannot be both.
+    connect_timeout: 2
+    timeout: 300
+
+  ollama:
+    kind: ollama
+    label: Ollama
+    base_url: http://localhost:11434
+    connect_timeout: 2
+    timeout: 300
+    enabled: false
+
+  anthropic:
+    kind: anthropic
+    label: Anthropic
+    api_key_env: ANTHROPIC_API_KEY
+    enabled: false
+
+  openai:
+    kind: openai
+    label: OpenAI
+    api_key_env: OPENAI_API_KEY
+    enabled: false
+
+  gemini:
+    kind: gemini
+    label: Google Gemini
+    api_key_env: GEMINI_API_KEY
+    enabled: false
