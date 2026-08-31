@@ -85,3 +85,6 @@ $RECYCLE.BIN/
 .vscode/
 *.swp
 *.swo
+
+# UI audit runs (utils/scripts/audit_ui.py) — commit findings, not runs
+.audit/

@@ -25,6 +25,11 @@ dev = [
     "pytest>=8.4",
     "pytest-django>=4.11",
 ]
+# UI audit harness (utils/scripts/audit_ui.py, verify_mobile.py). Kept out of
+# `dev` because it also needs a browser binary: `playwright install chromium`.
+audit = [
+    "playwright>=1.44,<2",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

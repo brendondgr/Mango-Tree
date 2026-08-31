@@ -1,0 +1,147 @@
+# =============================================================================
+# audit-profile.yaml — Mango Tree web workspace
+# =============================================================================
+# Scoping record for the website-audit skill. Every routing decision in that
+# skill keys off this file. Fields marked VERIFIED were detected against the
+# running site, not taken on trust; the detection command is named inline.
+#
+# The "site" here is the authenticated single-owner SPA served by Vite at
+# http://localhost:5173 (Django/DRF at :32553 serves /api only). There is no
+# public marketing surface: everything except /login and /signup sits behind a
+# session cookie.
+# =============================================================================
+
+site:
+  url:              http://localhost:5173
+  staging_url:      null
+  type:             web
+  primary_job:      transact          # the owner arrives to complete operations
+                                      # (read mail, log a workout, ask the agent),
+                                      # not to read or be persuaded
+  category:         saas              # single-tenant productivity workspace
+  url_count:        3                 # VERIFIED — /login, /signup, /chat. Apps are
+                                      # tabs inside /chat, not routes
+                                      # (web/src/app/router.tsx)
+  multilingual:     false             # VERIFIED — no hreflang, no lang switcher,
+                                      # single en locale
+  expected_life:    indefinite
+  maintainer:       brendondgr
+
+audience:
+  intent:           goal-directed
+  success_metric:   "The owner can run every app and the agent from a phone as
+                     comfortably as from a desktop."
+
+# -----------------------------------------------------------------------------
+# COMPLIANCE
+# -----------------------------------------------------------------------------
+compliance:
+  regime:           none              # personal single-owner tool, no statutory
+                                      # obligation. Owner asked for keyboard
+                                      # operability as a stated nice-to-have.
+  target:           wcag22-aa         # aspirational target, not a gate
+  deliverable:      none
+  known_complaint:  false
+
+# Severity note: because regime is `none`, WCAG A/AA failures are graded by user
+# impact rather than auto-escalated to blocker. Anything that makes a surface
+# unusable by keyboard is still treated as major, because the owner asked for it.
+
+# -----------------------------------------------------------------------------
+# CONTENT — VERIFIED by crawling the authenticated workspace
+# (scratchpad/audit_live.py, 2026-08-31)
+# -----------------------------------------------------------------------------
+content:
+  has_forms:              true    # auth, composer, every app's editors/settings
+  has_auth:               true    # session cookie, single owner, signup closes
+  has_search:             true    # mailbox, recipes, imdbspy filter inputs
+  has_video:              true    # media_viewer VideoViewer
+  has_audio:              false
+  has_animation:          true    # framer-motion + CSS transitions
+  has_carousel:           false
+  has_images_of_text:     false
+  has_data_tables:        true    # exercise history, timekeeper logs, mail lists
+  has_custom_widgets:     true    # sidebar resize separator, tab close
+                                  # affordances, timekeeper paint grid
+  has_multistep_process:  true    # signup -> onboarding -> workspace
+  has_visualizations:     true    # exercise dashboard + timekeeper charts,
+                                  # dependency-free hand-rolled SVG/CSS
+  has_animation_layer:    false
+  has_pdfs:               true    # media_viewer renders PDFs via pdfjs-dist —
+                                  # it VIEWS them, it does not publish them, so
+                                  # ada/documents-pdf.md does not apply
+  has_office_docs:        false
+  has_latex_pdfs:         false
+  has_epub:               false
+  has_html_email:         true    # mailbox renders received HTML email bodies
+  volume:                 dense
+
+# -----------------------------------------------------------------------------
+# STACK — rendering VERIFIED, not inferred from the framework name
+# -----------------------------------------------------------------------------
+stack:
+  rendering:        csr             # VERIFIED — index.html ships an empty
+                                    # <div id="root">; all content is painted by
+                                    # the client bundle. Acceptable here: the
+                                    # site is auth-gated and SEO is out of scope.
+  cms:              null
+  hosting:          self-hosted     # local-first; optionally mango.brendondgr.com
+  licence_policy:   any
+  third_parties:    []              # VERIFIED — no third-party origins. Fonts,
+                                    # icons and KaTeX assets are all bundled.
+
+mobile:
+  required:         true            # OWNER'S TOP PRIORITY
+  known_problem_sections:
+    - "workspace header tab strip — overflows past the right edge with 4+ tabs
+       open, no scroll affordance (measured right=1384px at a 1280px viewport)"
+    - "mailbox 3-pane inbox — list + reading pane + drawer"
+    - "calendar week grid"
+    - "timekeeper 288-block paint grid"
+    - "projectmanager master-detail board"
+    - "exercise history and dashboard tables"
+    - "media_viewer PDF and video viewers"
+    - "recipes filter sidebar + card grid"
+
+motion:
+  budget:           expressive      # owner explicitly asked for "pizazz" and
+                                    # "content that loads in visually appealing
+                                    # ways"
+  scroll_reveals:   false           # none today. If the overhaul adds any, the
+                                    # fail-open rule in dynamic-loading.md
+                                    # becomes blocker-severity.
+  reduced_motion_handled: partial   # VERIFIED — globals.css has a
+                                    # prefers-reduced-motion block that
+                                    # neutralises CSS transitions/animations
+                                    # only; it cannot reach framer-motion's
+                                    # JS-driven transforms.
+
+perf:
+  device_floor:     mid-android-4g
+  budget_file:      null
+  hard_requirement: null
+  # VERIFIED baseline (npm run build, 2026-08-31): one 7,855 kB JS chunk
+  # (3,251 kB gzip) + 1,286 kB pdf.worker + 172 kB CSS. No code splitting.
+
+seo:
+  priority:         none            # OWNER: "SEO is not a concern."
+  local_business:   false
+  ecommerce:        false
+  ai_visibility:    false
+  data_access:      [none]
+  # seo/ references are NOT loaded for this engagement. The site is auth-gated
+  # and has no public surface to index.
+
+engagement:
+  mode:             mid-build       # overhaul in progress, not a launch gate
+  out_of_scope:
+    - "backend business logic under utils/apps/*/backend (unchanged unless a UI
+       fix requires it)"
+    - "SEO of every kind"
+  fix_budget:       full-backlog
+  report_path:      ./docs/audit-report.md
+
+meta:
+  created:          2026-08-31
+  last_verified:    2026-08-31
+  verified_by:      "website-audit skill, authenticated Playwright crawl"
