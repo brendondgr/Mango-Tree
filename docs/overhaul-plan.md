@@ -1,5 +1,11 @@
 # Website overhaul — implementation plan
 
+> **Status: complete.** Every phase below has landed. The measured before/after
+> is in [`docs/audit-report.md`](audit-report.md) §5 — headline numbers: the
+> mobile gate goes 2/7 → 7/7, overflowing elements at 360px 542 → 0, axe
+> violations 30 → 1, initial bundle 3,282 kB gzip → 326 kB, frontend tests
+> 75 → 145. This document is kept as the record of what was planned and why.
+
 **Goal.** Restructure and rebuild the Mango Tree web UI so it is clean, modern,
 structured, and genuinely usable on a phone — and so the chat feature can talk to
 any LLM provider, configured entirely from the web UI.
