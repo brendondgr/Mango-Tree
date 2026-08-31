@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Run Django (32553) and Vite (5173) together. Open http://localhost:5173.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+exec python run.py

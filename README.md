@@ -83,35 +83,40 @@ No PostgreSQL, Redis, Celery, or S3 — by design, not by omission.
 
 ## Setup
 
-```bash
-git clone <repository-url>
-cd Mango-Tree
-```
+You need **git**, **[uv](https://docs.astral.sh/uv/)**, **Python 3.13** and
+**Node/npm** already installed. Everything else is one command.
 
 ```bash
-uv sync --extra dev
+git clone git@github.com:brendondgr/Mango-Tree.git && cd Mango-Tree && ./scripts/bootstrap
 ```
 
-```bash
-cp .env.example .env
-```
-
-```bash
-cd web && npm install && cd ..
-```
-
-```bash
-uv run manage.py migrate
-```
-
-```bash
-uv run manage.py migrate --database=imdbspy
-```
+`bootstrap` installs both dependency trees, copies `.env.example` to `.env` if
+you have no `.env` yet, creates the gitignored `data/` tree, and builds the app
+databases. It is idempotent — re-running it on a live install never overwrites
+an existing database or your `.env`.
 
 Edit `.env` if your model server is not at `http://localhost:9090/v1`. You can
 also add providers, paste API keys and pick a model from **Settings → LLM**
 once the app is running — nothing about the model backend has to be decided at
 setup time.
+
+<details>
+<summary>The same steps by hand, and the Windows symlink fix</summary>
+
+```bash
+uv sync --extra dev
+cp .env.example .env
+uv run utils/scripts/init_data.py       # data/ dirs + the legacy app schemas
+uv run manage.py migrate
+uv run manage.py migrate --database=imdbspy
+cd web && npm install && cd ..
+```
+
+`init_data.py` exists because `data/` is gitignored: SQLite creates a missing
+database *file* but never a missing *directory*, so without it the imdbspy
+migration cannot open its database. It also builds the empty schemas for the
+three apps whose models bind `managed = False`, using the schema editor rather
+than a migration — see the rule below about never migrating those.
 
 On Windows, if the skill links under `.cursor/`, `.claude/`, or `.codex/` appear
 as plain text files after cloning:
@@ -126,10 +131,12 @@ On macOS/Linux:
 ./utils/scripts/link-skills.sh
 ```
 
+</details>
+
 ## Running
 
 ```bash
-python run.py
+./scripts/server
 ```
 
 That starts Django on **32553** and Vite on **5173** together. Open
@@ -189,17 +196,22 @@ Secrets belong in `.env` only.
 ## Testing
 
 ```bash
-uv run pytest
+./scripts/test
 ```
 
-```bash
-cd web && npm test
-```
+`./scripts/test backend` and `./scripts/test frontend` run one half.
 
 Backend tests live in `utils/tests/`, frontend tests beside their source as
 `*.test.ts(x)`. Tests cover denial cases, not only happy paths: a disabled tool
 group must be refused at execution, unauthenticated requests rejected, and
 irreversible tools must refuse without `confirm: true`.
+
+**What a fresh clone sees.** 567 pass and 65 fail. Those 65 are not broken code:
+the exercise, projectmanager and timekeeper suites assert against rows in the
+legacy databases those apps were migrated from — row counts, a seeded category
+taxonomy — and a clone has the schemas but none of the data. They pass on an
+install with real data in `data/`. Everything that does not depend on that data,
+including every denial-case test, passes on a clean clone.
 
 ## Repository layout
 
@@ -207,15 +219,14 @@ irreversible tools must refuse without `confirm: true`.
 .
 ├── config/            # Django settings, urls, and runtime YAML
 ├── data/              # gitignored runtime state: artifacts, per-app SQLite, caches
-├── docs/
-│   ├── platform.md    # architecture, storage, security, running
-│   ├── api.md         # HTTP API contract
-│   ├── tool-groups.md # the agent tool-group model
+├── docs/              # platform.md, api.md, tool-groups.md, audits, and skills/
 │   └── skills/        # conventions, symlinked into .claude/, .cursor/, .codex/
+├── scripts/           # bootstrap, server, test — one entrypoint per verb
 ├── utils/
 │   ├── agents/        # the agent loop, tools, providers
 │   ├── api/routes/    # one URLconf module per app
 │   ├── apps/{name}/   # backend, frontend, agent, shared per app
+│   ├── scripts/       # init_data.py, the UI audit harness, skill-link fixers
 │   ├── shared/        # auth, search, llm, events
 │   └── tests/
 ├── web/               # React/Vite SPA shell
@@ -239,34 +250,13 @@ and is imported into `web/` through Vite aliases.
 
 ## Contributing
 
-Read [docs/skills/global/SKILL.md](docs/skills/global/SKILL.md) before making
-changes — it defines the step-and-commit workflow, and commit messages must
-carry no AI or tool attribution.
+[`CONTRIBUTING.md`](CONTRIBUTING.md) has the setup, the test baseline, and the
+five rules that are not negotiable. The conventions themselves live in
+`docs/skills/`, which is what the coding agents in this repo read too — start
+with [docs/skills/global/SKILL.md](docs/skills/global/SKILL.md), which defines
+the step-and-commit workflow.
 
-Then use the skill that matches the work:
-
-| Doing | Read |
-| --- | --- |
-| Anything that edits files | `docs/skills/global/` |
-| Backend, settings, migrations | `docs/skills/django-backend/` |
-| A new or changed app module | `docs/skills/app-modules/` |
-| Porting a standalone app in | `docs/skills/app-migration/` |
-| Frontend architecture | `docs/skills/website-architecture/` |
-| UI components and theming | `docs/skills/ui-frontend/` |
-| Repository layout | `docs/skills/repo-structure/` |
-| Planning phased work | `docs/skills/plan/` |
-
-A few rules worth stating up front:
-
-- Business logic lives in `backend/services/`. Views and agent tools are thin
-  callers, and the agent must reach a capability through the same service the
-  UI does.
-- Adding an agent tool takes two edits: the function in `agent/tools.py` and an
-  entry in `config/tools.yaml`. Registration is config-driven.
-- Never generate migrations for exercise, projectmanager, or timekeeper — their
-  models bind `managed = False` to databases a previous app created, and
-  applying a migration would corrupt real data.
-- An endpoint belongs in `docs/api.md` before frontend code calls it.
+Security issues go through [`SECURITY.md`](SECURITY.md), not a public issue.
 
 ## Documentation
 
@@ -288,3 +278,7 @@ frontend.
 Not built, and documented as such rather than implied: the planner and memory
 layers, a shared permission engine, embeddings and vector search, object
 storage, and any background task queue.
+
+## Licence
+
+[MIT](LICENSE). © 2026 brendondgr.

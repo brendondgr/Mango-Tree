@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# The full suite: backend then frontend.
+#
+#   ./scripts/test              both
+#   ./scripts/test backend      pytest only
+#   ./scripts/test frontend     vitest only
+#
+# Backend tests that read the legacy exercise/projectmanager/timekeeper
+# databases fail on a clone with no data in them. See README.md § Testing.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+case "${1:-all}" in
+  backend)  uv run pytest ;;
+  frontend) (cd web && npm test) ;;
+  all)      uv run pytest && (cd web && npm test) ;;
+  *) echo "usage: $0 [all|backend|frontend]" >&2; exit 2 ;;
+esac

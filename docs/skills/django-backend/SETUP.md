@@ -19,6 +19,10 @@ uv sync --extra dev
 ```
 
 ```bash
+uv run utils/scripts/init_data.py
+```
+
+```bash
 uv run manage.py migrate
 ```
 
@@ -33,6 +37,11 @@ uv run pytest
 ```bash
 uv run pytest utils/tests/api/
 ```
+
+`init_data.py` creates the gitignored `data/` tree and the empty schemas for
+the three `managed = False` apps. Skip it and `migrate --database=imdbspy`
+cannot open its database. It never touches a database that already exists.
+`./scripts/bootstrap` runs this whole sequence.
 
 Pytest is configured in `pyproject.toml` (`testpaths = ["utils/tests"]`,
 `DJANGO_SETTINGS_MODULE = "config.django.settings"`), so a bare `uv run pytest`

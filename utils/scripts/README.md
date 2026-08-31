@@ -2,6 +2,21 @@
 
 Utility scripts for development, migration, and maintenance tasks.
 
+## Runtime state
+
+`init_data.py` creates what a clean clone does not have: the gitignored `data/`
+directories, and the empty schemas for the three apps bound `managed = False` to
+databases a previous app created. It builds those with Django's schema editor
+rather than a migration, because a migration against those apps' real data would
+corrupt it — and it skips any database that already exists, so it is safe to
+re-run on a live install.
+
+```bash
+uv run utils/scripts/init_data.py --verbose
+```
+
+`./scripts/bootstrap` calls it; you rarely need to run it directly.
+
 ## Skill links
 
 - `link-skills.ps1` — recreate `.cursor/`, `.claude/`, and `.codex/` skill directory links on Windows

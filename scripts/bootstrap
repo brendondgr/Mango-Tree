@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Take a clean clone to a runnable state. Idempotent — safe to re-run on a live
+# install: it never overwrites an existing database or .env.
+#
+#   ./scripts/bootstrap
+#
+# Prerequisites this cannot install for you: git, uv, Python 3.13, Node/npm.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+step() { printf '\n\033[1m==> %s\033[0m\n' "$1"; }
+
+for tool in uv npm; do
+  command -v "$tool" >/dev/null 2>&1 || {
+    echo "error: '$tool' is not installed. See the Setup section of README.md." >&2
+    exit 1
+  }
+done
+
+step "Python dependencies"
+uv sync --extra dev
+
+step "Environment file"
+if [ -f .env ]; then
+  echo ".env already exists — left alone."
+else
+  cp .env.example .env
+  echo "created .env from .env.example. Edit it if your model server is not at http://localhost:9090/v1."
+fi
+
+step "Runtime directories and app databases"
+uv run utils/scripts/init_data.py
+
+step "Django migrations"
+uv run manage.py migrate
+uv run manage.py migrate --database=imdbspy
+
+step "Frontend dependencies"
+(cd web && npm install)
+
+printf '\n\033[1mReady.\033[0m Start it with ./scripts/server\n'
