@@ -285,3 +285,45 @@ def test_kinds_lists_every_known_adapter(client_as_owner):
     assert ids == set(registry.KNOWN_KINDS)
     hosted = {k["id"] for k in body["kinds"] if k["needs_key"]}
     assert hosted == registry.HOSTED_KINDS
+
+
+# -------------------------------------------------------------------- redaction
+
+@pytest.mark.django_db
+def test_provider_errors_are_redacted_before_reaching_the_browser(client_as_owner, monkeypatch):
+    """Provider error bodies quote the offending value back — an OpenAI 401
+    includes the rejected key — and this text is rendered in the settings panel.
+    """
+    secret = "sk-live-SHOULD-NOT-APPEAR-9999"
+    client_as_owner.post(
+        "/api/llm/providers/",
+        data={"slug": "leaky", "kind": "openai", "api_key": secret},
+        content_type="application/json",
+    )
+
+    def _boom(entry, refresh=False):
+        return {
+            "ok": False,
+            "provider": entry.slug,
+            "error": registry.redact(
+                f"401 Incorrect API key provided: {secret}. Check your key.",
+                entry.api_key,
+            ),
+            "models": [],
+        }
+
+    monkeypatch.setattr(registry, "discover_models", _boom)
+    body = client_as_owner.get("/api/llm/models/?provider=leaky").content.decode()
+    assert secret not in body
+    assert "***" in body
+
+
+def test_redact_handles_the_shapes_that_actually_leak():
+    secret = "sk-abcdef123456"
+    assert registry.redact(f"bad key {secret}", secret) == "bad key ***"
+    # Credentials embedded in a URL, whatever they are.
+    assert registry.redact("http://user:pw@host/v1") == "http://***@host/v1"
+    # A short "secret" must not turn ordinary text into asterisks.
+    assert registry.redact("the cat sat", "cat") == "the cat sat"
+    # An empty key is not a match-everything pattern.
+    assert registry.redact("unchanged", "") == "unchanged"

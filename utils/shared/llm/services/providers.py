@@ -166,7 +166,8 @@ def test_provider(slug: str, model: str | None = None) -> dict[str, Any]:
         "generated": False,
     }
     if not discovery["ok"]:
-        result["error_kind"] = discovery.get("error_kind")
+        # Already redacted by discover_models.
+        result["error_kind"] = discovery.get("error_kind", "unreachable")
         result["error"] = discovery.get("error")
         return result
 
@@ -196,9 +197,9 @@ def test_provider(slug: str, model: str | None = None) -> dict[str, Any]:
             }
     except LLMError as exc:
         result["error_kind"] = type(exc).__name__
-        result["error"] = str(exc)
+        result["error"] = registry.redact(exc, entry.api_key)
     except Exception as exc:  # pragma: no cover - adapter surprises
         result["error_kind"] = "UnexpectedError"
-        result["error"] = str(exc)
+        result["error"] = registry.redact(exc, entry.api_key)
 
     return result

@@ -21,18 +21,24 @@ export async function runAgentTurn(
   store.reset();
   store.setStatus("running");
 
-  // Forward the user's saved LLM settings so the backend agent uses the same
-  // base URL / model / key the rest of the app does. Send the raw (absolute)
-  // base URL, not the proxy-relative path, since the agent runs server-side.
-  const llmConfigPayload = llmConfig
-    ? {
-        base_url: llmConfig.baseUrl.trim(),
-        model: llmConfig.model.trim(),
-        ...(llmConfig.apiKey.trim()
-          ? { api_key: llmConfig.apiKey.trim() }
-          : {}),
-      }
-    : undefined;
+  // Send the PROVIDER SLUG, not an endpoint, and never a key. The server
+  // resolves the endpoint, the credential and the adapter from its own
+  // registry. Sending a base URL took the backend's deprecated inline path,
+  // which ignores the owner's stored key and hardcodes the OpenAI-compatible
+  // adapter — so a hosted provider or an authenticated local one would 401 on
+  // every turn even though "Test connection" passed.
+  //
+  // Omitting llm_config entirely means "use the registry default", which is the
+  // right behaviour before the settings panel has ever been opened.
+  const provider = llmConfig?.providerSlug.trim();
+  const model = llmConfig?.model.trim();
+  const llmConfigPayload =
+    provider || model
+      ? {
+          ...(provider ? { provider } : {}),
+          ...(model ? { model } : {}),
+        }
+      : undefined;
 
   try {
     const response = await fetch(`/api/agent/${chatSessionId}/agent_turn/`, {

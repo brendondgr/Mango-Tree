@@ -16,6 +16,7 @@ row here, not a change to the agent.
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -51,6 +52,24 @@ HOSTED_KINDS = {"openai", "anthropic", "gemini", "deepseek"}
 # changes monthly.
 _LOCAL_CACHE = ModelCache(ttl=60.0, error_ttl=15.0)
 _HOSTED_CACHE = ModelCache(ttl=300.0, error_ttl=15.0)
+
+
+_URL_CREDENTIALS = re.compile(r"(//)[^/\s@]+@")
+
+
+def redact(text: object, *secrets: str) -> str:
+    """Strip credentials out of a message before it can reach the browser.
+
+    Provider error bodies routinely quote the offending value back — an OpenAI
+    401 includes the rejected key — and these strings are rendered in the
+    settings panel beside the model dropdown. The 6-character floor avoids
+    turning a short or empty key into a match against ordinary text.
+    """
+    out = str(text)
+    for secret in secrets:
+        if secret and len(secret) >= 6:
+            out = out.replace(secret, "***")
+    return _URL_CREDENTIALS.sub(r"\1***@", out)
 
 
 def _repo_root() -> Path:
@@ -230,7 +249,7 @@ def discover_models(entry: ProviderEntry, refresh: bool = False) -> dict[str, An
         return {
             "ok": False,
             "provider": entry.slug,
-            "error": result.error,
+            "error": redact(result.error, entry.api_key),
             "cached": result.cached,
             "models": [],
         }

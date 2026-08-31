@@ -1,4 +1,11 @@
 export interface LlmConfig {
+  /**
+   * Slug of the provider chosen in Settings. This is what an agent turn sends;
+   * the server resolves the endpoint and the key from its own registry, so no
+   * secret crosses the wire.
+   */
+  providerSlug: string;
+  /** Display-only. Resolved from the provider list, never sent as a selector. */
   baseUrl: string;
   model: string;
   apiKey: string;
