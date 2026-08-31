@@ -5,7 +5,7 @@ import {
   truncateText,
   validateFileSize,
 } from "@/features/chat/utils/fileType";
-import { pdfjsLib } from "@/lib/pdfjsSetup";
+import { loadPdfjs } from "@/lib/pdfjsSetup";
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -72,7 +72,10 @@ async function extractVideoPosterFrame(
 }
 
 async function extractPdfText(file: File): Promise<string> {
-  const buffer = await file.arrayBuffer();
+  const [pdfjsLib, buffer] = await Promise.all([
+    loadPdfjs(),
+    file.arrayBuffer(),
+  ]);
   const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
   const pages: string[] = [];
 

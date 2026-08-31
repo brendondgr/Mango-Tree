@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { pdfjsLib } from "@/lib/pdfjsSetup";
+import { loadPdfjs } from "@/lib/pdfjsSetup";
 import { artifactContentUrl } from "@/services/mediaViewerClient";
 import type { ArtifactRecord } from "@/types/mediaViewer";
 
@@ -37,7 +37,10 @@ export function PdfViewer({ artifact }: PdfViewerProps) {
           throw new Error(`Failed to load PDF (${response.status})`);
         }
 
-        const buffer = await response.arrayBuffer();
+        const [pdfjsLib, buffer] = await Promise.all([
+          loadPdfjs(),
+          response.arrayBuffer(),
+        ]);
         const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
         if (cancelled) return;
 

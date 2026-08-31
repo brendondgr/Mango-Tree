@@ -9,6 +9,29 @@ export default defineConfig({
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
   },
   plugins: [react(), tailwindcss()],
+  build: {
+    // The build used to emit a single chunk, so any one-line change to any
+    // component invalidated the whole asset for every returning visitor and
+    // long-term caching bought nothing. Splitting the rarely-changing vendor
+    // code out gives those bytes a stable URL across deploys.
+    rollupOptions: {
+      output: {
+        // Matched on the resolved path, not the package name: `resolve.alias`
+        // below rewrites "react" to an absolute path, so a name-keyed
+        // manualChunks entry matches nothing and emits an empty chunk.
+        manualChunks(id: string) {
+          if (!id.includes("node_modules")) return undefined;
+          if (/node_modules[\\/]react(-dom)?[\\/]/.test(id)) return "react";
+          if (id.includes("@tanstack")) return "tanstack";
+          if (id.includes("@radix-ui")) return "radix";
+          return undefined;
+        },
+      },
+    },
+    // Left at Rollup's default, but meaningful now that the build is split:
+    // it warns when a chunk creeps back over budget.
+    chunkSizeWarningLimit: 500,
+  },
   optimizeDeps: {
     exclude: ["pdfjs-dist"],
   },
