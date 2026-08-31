@@ -1,0 +1,40 @@
+# The job that earns its keep here is `bootstrap`: it runs the *documented*
+# setup path on a clean runner, which is what keeps README.md honest. The
+# audit that produced this file found setup broken from a clean clone while
+# working perfectly on the maintainer's machine — this is the check that
+# would have caught it the same day.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    name: Documented setup, clean runner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: ./scripts/bootstrap
+        run: ./scripts/bootstrap
+
+      # A clone has the legacy schemas but none of the rows, so the tests that
+      # assert against real data are skipped rather than failed. Anything else
+      # going red is a genuine regression.
+      - name: Backend tests
+        run: uv run pytest
+      - name: Frontend tests
+        run: cd web && npm test
+      - name: Frontend build
+        run: cd web && npm run build

@@ -310,20 +310,18 @@ def test_read_skill_tool():
     assert "workspace" in result.result["content"]
 
 
-def test_read_artifact_by_filename():
-    # Test reading an artifact using its filename rather than its UUID
-    result = registry.execute("read_artifact", {"artifact_id": "1402.mp4"})
+def test_read_artifact_by_filename(artifact_store):
+    # Look an artifact up by its filename rather than its id
+    result = registry.execute("read_artifact", {"artifact_id": "sample.mp4"})
 
-    # It should either read successfully (if file exists) or fail with content missing.
-    # Crucially, it must NOT fail with "not found in manifest".
     assert "not found in manifest" not in result.summary
     assert "metadata" in result.result
-    assert result.result["metadata"]["filename"] == "1402.mp4"
+    assert result.result["metadata"]["filename"] == "sample.mp4"
 
 
-def test_read_artifact_returns_media_for_image():
-    # Test that reading an image artifact returns media_base64 data
-    result = registry.execute("read_artifact", {"artifact_id": "_test.png"})
+def test_read_artifact_returns_media_for_image(artifact_store):
+    # Reading an image artifact returns media_base64 data
+    result = registry.execute("read_artifact", {"artifact_id": "art-image"})
     assert result.success is True
     assert "media_base64" in result.result
     assert result.result["media_type"] == "image"
@@ -331,11 +329,11 @@ def test_read_artifact_returns_media_for_image():
     assert "loaded" in result.summary.lower()
 
 
-def test_read_artifact_returns_media_for_video():
-    # Test that reading a video artifact returns a JPEG poster frame (not raw video bytes).
+def test_read_artifact_returns_media_for_video(artifact_store):
+    # Reading a video artifact returns a JPEG poster frame, not raw video bytes.
     # The backend extracts a still frame via cv2 and sends it as image/jpeg,
     # exactly matching what the frontend canvas does for direct chat uploads.
-    result = registry.execute("read_artifact", {"artifact_id": "1402.mp4"})
+    result = registry.execute("read_artifact", {"artifact_id": "art-video"})
     assert result.success is True
     assert "media_base64" in result.result
     # Frame is always sent as image/jpeg regardless of source format

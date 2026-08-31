@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from django.test import Client
 
 
@@ -18,6 +20,7 @@ def _put(client, url, payload):
 
 # --- workouts -----------------------------------------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_list_workouts_envelope(exercise_db):
     res = Client().get("/api/exercise/workouts/")
     assert res.status_code == 200
@@ -26,6 +29,7 @@ def test_list_workouts_envelope(exercise_db):
     assert body["count"] == 7
 
 
+@pytest.mark.needs_legacy_data
 def test_create_then_list_workout(exercise_db):
     client = Client()
     payload = {"id": "wk_api", "name": "API Day", "color": "green", "exercises": []}
@@ -56,10 +60,12 @@ def test_delete_workout_success(exercise_db):
 
 # --- routines & equipment -----------------------------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_list_routines(exercise_db):
     assert Client().get("/api/exercise/routines/").json()["count"] == 3
 
 
+@pytest.mark.needs_legacy_data
 def test_equipment_bodyweight_is_bool_in_payload(exercise_db):
     results = Client().get("/api/exercise/equipment/?page_size=100").json()["results"]
     assert len(results) == 8
@@ -82,6 +88,7 @@ def test_update_missing_equipment_returns_404(exercise_db):
 
 # --- history ------------------------------------------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_history_count_and_pagination(exercise_db):
     client = Client()
     full = client.get("/api/exercise/history/?page_size=2000").json()

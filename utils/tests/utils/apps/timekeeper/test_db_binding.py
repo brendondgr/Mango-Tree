@@ -7,6 +7,8 @@ from __future__ import annotations
 import json
 import sqlite3
 
+import pytest
+
 from utils.apps.timekeeper.backend.models import Setting, TimeLog
 
 
@@ -20,6 +22,7 @@ def _raw_counts(db_path) -> tuple[int, int]:
     return logs, settings
 
 
+@pytest.mark.needs_legacy_data
 def test_time_log_count_matches_legacy(timekeeper_db):
     raw_logs, _ = _raw_counts(timekeeper_db)
     assert raw_logs > 0
@@ -31,6 +34,7 @@ def test_settings_count_matches_legacy(timekeeper_db):
     assert Setting.objects.count() == raw_settings
 
 
+@pytest.mark.needs_legacy_data
 def test_time_log_fields_read_back(timekeeper_db):
     """Spot-check a row read through the model against the raw SQLite row."""
     conn = sqlite3.connect(str(timekeeper_db))
@@ -50,6 +54,7 @@ def test_time_log_fields_read_back(timekeeper_db):
     assert row.subcategory_id == raw["subcategory_id"]
 
 
+@pytest.mark.needs_legacy_data
 def test_categories_setting_is_valid_json(timekeeper_db):
     """The ``categories`` settings row holds a well-formed taxonomy."""
     setting = Setting.objects.get(pk="categories")

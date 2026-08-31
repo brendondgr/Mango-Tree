@@ -20,6 +20,7 @@ from utils.apps.projectmanager.shared.schemas import (
 
 # --- projects -----------------------------------------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_list_projects_returns_dtos_baseline():
     projects = project_service.list_projects()
     assert len(projects) == 20
@@ -28,6 +29,7 @@ def test_list_projects_returns_dtos_baseline():
     assert [p.order_index for p in projects] == sorted(p.order_index for p in projects)
 
 
+@pytest.mark.needs_legacy_data
 def test_get_project_includes_category_and_progress():
     project = project_service.get_project(1)
     assert project.title == "Calendar (Project Peach)"
@@ -42,6 +44,7 @@ def test_get_missing_project_raises_not_found():
         project_service.get_project(999999)
 
 
+@pytest.mark.needs_legacy_data
 def test_create_project_appends_and_reuses_category():
     before = project_service.list_projects()
     max_order = max(p.order_index for p in before)
@@ -76,6 +79,7 @@ def test_create_project_makes_new_category_and_updates_color():
     assert Category.objects.filter(name="FreshCat").count() == 1
 
 
+@pytest.mark.needs_legacy_data
 def test_update_status_sets_and_clears_lifecycle_dates():
     completed = project_service.update_status(1, "Completed")
     assert completed.status == "Completed"
@@ -85,11 +89,13 @@ def test_update_status_sets_and_clears_lifecycle_dates():
     assert active.date_completed is None
 
 
+@pytest.mark.needs_legacy_data
 def test_update_status_rejects_unknown_status():
     with pytest.raises(ValidationError):
         project_service.update_status(1, "Frozen")
 
 
+@pytest.mark.needs_legacy_data
 def test_update_project_edits_title_and_description():
     updated = project_service.update_project(
         1, title="Renamed Project", description="New blurb"
@@ -100,16 +106,19 @@ def test_update_project_edits_title_and_description():
     assert updated.status == project_service.get_project(1).status
 
 
+@pytest.mark.needs_legacy_data
 def test_update_project_blank_description_clears_it():
     updated = project_service.update_project(1, description="   ")
     assert updated.description is None
 
 
+@pytest.mark.needs_legacy_data
 def test_update_project_blank_title_raises():
     with pytest.raises(ValidationError):
         project_service.update_project(1, title="   ")
 
 
+@pytest.mark.needs_legacy_data
 def test_update_project_combined_title_and_status():
     updated = project_service.update_project(
         1, title="Combo", status="Completed"
@@ -124,6 +133,7 @@ def test_update_project_unknown_raises_not_found():
         project_service.update_project(999999, title="x")
 
 
+@pytest.mark.needs_legacy_data
 def test_delete_project_removes_project_and_goals():
     goal_count = Goal.objects.filter(project_id=1).count()
     assert goal_count > 0
@@ -144,6 +154,7 @@ def test_resolve_or_create_is_idempotent_on_name():
 
 # --- goals --------------------------------------------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_list_goals_with_deadlines_sorted_and_filtered():
     goals = goal_service.list_goals_with_deadlines()
     assert len(goals) == 2
@@ -154,6 +165,7 @@ def test_list_goals_with_deadlines_sorted_and_filtered():
     assert goals[0].to_dict()["deadline_status"] is not None
 
 
+@pytest.mark.needs_legacy_data
 def test_create_goals_adds_pending_goals_to_project():
     created = goal_service.create_goals(
         1,
@@ -173,11 +185,13 @@ def test_create_goals_unknown_project_raises_not_found():
         goal_service.create_goals(999999, [NewGoalDTO.from_dict({"title": "X"})])
 
 
+@pytest.mark.needs_legacy_data
 def test_create_goals_empty_list_raises_validation():
     with pytest.raises(ValidationError):
         goal_service.create_goals(1, [])
 
 
+@pytest.mark.needs_legacy_data
 def test_toggle_goal_flips_status_and_completion():
     goal = goal_service.list_goals_for_project(1)[0]
     toggled = goal_service.toggle_goal(goal.id)
@@ -195,6 +209,7 @@ def test_list_goals_for_unknown_project_raises():
 
 # --- timeline -----------------------------------------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_dashboard_timeline_includes_projects_and_goals():
     data = timeline_service.dashboard_timeline()
     assert set(data) == {"items", "dateAxis", "minDate", "maxDate", "zoomLevel"}
@@ -203,6 +218,7 @@ def test_dashboard_timeline_includes_projects_and_goals():
     assert {item["type"] for item in data["items"]} == {"project", "goal"}
 
 
+@pytest.mark.needs_legacy_data
 def test_project_timeline_scopes_to_one_project():
     data = timeline_service.project_timeline(1)
     types = [item["type"] for item in data["items"]]

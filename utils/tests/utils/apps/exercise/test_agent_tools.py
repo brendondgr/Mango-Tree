@@ -8,6 +8,8 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import yaml
+import pytest
+
 from django.conf import settings
 
 from utils.apps.exercise.agent import tools
@@ -92,6 +94,7 @@ def test_tools_yaml_entries_resolve():
 
 # --- integration against the throwaway DB copy --------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_list_history_integration():
     payload = tools.list_history()
     assert len(payload["history"]) == 901

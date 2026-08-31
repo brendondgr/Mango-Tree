@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from django.test import Client
 
 
@@ -18,6 +20,7 @@ def _put(client, url, payload):
 
 # --- logs list ----------------------------------------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_list_logs_envelope(timekeeper_db):
     res = Client().get("/api/timekeeper/logs/")
     assert res.status_code == 200
@@ -28,6 +31,7 @@ def test_list_logs_envelope(timekeeper_db):
     assert {"id", "date", "start_time", "duration", "category_id"} <= set(first)
 
 
+@pytest.mark.needs_legacy_data
 def test_list_logs_by_date(timekeeper_db):
     all_logs = Client().get("/api/timekeeper/logs/?page_size=2000").json()["results"]
     a_date = all_logs[0]["date"]
@@ -106,6 +110,7 @@ def test_put_unknown_log_returns_404(timekeeper_db):
 
 # --- stats --------------------------------------------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_daily_stats(timekeeper_db):
     res = Client().get("/api/timekeeper/stats/daily/")
     assert res.status_code == 200
@@ -115,6 +120,7 @@ def test_daily_stats(timekeeper_db):
 
 # --- categories ---------------------------------------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_get_categories(timekeeper_db):
     res = Client().get("/api/timekeeper/categories/")
     assert res.status_code == 200

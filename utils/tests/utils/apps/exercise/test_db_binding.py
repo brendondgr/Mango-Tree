@@ -7,6 +7,8 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
 from django.conf import settings
 
 from utils.apps.exercise.backend.models import Equipment, History, Routine, Workout
@@ -19,6 +21,7 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+@pytest.mark.needs_legacy_data
 def test_counts_match_legacy_baseline():
     assert Workout.objects.count() == EXPECTED_COUNTS["workouts"]
     assert Routine.objects.count() == EXPECTED_COUNTS["routines"]
@@ -31,6 +34,7 @@ def test_models_route_to_exercise_connection():
     assert History.objects.db == "exercise"
 
 
+@pytest.mark.needs_legacy_data
 def test_workout_json_and_fields_read_back():
     workout = Workout.objects.first()
     assert workout is not None
@@ -47,12 +51,14 @@ def test_equipment_bodyweight_stored_as_int():
         assert value in (0, 1, None)
 
 
+@pytest.mark.needs_legacy_data
 def test_history_start_time_nullable():
     # start_time was added via ALTER; it may be present or null, never missing.
     row = History.objects.first()
     assert hasattr(row, "start_time")
 
 
+@pytest.mark.needs_legacy_data
 def test_harness_uses_throwaway_copy_not_live_db(exercise_db):
     # The bound DB path is the per-test temp copy, not the real data file.
     live = Path(settings.BASE_DIR) / "data" / "exercise" / "workouttracker.db"

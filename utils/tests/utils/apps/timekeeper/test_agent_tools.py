@@ -10,6 +10,8 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import yaml
+import pytest
+
 from django.conf import settings
 
 from utils.apps.timekeeper.agent import tools
@@ -122,18 +124,21 @@ def test_tools_yaml_entries_resolve():
 
 # --- integration against the throwaway DB copy --------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_list_logs_integration():
     payload = tools.list_logs()
     assert payload["logs"]
     assert "start_time" in payload["logs"][0]
 
 
+@pytest.mark.needs_legacy_data
 def test_daily_totals_integration():
     payload = tools.daily_totals()
     assert payload["days"]
     assert {"date", "total_duration"} <= set(payload["days"][0])
 
 
+@pytest.mark.needs_legacy_data
 def test_list_categories_integration():
     payload = tools.list_categories()
     assert isinstance(payload["categories"], list)

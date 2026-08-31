@@ -105,6 +105,7 @@ def test_fetch_normalizes_run_and_walk_only():
     assert result[0]["start_time"] == "07:30:00"
 
 
+@pytest.mark.needs_legacy_data
 def test_fetch_refreshes_when_access_token_invalid():
     client = _FakeClient([], athlete_ok=False)
     strava.fetch_strava_activities(
@@ -114,6 +115,7 @@ def test_fetch_refreshes_when_access_token_invalid():
     assert client.access_token == "new-access"
 
 
+@pytest.mark.needs_legacy_data
 def test_fetch_denied_when_unauthorized_and_no_refresh_token():
     client = _FakeClient([], athlete_ok=False)
     with pytest.raises(PermissionDeniedError):

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import shutil
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -37,8 +39,41 @@ def _relax_api_auth_for_legacy_tests(request, monkeypatch):
     monkeypatch.setattr(IsAuthenticated, "has_permission", lambda self, req, view: True)
 
 
+def _skip_when_no_legacy_rows(request, db_path) -> None:
+    """Skip a ``needs_legacy_data`` test when the bound database has no rows.
+
+    The exercise, projectmanager and timekeeper apps bind ``managed = False`` to
+    databases their standalone predecessors created. ``init_data.py`` gives a
+    clean clone the *schemas*, but the rows are the maintainer's own data and are
+    not in the repository — so tests asserting on counts, orderings or the seeded
+    category taxonomy cannot pass anywhere else. They report as skipped, with the
+    reason, rather than as failures: a suite that is permanently red for every
+    reader is a suite nobody reads.
+    """
+    if request.node.get_closest_marker("needs_legacy_data") is None:
+        return
+    con = sqlite3.connect(str(db_path))
+    try:
+        tables = [
+            r[0]
+            for r in con.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' "
+                "AND name NOT LIKE 'sqlite_%'"
+            )
+        ]
+        for table in tables:
+            if con.execute(f'SELECT 1 FROM "{table}" LIMIT 1').fetchone():
+                return
+    finally:
+        con.close()
+    pytest.skip(
+        f"needs the legacy data in {db_path.name}; this clone has the schema but "
+        "no rows (see README.md § Testing)"
+    )
+
+
 @pytest.fixture
-def exercise_db(tmp_path, django_db_blocker):
+def exercise_db(request, tmp_path, django_db_blocker):
     """Point the ``exercise`` connection at a throwaway copy of the real workout
     database.
 
@@ -49,6 +84,7 @@ def exercise_db(tmp_path, django_db_blocker):
     src = Path(settings.DATABASES["exercise"]["NAME"])
     tmp = tmp_path / "workouttracker.db"
     shutil.copy2(src, tmp)
+    _skip_when_no_legacy_rows(request, tmp)
 
     conn = connections["exercise"]
     conn.close()
@@ -63,7 +99,7 @@ def exercise_db(tmp_path, django_db_blocker):
 
 
 @pytest.fixture
-def projectmanager_db(tmp_path, django_db_blocker):
+def projectmanager_db(request, tmp_path, django_db_blocker):
     """Point the ``projectmanager`` connection at a throwaway copy of the real
     project-manager database.
 
@@ -74,6 +110,7 @@ def projectmanager_db(tmp_path, django_db_blocker):
     src = Path(settings.DATABASES["projectmanager"]["NAME"])
     tmp = tmp_path / "projectmanager.db"
     shutil.copy2(src, tmp)
+    _skip_when_no_legacy_rows(request, tmp)
 
     conn = connections["projectmanager"]
     conn.close()
@@ -114,7 +151,7 @@ def imdbspy_db(tmp_path, django_db_blocker):
 
 
 @pytest.fixture
-def timekeeper_db(tmp_path, django_db_blocker):
+def timekeeper_db(request, tmp_path, django_db_blocker):
     """Point the ``timekeeper`` connection at a throwaway copy of the real
     time-keeper database.
 
@@ -125,6 +162,7 @@ def timekeeper_db(tmp_path, django_db_blocker):
     src = Path(settings.DATABASES["timekeeper"]["NAME"])
     tmp = tmp_path / "timekeeper.db"
     shutil.copy2(src, tmp)
+    _skip_when_no_legacy_rows(request, tmp)
 
     conn = connections["timekeeper"]
     conn.close()
@@ -162,3 +200,58 @@ def recipes_db(tmp_path, django_db_blocker):
         conn.close()
         conn.settings_dict["NAME"] = original
         store._initialized_paths.discard(str(tmp))
+
+@pytest.fixture
+def artifact_store(tmp_path, monkeypatch):
+    """Point the artifact tools at a throwaway store holding two real files.
+
+    These tests used to read whatever happened to be in the maintainer's own
+    ``data/artifacts`` manifest — two files named ``_test.png`` and ``1402.mp4``
+    that no longer exist, so they failed everywhere including on the machine
+    they were written on. The store is now built here: a real PNG written by
+    Pillow and a real MP4 written by OpenCV, so ``read_artifact`` exercises the
+    same base64 and poster-frame paths it does in production.
+
+    Yields a dict with the store root and the two artifact records.
+    """
+    import cv2
+    import numpy as np
+    from PIL import Image
+
+    from utils.agents.tools import registry as registry_module
+
+    root = tmp_path / "artifacts"
+    storage = root / "storage"
+    storage.mkdir(parents=True)
+
+    png = storage / "sample-image.png"
+    Image.new("RGB", (16, 16), (200, 120, 40)).save(png, format="PNG")
+
+    mp4 = storage / "sample-video.mp4"
+    writer = cv2.VideoWriter(str(mp4), cv2.VideoWriter_fourcc(*"mp4v"), 5, (32, 32))
+    for shade in range(5):
+        writer.write(np.full((32, 32, 3), shade * 40, dtype=np.uint8))
+    writer.release()
+
+    records = [
+        {
+            "id": "art-image",
+            "filename": "sample.png",
+            "storage_path": "storage/sample-image.png",
+            "kind": "image",
+            "mime_type": "image/png",
+        },
+        {
+            "id": "art-video",
+            "filename": "sample.mp4",
+            "storage_path": "storage/sample-video.mp4",
+            "kind": "video",
+            "mime_type": "video/mp4",
+        },
+    ]
+    (root / "manifest.json").write_text(
+        json.dumps({"artifacts": records}), encoding="utf-8"
+    )
+
+    monkeypatch.setattr(registry_module, "ARTIFACTS_DIR", str(root))
+    yield {"root": root, "image": records[0], "video": records[1]}

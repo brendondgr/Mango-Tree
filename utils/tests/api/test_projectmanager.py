@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from django.test import Client
 
 
@@ -18,6 +20,7 @@ def _patch(client, url, payload):
 
 # --- projects -----------------------------------------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_list_projects_envelope(projectmanager_db):
     res = Client().get("/api/projectmanager/projects/")
     assert res.status_code == 200
@@ -26,6 +29,7 @@ def test_list_projects_envelope(projectmanager_db):
     assert body["count"] == 20
 
 
+@pytest.mark.needs_legacy_data
 def test_create_then_list_project(projectmanager_db):
     client = Client()
     payload = {
@@ -46,6 +50,7 @@ def test_create_project_validation_error(projectmanager_db):
     assert res.json()["code"] == "validation_error"
 
 
+@pytest.mark.needs_legacy_data
 def test_get_project_detail(projectmanager_db):
     res = Client().get("/api/projectmanager/projects/1/")
     assert res.status_code == 200
@@ -55,6 +60,7 @@ def test_get_project_detail(projectmanager_db):
     assert "status" in body
 
 
+@pytest.mark.needs_legacy_data
 def test_patch_project_status(projectmanager_db):
     client = Client()
     res = _patch(client, "/api/projectmanager/projects/1/", {"status": "Completed"})
@@ -63,6 +69,7 @@ def test_patch_project_status(projectmanager_db):
     assert body["status"] == "Completed"
 
 
+@pytest.mark.needs_legacy_data
 def test_patch_project_title_and_description(projectmanager_db):
     client = Client()
     res = _patch(
@@ -76,12 +83,14 @@ def test_patch_project_title_and_description(projectmanager_db):
     assert body["description"] == "Edited body"
 
 
+@pytest.mark.needs_legacy_data
 def test_patch_project_blank_title_is_validation_error(projectmanager_db):
     res = _patch(Client(), "/api/projectmanager/projects/1/", {"title": "   "})
     assert res.status_code == 400
     assert res.json()["code"] == "validation_error"
 
 
+@pytest.mark.needs_legacy_data
 def test_delete_project_then_get_404(projectmanager_db):
     client = Client()
     res = client.delete("/api/projectmanager/projects/1/")
@@ -93,6 +102,7 @@ def test_delete_project_then_get_404(projectmanager_db):
 
 # --- project goals ------------------------------------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_create_goals_on_project(projectmanager_db):
     payload = {
         "goals": [
@@ -122,6 +132,7 @@ def test_create_goals_missing_goals_key(projectmanager_db):
 
 # --- goals --------------------------------------------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_goal_deadlines_envelope(projectmanager_db):
     res = Client().get("/api/projectmanager/goals/deadlines/")
     assert res.status_code == 200
@@ -130,6 +141,7 @@ def test_goal_deadlines_envelope(projectmanager_db):
     assert body["count"] == 2
 
 
+@pytest.mark.needs_legacy_data
 def test_toggle_goal(projectmanager_db):
     client = Client()
     # Goal 6 starts as Completed; toggle should flip to Pending
@@ -142,6 +154,7 @@ def test_toggle_goal(projectmanager_db):
 
 # --- categories ---------------------------------------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_categories_list(projectmanager_db):
     res = Client().get("/api/projectmanager/categories/")
     assert res.status_code == 200

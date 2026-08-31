@@ -35,6 +35,7 @@ from utils.apps.exercise.shared.schemas import (
 
 # --- workouts -----------------------------------------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_list_workouts_returns_dtos_with_parsed_exercises():
     workouts = workout_service.list_workouts()
     assert len(workouts) == 7
@@ -43,6 +44,7 @@ def test_list_workouts_returns_dtos_with_parsed_exercises():
     assert all(isinstance(w.exercises, list) for w in workouts)
 
 
+@pytest.mark.needs_legacy_data
 def test_save_workout_upserts():
     dto = WorkoutDTO(id="wk_test", name="Test", color="red", exercises=[])
     workout_service.save_workout(dto)
@@ -93,6 +95,7 @@ def test_delete_routine_missing_raises_not_found():
 
 # --- equipment ----------------------------------------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_equipment_is_bodyweight_exposed_as_bool():
     items = equipment_service.list_equipment()
     assert len(items) == 8
@@ -123,6 +126,7 @@ def test_update_equipment_persists_bodyweight_as_int():
 
 # --- history ------------------------------------------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_list_history_baseline():
     logs = history_service.list_history()
     assert len(logs) == 901

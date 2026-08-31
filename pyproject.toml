@@ -42,5 +42,8 @@ audit = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+markers = [
+    "needs_legacy_data: asserts against rows in the exercise/projectmanager/timekeeper databases those apps were migrated from. A clone has the schemas but not the rows, so these skip there and run on an install that has the data.",
+]
 testpaths = ["utils/tests"]
 DJANGO_SETTINGS_MODULE = "config.django.settings"

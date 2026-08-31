@@ -8,6 +8,8 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import yaml
+import pytest
+
 from django.conf import settings
 
 from utils.apps.projectmanager.agent import tools
@@ -106,11 +108,13 @@ def test_tools_yaml_entries_resolve():
 
 # --- integration against the throwaway DB copy --------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_list_projects_integration():
     payload = tools.list_projects()
     assert len(payload["projects"]) == 20
 
 
+@pytest.mark.needs_legacy_data
 def test_list_goals_with_deadlines_integration():
     payload = tools.list_goals_with_deadlines()
     assert len(payload["goals"]) == 2

@@ -206,12 +206,12 @@ Backend tests live in `utils/tests/`, frontend tests beside their source as
 group must be refused at execution, unauthenticated requests rejected, and
 irreversible tools must refuse without `confirm: true`.
 
-**What a fresh clone sees.** 567 pass and 65 fail. Those 65 are not broken code:
-the exercise, projectmanager and timekeeper suites assert against rows in the
-legacy databases those apps were migrated from — row counts, a seeded category
-taxonomy — and a clone has the schemas but none of the data. They pass on an
-install with real data in `data/`. Everything that does not depend on that data,
-including every denial-case test, passes on a clean clone.
+**What a fresh clone sees:** 570 passed, 62 skipped, nothing failed. The 62 are
+marked `needs_legacy_data` — they assert against rows in the databases the
+exercise, projectmanager and timekeeper apps were migrated from, and a clone has
+those schemas but not the maintainer's rows. They run, and must pass, on an
+install that has the data. Everything else — including every denial-case test —
+runs anywhere.
 
 ## Repository layout
 
@@ -267,6 +267,14 @@ Security issues go through [`SECURITY.md`](SECURITY.md), not a public issue.
 | [docs/tool-groups.md](docs/tool-groups.md) | How agent tool gating works |
 | [docs/skills/](docs/skills/) | Conventions for each layer |
 | `utils/apps/README.md` | Every app, its tools, and its store |
+
+Two audits are kept as records rather than as current instructions — they
+describe the repository as it was on the day they were written:
+
+| Record | What it measured |
+| --- | --- |
+| [docs/audit-report.md](docs/audit-report.md) | The rendered UI, and the overhaul that followed ([plan](docs/overhaul-plan.md)) |
+| [docs/repo-audit.md](docs/repo-audit.md) | The repository itself: structure, doc truth, clean-clone runnability ([plan](docs/repo-restructure-plan.md)) |
 
 ## Status
 

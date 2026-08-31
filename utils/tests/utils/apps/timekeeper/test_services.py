@@ -23,6 +23,7 @@ def test_list_logs_returns_all():
     assert dates == sorted(dates, reverse=True) or len(set(dates)) == 1
 
 
+@pytest.mark.needs_legacy_data
 def test_list_logs_by_date_filters_and_orders():
     some_date = TimeLog.objects.values_list("date", flat=True).first()
     dtos = logs_service.list_logs(date=some_date)
@@ -37,6 +38,7 @@ def test_list_logs_bad_date_raises():
         logs_service.list_logs(date="not-a-date")
 
 
+@pytest.mark.needs_legacy_data
 def test_daily_totals_sum_matches_raw():
     totals = logs_service.daily_totals()
     assert totals
@@ -137,6 +139,7 @@ def test_delete_log_not_found():
 
 # --- categories ---------------------------------------------------------------
 
+@pytest.mark.needs_legacy_data
 def test_get_categories_returns_seeded_taxonomy():
     cats = categories_service.get_categories()
     assert isinstance(cats, list) and cats

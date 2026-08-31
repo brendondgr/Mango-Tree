@@ -22,10 +22,10 @@ git clone git@github.com:brendondgr/Mango-Tree.git && cd Mango-Tree && ./scripts
 You need git, uv, Python 3.13 and Node before `bootstrap` will run. It is
 idempotent, so re-run it after pulling.
 
-`./scripts/test` reports 65 backend failures on a clone with no data — the
-exercise, projectmanager and timekeeper suites assert against rows in databases
-those apps were migrated from, and you have the schemas but not the rows.
-Everything else passes. Compare against that baseline rather than against zero.
+On a fresh clone `./scripts/test` reports **570 passed, 62 skipped**. The skips
+are `needs_legacy_data` — tests asserting against rows in the databases the
+exercise, projectmanager and timekeeper apps were migrated from, which are not
+in the repository. Nothing should ever fail; a failure is a real regression.
 
 ## How work is done here
 
