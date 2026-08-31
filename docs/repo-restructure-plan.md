@@ -3,11 +3,11 @@
 **Date** 2026-08-31 · **Findings** [`docs/repo-audit.md`](repo-audit.md) ·
 **Scope** [`repo-profile.yaml`](../repo-profile.yaml)
 
-**Status: Stages 1-3 applied 2026-08-31** — commits `022e2b0`, `b8f4724`,
-`76dea56`, with the measured before/after in
-[`docs/repo-audit.md`](repo-audit.md) §9. Stages 4-7 are not started. Items
-marked ⚠ BLOCKED ON YOU inside Stages 1-3 were left undone and are listed again
-at the foot of this file.
+**Status: all seven stages applied, 2026-08-31.** The measured before/after is
+in [`docs/repo-audit.md`](repo-audit.md) §9 (stages 1-3) and §11 (stages 4-7).
+What is left is listed at the foot of §11 and is all yours: read the drafted
+Why, push, upload the social preview, and decide on `.django-test.sqlite3` and
+on visibility.
 
 Approve per stage or per line; partial approval is normal and expected, especially around Stage 1 and Stage 6, which change what
 the project *claims* rather than what it does.
@@ -142,7 +142,7 @@ them as exactly that.
 
 ---
 
-## Stage 4 — Documentation
+## Stage 4 — Documentation  ✅ applied
 
 Small. `audit_docs.py` reports zero stale paths, so this is about what a reader
 can *find*, not about drift.
@@ -176,7 +176,7 @@ disagree.
 
 ---
 
-## Stage 5 — README and showcase
+## Stage 5 — README and showcase  ✅ applied — the Why is a draft for your review
 
 The largest reader-facing change, and the one that most needs you.
 
@@ -225,7 +225,7 @@ flourish.
 
 ---
 
-## Stage 6 — Front page  (manual, GitHub UI — I cannot do these)
+## Stage 6 — Front page  ✅ description and topics set; social preview generated, upload is yours
 
 ```
 MANUAL About description          Stage 1. ⚠ BLOCKED ON YOU — B4.
@@ -246,7 +246,7 @@ PUSH   16 local commits           M5. Everything above is invisible until this.
 
 ---
 
-## Stage 7 — CI  (optional, and justified by what it does)
+## Stage 7 — CI  ✅ applied
 
 ```
 NEW    .github/workflows/ci.yml   push + PR to main:
