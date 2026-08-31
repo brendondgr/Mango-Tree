@@ -1,23 +1,54 @@
-import json
-import time
-from typing import List, Dict, Any, Optional
-from langgraph.graph import StateGraph, END
-from utils.agents.coordinator.state import AgentState
-from utils.agents.schemas.agent import ToolCall, ToolResult, AgentMessage
-from utils.agents.tools.registry import registry
-from utils.agents.tools.groups import build_tool_schemas, tools_prompt_for
-from utils.agents.providers.llm import chat_complete, LLMProviderError
+"""The coordinator loop: reason -> act -> observe -> respond.
 
-# Tool schemas are assembled per turn from the session's enabled groups; see
+The loop talks to models through ``utils.agents.providers.llm``, which resolves
+a provider server-side and yields normalized stream chunks. Two properties of
+this file are load-bearing and easy to break:
+
+* **Call/result correlation is preserved verbatim.** The assistant turn the
+  provider actually produced is kept in ``state["llm_turns"]`` and replayed on
+  the next iteration, rather than being rebuilt from strings. That is what
+  carries Anthropic thinking-block signatures and Gemini thought signatures
+  across a tool call — dropping them is a hard 400, not a degradation. Tool
+  output goes back as a real tool-result turn keyed by ``tool_call_id``.
+* **A provider failure is an error, never an answer.** There is no fallback
+  narration: if the model cannot be reached, or the key is wrong, the turn ends
+  with an ``error`` event and no ``final_answer``.
+"""
+
+import base64
+import json
+from typing import Any, Dict, List, Optional, Tuple
+
+from langgraph.graph import StateGraph, END
+
+from utils.agents.coordinator.state import AgentState
+from utils.agents.providers.llm import LLMProviderError, stream_chat
+from utils.agents.schemas.agent import AgentMessage, ToolCall, ToolResult
+from utils.agents.tools.groups import build_tool_schemas, tools_prompt_for
+from utils.agents.tools.registry import registry
+from utils.shared.llm.kit.types import (
+    ChatResponse,
+    ImagePart,
+    Message,
+    TextPart,
+)
+from utils.shared.llm.kit.types import ToolCall as LlmToolCall
+from utils.shared.llm.kit.types import ToolResult as LlmToolResult
+
+# Tool schemas are assembled per turn from the session's enabled groups as
+# neutral ``ToolDef``s — each adapter spells them in its own dialect. See
 # ``build_tool_schemas`` in ``utils.agents.tools.groups`` and docs/tool-groups.md.
+
+#: Cap on the text of one tool result fed back to the model.
+MAX_RESULT_CHARS = 4000
 
 SYSTEM_PROMPT_BASE = (
     "You are Mango, a helpful assistant. Follow these rules strictly:\n"
     "1. NEVER fabricate, invent, or hallucinate information about files you have not actually read. "
     "If a tool returns 'content omitted' or 'cannot be displayed', say so honestly.\n"
     "2. When you receive image data from a tool result, describe what you actually see in the image.\n"
-    "3. Do NOT call the same tool with the same arguments more than once per turn. "
-    "If a tool fails or returns 'content omitted', do NOT retry it.\n"
+    "3. Every tool result you receive is linked to the call that produced it. "
+    "Do not repeat a call you have already made with the same arguments — its result is already above.\n"
     "4. Only call tools that are directly relevant to the user's request. "
     "Do NOT speculatively call list_artifacts, inspect_skills, or read_artifact unless the user asked about artifacts, files, or skills.\n"
     "5. During reasoning, assess whether the user's question requires external factual information "
@@ -109,18 +140,27 @@ def format_search_result_text(result: Dict[str, Any]) -> str:
 
 def format_messages_for_llm(
     messages: List[AgentMessage],
-    observations: List[Dict[str, Any]],
+    llm_turns: Optional[List[Message]] = None,
     web_search_mode: str = "auto",
     enabled_groups=None,
-) -> List[Dict[str, Any]]:
-    llm_messages = [
-        {"role": "system", "content": build_system_prompt(web_search_mode, enabled_groups)}
+) -> List[Message]:
+    """Build the provider-neutral message list for one iteration.
+
+    The chat history becomes plain ``system``/``user``/``assistant`` turns;
+    everything the loop itself produced this turn — the assistant turns the
+    provider returned and the tool-result turns answering them — is appended
+    **verbatim** from ``llm_turns``. Nothing is re-narrated into a synthetic
+    system message, which is what previously severed a tool result from the call
+    that asked for it.
+    """
+    llm_messages: List[Message] = [
+        Message.system(build_system_prompt(web_search_mode, enabled_groups))
     ]
-    
+
     for msg in messages:
         role = "assistant" if msg.role == "agent" else msg.role
         content = msg.content
-        
+
         # Append attachments if present to let the model know what files are uploaded/attached
         if getattr(msg, "attachments", None):
             attachment_texts = []
@@ -128,93 +168,133 @@ def format_messages_for_llm(
                 name = att.get("name", "Unnamed File")
                 kind = att.get("kind", "file")
                 art_id = att.get("artifactId") or att.get("id")
-                
+
                 text_content = att.get("textContent")
                 if text_content:
                     attachment_texts.append(f"[Attached file: {name}]\n```\n{text_content}\n```")
                 else:
                     attachment_texts.append(f"[Attached file: {name} (Type: {kind}, ID: {art_id})]")
-            
+
             if attachment_texts:
                 content = content + "\n\n" + "\n\n".join(attachment_texts)
-                
-        llm_messages.append({"role": role, "content": content})
-        
-    # Append observations, converting any media results into multimodal vision blocks
-    if observations:
-        # Build content blocks: text summaries + image_url/video entries for vision
-        content_parts = []
-        has_media = False
-        
-        for obs in observations:
-            result = obs.get("result", {})
-            summary_text = f"Tool '{obs.get('tool')}': {obs.get('summary')}"
-            
-            # Check if this observation contains media (image or video)
-            if result.get("media_base64"):
-                has_media = True
-                media_mime = result.get("mime_type", "image/png")
-                media_type = result.get("media_type", "image")
-                b64 = result["media_base64"]
-                filename = result.get("metadata", {}).get("filename", "unknown")
-                
-                # Add a text label for the media
-                content_parts.append({
-                    "type": "text",
-                    "text": f"{summary_text}\n{media_type.title()} file: {filename}"
-                })
-                # Add the actual media as a vision content block
-                # OpenAI-compatible APIs use image_url for both images and inline video
-                content_parts.append({
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:{media_mime};base64,{b64}"
-                    }
-                })
-            else:
-                if obs.get("tool") == "search_web":
-                    result_text = format_search_result_text(result)
-                else:
-                    result_text = json.dumps(result.get("content", result), default=str)
-                    if len(result_text) > 4000:
-                        result_text = result_text[:4000] + "... [truncated]"
-                content_parts.append({
-                    "type": "text",
-                    "text": f"{summary_text}\nResult: {result_text}"
-                })
-        
-        if has_media:
-            # Use multimodal content format (list of content parts)
-            llm_messages.append({
-                "role": "user",
-                "content": content_parts
-            })
-        else:
-            # Use plain text format for non-media observations
-            obs_text = "\n\n".join(
-                part["text"] for part in content_parts
-            )
-            llm_messages.append({
-                "role": "system",
-                "content": f"You previously executed tools. Here are the observations:\n{obs_text}\nPlease reason on these and provide your final response or call further tools."
-            })
+
+        llm_messages.append(Message(role=role, content=content))
+
+    llm_messages.extend(llm_turns or [])
     return llm_messages
+
+
+def _result_text(obs: Dict[str, Any]) -> str:
+    """The text body of one tool result, without any inline media blob."""
+    result = obs.get("result") or {}
+    if obs.get("tool") == "search_web" and obs.get("success"):
+        return format_search_result_text(result)
+    if result.get("media_base64"):
+        filename = (result.get("metadata") or {}).get("filename", "unknown")
+        media_type = result.get("media_type", "image")
+        return (
+            f"{result.get('content') or f'{media_type} loaded'} "
+            f"({filename}). The {media_type} follows in the next message."
+        )
+    body = json.dumps(result.get("content", result), default=str)
+    if len(body) > MAX_RESULT_CHARS:
+        body = body[:MAX_RESULT_CHARS] + "... [truncated]"
+    return body
+
+
+def observation_turns(obs: Dict[str, Any]) -> Tuple[Message, List[Message]]:
+    """Convert one observation into a tool-result turn (+ any media turn).
+
+    The result is keyed by ``tool_call_id`` so every provider can tie it back to
+    the call: OpenAI renders it as a ``tool`` message, Anthropic as a
+    ``tool_result`` block in a user turn, Gemini as a ``function_response`` part.
+
+    Media rides in a *separate* user turn rather than inside the tool result:
+    OpenAI-compatible servers reject image blocks in a ``tool`` message, and
+    Anthropic requires tool_result blocks to lead the user turn they sit in.
+    """
+    summary = str(obs.get("summary") or "")
+    tool_turn = Message(
+        role="tool",
+        tool_results=[
+            LlmToolResult(
+                tool_call_id=str(obs.get("call_id") or ""),
+                content=f"{summary}\n{_result_text(obs)}".strip(),
+                is_error=not obs.get("success"),
+                name=obs.get("tool"),
+            )
+        ],
+    )
+
+    media_turns: List[Message] = []
+    result = obs.get("result") or {}
+    blob = result.get("media_base64")
+    if blob:
+        try:
+            data = base64.b64decode(blob)
+        except Exception:
+            data = None
+        if data:
+            filename = (result.get("metadata") or {}).get("filename", "unknown")
+            media_turns.append(
+                Message(
+                    role="user",
+                    content=[
+                        TextPart(text=f"Image returned by '{obs.get('tool')}': {filename}"),
+                        ImagePart(
+                            data=data,
+                            mime_type=result.get("mime_type", "image/png"),
+                        ),
+                    ],
+                )
+            )
+    return tool_turn, media_turns
+
+
+def _thinking_blocks(raw: Any) -> Optional[List[Any]]:
+    """Provider-native reasoning blocks worth replaying, if the stream gave us any.
+
+    ``ChatResponse.as_message()`` already recovers Anthropic's; this covers the
+    Gemini shape (thought parts and the thought signature riding on the first
+    ``function_call`` part) for when its adapter starts attaching ``raw`` to the
+    terminating chunk. Purely additive: no raw, no blocks, no harm.
+    """
+    if raw is None:
+        return None
+    try:
+        candidates = getattr(raw, "candidates", None)
+        if not candidates:
+            return None
+        parts = getattr(getattr(candidates[0], "content", None), "parts", None) or []
+        blocks = [
+            part
+            for part in parts
+            if getattr(part, "thought", False)
+            or getattr(part, "thought_signature", None)
+        ]
+        return blocks or None
+    except Exception:  # pragma: no cover - purely defensive
+        return None
+
 
 def reason_node(state: AgentState) -> Dict[str, Any]:
     callback = state.get("callback")
     if callback:
         callback("node_start", {"node": "reason"})
-        
+
     messages = state["messages"]
     observations = state["observations"]
+    llm_turns: List[Message] = list(state.get("llm_turns") or [])
     web_search_mode = state.get("web_search_mode", "auto")
     llm_config = state.get("llm_config")
     enabled_groups = state.get("enabled_groups")
 
-    llm_msgs = format_messages_for_llm(messages, observations, web_search_mode, enabled_groups)
-    tool_schemas = build_tool_schemas(enabled_groups)
+    llm_msgs = format_messages_for_llm(
+        messages, llm_turns, web_search_mode, enabled_groups
+    )
+    tools = build_tool_schemas(enabled_groups)
 
-    pending_actions = []
+    pending_actions: List[ToolCall] = []
     final_answer = None
     error = None
 
@@ -222,67 +302,57 @@ def reason_node(state: AgentState) -> Dict[str, Any]:
         if callback:
             callback("thinking_start", {})
 
-        # We do a streaming tool-call check
-        response_stream = chat_complete(llm_msgs, tools=tool_schemas, stream=True, config=llm_config)
-        
-        content_accum = ""
-        tool_calls_accum = {}
-        
-        for line in response_stream.iter_lines():
-            if not line:
-                continue
-            line_str = line.decode("utf-8").strip()
-            if not line_str.startswith("data:"):
-                continue
-            data_str = line_str[5:].strip()
-            if data_str == "[DONE]":
-                break
-            try:
-                chunk = json.loads(data_str)
-                if not chunk.get("choices"):
-                    continue
-                delta = chunk["choices"][0].get("delta", {})
-                
-                # Stream thinking text delta
-                if "content" in delta and delta["content"]:
-                    content_delta = delta["content"]
-                    content_accum += content_delta
-                    if callback:
-                        callback("thinking_delta", {"content": content_delta})
-                        
-                # Handle streaming tool calls
-                if "tool_calls" in delta:
-                    for tc in delta["tool_calls"]:
-                        idx = tc.get("index", 0)
-                        if idx not in tool_calls_accum:
-                            tool_calls_accum[idx] = {"id": "", "name": "", "arguments": ""}
-                        
-                        if "id" in tc and tc["id"]:
-                            tool_calls_accum[idx]["id"] = tc["id"]
-                        if "function" in tc:
-                            fn = tc["function"]
-                            if "name" in fn and fn["name"]:
-                                tool_calls_accum[idx]["name"] = fn["name"]
-                            if "arguments" in fn and fn["arguments"]:
-                                tool_calls_accum[idx]["arguments"] += fn["arguments"]
-            except Exception:
-                pass
-                
-        # Post-process accumulated tool calls
-        for idx, tc in tool_calls_accum.items():
-            args = {}
-            try:
-                args = json.loads(tc["arguments"])
-            except:
-                pass
-            pending_actions.append(ToolCall(
-                id=tc["id"] or f"call_{idx}",
-                name=tc["name"],
-                arguments=args
-            ))
-            
+        text_parts: List[str] = []
+        thinking_parts: List[str] = []
+        calls: List[LlmToolCall] = []
+        done_raw: Any = None
+        finish_reason = "unknown"
+        model_id = ""
+
+        for chunk in stream_chat(llm_msgs, tools=tools, config=llm_config):
+            if chunk.model:
+                model_id = chunk.model
+            if chunk.type == "text" and chunk.text:
+                text_parts.append(chunk.text)
+                if callback:
+                    callback("thinking_delta", {"content": chunk.text})
+            elif chunk.type == "thinking" and chunk.text:
+                thinking_parts.append(chunk.text)
+                if callback:
+                    callback("thinking_delta", {"content": chunk.text})
+            elif chunk.type == "tool_call" and chunk.tool_call:
+                calls.append(chunk.tool_call)
+            elif chunk.type == "done":
+                done_raw = chunk.raw
+                finish_reason = chunk.finish_reason or "unknown"
+            elif chunk.type == "error":
+                raise LLMProviderError(
+                    chunk.text or "The provider reported a stream error.",
+                    code="stream_error",
+                )
+
+        # A server that omits call ids gets one here, on the call itself, so the
+        # id we execute under is the same id the replayed assistant turn carries.
+        for index, call in enumerate(calls):
+            if not call.id:
+                call.id = f"call_{index}"
+
+        response = ChatResponse(
+            text="".join(text_parts),
+            thinking="".join(thinking_parts) or None,
+            tool_calls=calls,
+            finish_reason=finish_reason,
+            model=model_id,
+            raw=done_raw,
+        )
+
+        pending_actions = [
+            ToolCall(id=call.id, name=call.name, arguments=call.arguments or {})
+            for call in calls
+        ]
+
         if not pending_actions:
-            final_answer = content_accum
+            final_answer = response.text
 
         if (
             web_search_mode == "forced"
@@ -291,67 +361,48 @@ def reason_node(state: AgentState) -> Dict[str, Any]:
         ):
             query = latest_user_message(messages)
             if query:
+                call_id = f"forced_search_{state['step_count']}"
+                arguments = {"query": query}
+                # The injected call joins the assistant turn we are about to
+                # store, so its result comes back correlated like any other.
+                response.tool_calls.append(
+                    LlmToolCall(id=call_id, name="search_web", arguments=arguments)
+                )
                 pending_actions = [
-                    ToolCall(
-                        id=f"forced_search_{state['step_count']}",
-                        name="search_web",
-                        arguments={"query": query},
-                    )
+                    ToolCall(id=call_id, name="search_web", arguments=arguments)
                 ]
                 final_answer = None
-            
-    except LLMProviderError as e:
-        # Graceful fallback simulation
-        error_msg = str(e)
+
+        # The provider's own assistant item, replayed verbatim next iteration.
+        assistant_turn = response.as_message()
+        if assistant_turn.thinking_raw is None:
+            assistant_turn.thinking_raw = _thinking_blocks(done_raw)
+        llm_turns.append(assistant_turn)
+
+    except LLMProviderError as exc:
+        # No fabricated answer: the turn ends here and the frontend renders the
+        # failure. A 401 must never look like a completed reply.
+        error = exc.message
         if callback:
-            callback("error", {"message": f"LLM offline fallback: {error_msg}"})
-        
-        # Simulate check skills workflow
-        if state["step_count"] == 0:
-            simulated_thoughts = (
-                "The model server is offline. Simulating agent state machine flow...\n"
-                "Let me list all available skills to understand what capabilities exist."
-            )
-            # Stream simulated thoughts
-            if callback:
-                for word in simulated_thoughts.split(" "):
-                    callback("thinking_delta", {"content": word + " "})
-                    time.sleep(0.06)
-            final_answer = simulated_thoughts
-            pending_actions.append(ToolCall(
-                id="sim_call_1",
-                name="inspect_skills",
-                arguments={}
-            ))
-        else:
-            simulated_thoughts = (
-                "Simulated Agent state machine workflow complete.\n\n"
-                "I successfully completed the loop (`reason -> act -> observe -> respond`) locally, "
-                "triggering the `inspect_skills` tool and receiving the result. "
-                "Once the LLM backend is online, it will fully orchestrate these tools dynamically."
-            )
-            # Stream simulated thoughts
-            if callback:
-                for word in simulated_thoughts.split(" "):
-                    callback("thinking_delta", {"content": word + " "})
-                    time.sleep(0.06)
-            final_answer = simulated_thoughts
-            
-    except Exception as e:
-        error = f"Unexpected error in reason node: {str(e)}"
-        final_answer = f"An error occurred: {error}"
-        
+            callback("error", exc.to_event())
+    except Exception as exc:
+        error = f"Unexpected error in reason node: {exc}"
+        if callback:
+            callback("error", {"message": error, "code": "internal_error"})
+
     return {
         "pending_actions": pending_actions,
         "final_answer": final_answer,
-        "error": error
+        "error": error,
+        "llm_turns": llm_turns,
     }
+
 
 def act_node(state: AgentState) -> Dict[str, Any]:
     callback = state.get("callback")
     if callback:
         callback("node_start", {"node": "act"})
-        
+
     # Act node merely reports that tool execution is starting
     pending_actions = state.get("pending_actions", [])
     if callback:
@@ -361,29 +412,34 @@ def act_node(state: AgentState) -> Dict[str, Any]:
                 "name": action.name,
                 "arguments": action.arguments
             })
-            
+
     return {}
+
 
 def observe_node(state: AgentState) -> Dict[str, Any]:
     callback = state.get("callback")
     if callback:
         callback("node_start", {"node": "observe"})
-        
+
     pending_actions = state.get("pending_actions", [])
     new_observations = list(state.get("observations", []))
-    
+    llm_turns: List[Message] = list(state.get("llm_turns") or [])
+    # Every tool result first, then any media turns: Anthropic requires the
+    # tool_result blocks to lead the user turn that answers a tool-use turn.
+    result_turns: List[Message] = []
+    media_turns: List[Message] = []
+
     for action in pending_actions:
         # Create a content-based signature for dedup
         args_key = json.dumps(action.arguments, sort_keys=True, default=str)
-        call_signature = f"{action.name}:{args_key}"
-        
+
         # Check if this exact tool+args combination was already executed
         already_executed = any(
             obs.get("tool") == action.name and 
             json.dumps(obs.get("_arguments", {}), sort_keys=True, default=str) == args_key
             for obs in new_observations
         )
-        
+
         if already_executed:
             # Skip duplicate — report it to the frontend but don't re-execute
             skip_item = {
@@ -396,10 +452,13 @@ def observe_node(state: AgentState) -> Dict[str, Any]:
                 "_arguments": action.arguments
             }
             new_observations.append(skip_item)
+            tool_turn, media = observation_turns(skip_item)
+            result_turns.append(tool_turn)
+            media_turns.extend(media)
             if callback:
                 callback("tool_result", skip_item)
             continue
-        
+
         # Inject context for inspect_chat_context tool
         if action.name == "inspect_chat_context":
             messages_raw = [m.model_dump() for m in state["messages"]]
@@ -411,7 +470,7 @@ def observe_node(state: AgentState) -> Dict[str, Any]:
         tool_result: ToolResult = registry.execute(
             action.name, action.arguments, state.get("enabled_groups")
         )
-        
+
         obs_item = {
             "tool": action.name,
             "call_id": action.id,
@@ -422,26 +481,36 @@ def observe_node(state: AgentState) -> Dict[str, Any]:
             "_arguments": action.arguments  # Store for future dedup
         }
         new_observations.append(obs_item)
-        
+        tool_turn, media = observation_turns(obs_item)
+        result_turns.append(tool_turn)
+        media_turns.extend(media)
+
         if callback:
             callback("tool_result", obs_item)
-            
+
     return {
         "observations": new_observations,
+        "llm_turns": llm_turns + result_turns + media_turns,
         "pending_actions": [], # Clear pending actions
         "step_count": state["step_count"] + 1
     }
+
 
 def respond_node(state: AgentState) -> Dict[str, Any]:
     callback = state.get("callback")
     if callback:
         callback("node_start", {"node": "respond"})
-        
+
+    # A failed turn already emitted an `error` event; inventing a final answer
+    # on top of it is exactly the behaviour this loop was rewritten to remove.
+    if state.get("error"):
+        return {}
+
     final_answer = state.get("final_answer") or "Done."
     references = collect_references(state.get("observations", []))
     if callback:
         callback("final_answer", {"text": final_answer, "references": references})
-        
+
     return {}
 
 # Define LangGraph State Machine

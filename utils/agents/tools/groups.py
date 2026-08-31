@@ -6,6 +6,13 @@ block or one introspected from the resolved function), registers the app tools
 into the coordinator registry via a :class:`ToolResult`-bridging adapter, and
 exposes the helpers the coordinator and API use to assemble and gate the tool set.
 
+Assembly emits a provider-neutral :class:`~utils.shared.llm.kit.types.ToolDef`,
+not a wire envelope. The three vendors disagree about the shape — OpenAI nests
+the schema under ``function.parameters``, Anthropic calls it ``input_schema``,
+Gemini wants ``function_declarations`` — and that translation belongs to each
+adapter, which already does it. Emitting the OpenAI envelope here made every
+non-OpenAI provider a 400.
+
 See ``docs/tool-groups.md`` for the decision record (D12-D15).
 """
 
@@ -24,6 +31,7 @@ import yaml
 from django.conf import settings
 
 from utils.agents.schemas.agent import ToolResult
+from utils.shared.llm.kit.types import ToolDef
 
 logger = logging.getLogger(__name__)
 
@@ -266,8 +274,12 @@ def _introspect_parameters(func) -> Dict[str, Any]:
     return schema
 
 
-def build_tool_schema(tool_name: str) -> Optional[Dict[str, Any]]:
-    """OpenAI function-calling schema for one tool, or ``None`` if unknown."""
+def build_tool_schema(tool_name: str) -> Optional[ToolDef]:
+    """Neutral tool definition for one tool, or ``None`` if unknown.
+
+    ``parameters`` is plain JSON Schema; the adapter wraps it in whatever
+    envelope its provider expects.
+    """
     meta = _tools_config().get(tool_name)
     if not meta:
         return None
@@ -278,22 +290,19 @@ def build_tool_schema(tool_name: str) -> Optional[Dict[str, Any]]:
         except Exception as exc:  # pragma: no cover - defensive
             logger.warning("tool-groups: could not introspect %s: %s", tool_name, exc)
             params = {"type": "object", "properties": {}}
-    return {
-        "type": "function",
-        "function": {
-            "name": tool_name,
-            "description": meta.get("description", ""),
-            "parameters": params,
-        },
-    }
+    return ToolDef(
+        name=tool_name,
+        description=meta.get("description", ""),
+        parameters=params,
+    )
 
 
-def build_tool_schemas(enabled_groups: Optional[List[str]] = None) -> List[Dict[str, Any]]:
-    """Function schemas for every tool in the enabled groups (D14 assembly)."""
+def build_tool_schemas(enabled_groups: Optional[List[str]] = None) -> List[ToolDef]:
+    """Tool definitions for every tool in the enabled groups (D14 assembly)."""
     if enabled_groups is None:
         enabled_groups = default_enabled_groups()
     enabled = set(enabled_groups)
-    schemas: List[Dict[str, Any]] = []
+    schemas: List[ToolDef] = []
     for group in all_group_ids():
         if group not in enabled:
             continue

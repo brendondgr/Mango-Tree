@@ -7,6 +7,7 @@ from django.conf import settings
 
 from utils.agents.tools import groups
 from utils.agents.tools.registry import registry
+from utils.shared.llm.kit.types import ToolDef
 
 CORE_TOOLS = {
     "list_artifacts",
@@ -72,13 +73,14 @@ def test_unknown_and_normalize_helpers():
 
 
 def test_schema_generated_for_every_tool():
+    # A neutral ToolDef, not an OpenAI envelope: the adapter owns the wire shape.
     for name in _raw_tools_config():
-        schema = groups.build_tool_schema(name)
-        assert schema is not None, name
-        fn = schema["function"]
-        assert fn["name"] == name
-        assert isinstance(fn["description"], str) and fn["description"]
-        params = fn["parameters"]
+        tool = groups.build_tool_schema(name)
+        assert tool is not None, name
+        assert isinstance(tool, ToolDef)
+        assert tool.name == name
+        assert isinstance(tool.description, str) and tool.description
+        params = tool.parameters
         assert params["type"] == "object"
         assert isinstance(params["properties"], dict)
         # Injected DI seams must never leak into a schema.
@@ -87,7 +89,7 @@ def test_schema_generated_for_every_tool():
 
 def test_introspected_schema_marks_required_and_optional():
     # mailbox_list_messages(*, account, folder="INBOX", limit=25, service=None)
-    schema = groups.build_tool_schema("mailbox_list_messages")["function"]["parameters"]
+    schema = groups.build_tool_schema("mailbox_list_messages").parameters
     assert schema["properties"]["account"] == {"type": "string"}
     assert schema["properties"]["limit"] == {"type": "integer"}
     assert schema["required"] == ["account"]  # only the no-default param
@@ -95,18 +97,18 @@ def test_introspected_schema_marks_required_and_optional():
 
 
 def test_core_tool_uses_explicit_yaml_schema():
-    schema = groups.build_tool_schema("read_artifact")["function"]["parameters"]
+    schema = groups.build_tool_schema("read_artifact").parameters
     assert schema["required"] == ["artifact_id"]
     assert schema["properties"]["artifact_id"]["type"] == "string"
 
 
 def test_build_tool_schemas_filters_by_group():
     core_only = groups.build_tool_schemas(["core"])
-    names = {s["function"]["name"] for s in core_only}
+    names = {t.name for t in core_only}
     assert names == CORE_TOOLS
 
     with_mailbox = groups.build_tool_schemas(["core", "mailbox"])
-    names = {s["function"]["name"] for s in with_mailbox}
+    names = {t.name for t in with_mailbox}
     assert "mailbox_send_message" in names
     assert names >= CORE_TOOLS
 

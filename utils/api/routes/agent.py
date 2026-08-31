@@ -1,6 +1,7 @@
 import json
 import queue
 import threading
+from django.db import connections
 from django.http import StreamingHttpResponse
 from django.urls import path
 from pydantic import ValidationError
@@ -32,15 +33,22 @@ def _session_capabilities(workspace_id):
 
 def _parse_llm_config(value):
     """
-    Accept an optional per-request LLM override forwarded from the frontend
-    settings. Returns a sanitized dict with only the recognized string fields,
-    or ``None`` when nothing usable was provided (the agent then falls back to
-    the ``LLM_*`` environment defaults).
+    Accept an optional per-request LLM selection forwarded from the frontend.
+
+    The current shape is ``{"provider": slug, "model": id}``: the browser names
+    a provider and the server reads its key from the registry, so no secret
+    travels with a turn. The older ``{"base_url", "model", "api_key"}`` shape is
+    still accepted so a client that has not been updated keeps working — see
+    ``utils.agents.providers.llm._inline_provider``.
+
+    Returns a sanitized dict with only the recognized string fields, or ``None``
+    when nothing usable was provided (the agent then falls back to the
+    registry's default provider).
     """
     if not isinstance(value, dict):
         return None
     cleaned = {}
-    for key in ("base_url", "model", "api_key"):
+    for key in ("provider", "model", "base_url", "api_key"):
         raw = value.get(key)
         if isinstance(raw, str) and raw.strip():
             cleaned[key] = raw.strip()
@@ -97,6 +105,7 @@ def _build_initial_state(data: dict):
         "observations": [],
         "final_answer": None,
         "error": None,
+        "llm_turns": [],
         "web_search_mode": _parse_web_search_mode(data.get("web_search_mode", "auto")),
         "enabled_groups": enabled_groups,
         "workspace_id": workspace_id,
@@ -146,6 +155,11 @@ def run_agent_turn(request, session_id):
                     }
                 })
             finally:
+                # Provider resolution reads the owner's provider table, so this
+                # worker thread now opens a DB connection of its own. Django only
+                # closes connections on the request thread, so close it here or
+                # every turn leaks one.
+                connections.close_all()
                 q.put(None) # Signal end of stream
                 
         thread = threading.Thread(target=run_graph_thread, daemon=True)
