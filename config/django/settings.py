@@ -56,9 +56,15 @@ MIDDLEWARE = [
 ROOT_URLCONF = "config.django.urls"
 
 DATABASES = {
+    # The platform's own database: owner account, sessions, security audit log,
+    # LLM provider records, and the imdbspy Django schema. Despite the file name
+    # it is not a test artifact. Override the path with MANGO_DEFAULT_DB to run
+    # a throwaway instance (screenshots, demos) without touching a real install.
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / ".django-test.sqlite3",
+        "NAME": os.environ.get("MANGO_DEFAULT_DB") or str(
+            BASE_DIR / ".django-test.sqlite3"
+        ),
     },
     # Legacy WorkoutTracker SQLite store, bound read/write with managed=False
     # models. Schema and rows are preserved unchanged (Strategy A). Override the

@@ -56,6 +56,15 @@ UNMANAGED = {
 }
 
 
+def _rel(path: Path) -> str:
+    """Path relative to the repo when it is inside it, absolute otherwise — the
+    MANGO_*_DB overrides legitimately point outside the tree."""
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def _models_for(alias: str):
     from django.apps import apps as django_apps
 
@@ -90,9 +99,9 @@ def main() -> int:
             continue  # the `default` DB lives at the repo root, which exists
         if not d.exists():
             d.mkdir(parents=True, exist_ok=True)
-            made_dirs.append(str(d.relative_to(ROOT)))
+            made_dirs.append(_rel(d))
         elif args.verbose:
-            print(f"  dir  {d.relative_to(ROOT)} (exists)")
+            print(f"  dir  {_rel(d)} (exists)")
 
     # 2. Schemas for the legacy-bound apps, only where there is no file yet.
     for alias in UNMANAGED:

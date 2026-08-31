@@ -16,6 +16,32 @@ security log, LLM providers — is `.django-test.sqlite3` at the repo root.
 Models are your choice — a local OpenAI-compatible server, Ollama, or a hosted
 provider — configured from the settings page rather than a config file.
 
+<p align="center">
+  <img src="docs/assets/workspace.png" width="820"
+       alt="The Mango Tree workspace: the agent chat on the left, and the Apps tab on the right listing Mailbox, Exercise, Projects, Calendar, IMDbSpy, Recipes, Artifacts and Time Keeper as cards." />
+</p>
+
+**Status: active, single developer, built through 2026.** Everything below the
+Architecture section works today. The planner and memory layers, a shared
+permission engine, embeddings, object storage and a task queue are empty
+placeholders, and this README says so where each comes up rather than implying
+otherwise.
+
+## Why it exists
+
+A hosted assistant cannot touch your mail, your calendar or your workout
+history unless you hand all of it to somebody else's server. A folder of
+self-hosted apps has the opposite problem: the data is yours, and nothing can
+reason across it. Mango Tree is the third option — the apps and the model both
+run on your machine, and they reach the same code.
+
+The consequence is the design decision the rest of the project follows from:
+every capability is a service, and both the DRF endpoint the UI calls and the
+tool the agent calls go through that same service. So the agent can do anything
+you can do — which is exactly why what it may do is decided by which tool groups
+you switch on, checked twice in code, and not by a sentence in a system prompt
+asking it politely to stay out of your email.
+
 ## What's here
 
 Eight apps live inside one chat workspace, each usable by you through its UI and
@@ -40,6 +66,25 @@ from the composer, a slash command (`/enable mailbox`), or the chip that appears
 when the agent is refused. The gate runs twice — a disabled group's tools are
 never offered to the model, and are refused at execution if it calls one anyway.
 See [docs/tool-groups.md](docs/tool-groups.md).
+
+## What it looks like
+
+Captured from a fresh install by
+[`utils/scripts/capture_screenshots.py`](utils/scripts/capture_screenshots.py),
+so they can be regenerated rather than going quietly stale.
+
+| | |
+| --- | --- |
+| <img src="docs/assets/timekeeper.png" width="400" alt="The Time Keeper tab: a day painted across 288 five-minute blocks, colour-coded by category, with the agent chat still open beside it." /> | <img src="docs/assets/workspace-dark.png" width="400" alt="The same Apps tab in the Blue Dark theme — one of eight, all defining the same 57 tokens." /> |
+| An app tab and the chat share the screen; the agent reaches the same services the tab does. | Eight themes, swapped at runtime. |
+
+<p align="center">
+  <img src="docs/assets/mobile.png" width="260"
+       alt="The workspace at 390x844: the app cards stack in one column, with Chat, Apps and More in a bottom bar." />
+</p>
+
+<p align="center"><em>390×844. Mobile is a first-class target, not a
+reflow — see <a href="docs/audit-report.md">docs/audit-report.md</a>.</em></p>
 
 ## Architecture
 
@@ -181,6 +226,9 @@ and leave it unset behind TLS.
 
 ## Configuration
 
+<details>
+<summary>Every configuration file and what it decides</summary>
+
 | Location | Purpose |
 | --- | --- |
 | `.env` | Default LLM endpoint and any provider API keys named by `config/models.yaml`; OAuth and Strava credentials; database path overrides |
@@ -192,6 +240,8 @@ and leave it unset behind TLS.
 | `config/search.yaml` | SearXNG endpoint and fetch limits |
 
 Secrets belong in `.env` only.
+
+</details>
 
 ## Testing
 
@@ -214,6 +264,9 @@ install that has the data. Everything else — including every denial-case test 
 runs anywhere.
 
 ## Repository layout
+
+<details>
+<summary>The tree, and the shape every app module follows</summary>
 
 ```text
 .
@@ -247,6 +300,8 @@ utils/apps/{app_name}/
 
 `models/` is absent from the three file-store apps. App UI lives with the app
 and is imported into `web/` through Vite aliases.
+
+</details>
 
 ## Contributing
 
@@ -284,8 +339,9 @@ both UI and agent access, eight themes, and a test suite across the backend and
 frontend.
 
 Not built, and documented as such rather than implied: the planner and memory
-layers, a shared permission engine, embeddings and vector search, object
-storage, and any background task queue.
+layers (`utils/agents/planner/`, `utils/agents/memory/`), a shared permission
+engine, embeddings and vector search, object storage, and any background task
+queue. Each is an empty package with a README explaining what would go in it.
 
 ## Licence
 
