@@ -15,12 +15,17 @@ export function scaleQuantity(base: number | null, from: number, to: number): st
   return formatQuantity(base * (to / from));
 }
 
-const PLACEHOLDER = "https://placehold.co/400x250/e2e8f0/64748b?text=Recipe";
-
-export function primaryImage(images: string[], imageUrl: string | null): string {
+/**
+ * The recipe's own image, or `null` when it has none.
+ *
+ * This used to hand back a placehold.co URL with two hardcoded slate hex values
+ * in it. Callers now render a themed placeholder (see `RecipeImage`) instead of
+ * loading a fixed-colour image from a third-party host.
+ */
+export function primaryImage(images: string[], imageUrl: string | null): string | null {
   if (images.length > 0 && images[0]) return images[0];
   if (imageUrl) return imageUrl;
-  return PLACEHOLDER;
+  return null;
 }
 
 export function splitTags(value: string | null): string[] {

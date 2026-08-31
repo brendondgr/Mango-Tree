@@ -73,9 +73,13 @@ export function useUpcoming(daysAhead = 14) {
 function useInvalidateCalendar() {
   const qc = useQueryClient();
   return () => {
-    qc.invalidateQueries({ queryKey: ["calendar", "week"] });
-    qc.invalidateQueries({ queryKey: CALENDAR_KEYS.config });
-    qc.invalidateQueries({ queryKey: ["calendar", "upcoming"] });
+    // Invalidate the whole "calendar" namespace rather than naming each key.
+    // The enumerated version silently missed ["calendar", "range"], which the
+    // day/3-day timeline and the month grid both read: adding or deleting an
+    // event left them showing stale data with no refetch, because the query
+    // stays mounted so the staleTime-0 mount refetch never fires. Any future
+    // query key is covered by construction.
+    qc.invalidateQueries({ queryKey: ["calendar"] });
   };
 }
 

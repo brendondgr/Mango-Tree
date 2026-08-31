@@ -3,18 +3,21 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Field, useFormErrors } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { ScheduleEvent } from "@/types/calendar";
 
 import { useAddScheduleEvent } from "../hooks/useCalendar";
 import { DOW_LABELS } from "../utils/dates";
+
+type FieldName = "title" | "days" | "time";
 
 interface Props {
   open: boolean;
@@ -48,7 +51,8 @@ export function ScheduleEventDialog({
   const [end, setEnd] = useState("10:00");
   const [sub, setSub] = useState("");
   const [overwriteable, setOverwriteable] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { errors, formError, setErrors, setFormError, clear } =
+    useFormErrors<FieldName>();
 
   useEffect(() => {
     if (!open) return;
@@ -59,8 +63,8 @@ export function ScheduleEventDialog({
     setEnd(addHour(defaultStart));
     setSub("");
     setOverwriteable(false);
-    setError(null);
-  }, [open, defaultDay, defaultStart]);
+    clear();
+  }, [open, defaultDay, defaultStart, clear]);
 
   function toggleDay(d: number) {
     setDays((prev) =>
@@ -68,12 +72,22 @@ export function ScheduleEventDialog({
     );
   }
 
-  async function handleAdd() {
-    setError(null);
-    if (!title || days.length === 0) {
-      setError("Title and at least one day are required.");
-      return;
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+    const next: Partial<Record<FieldName, string>> = {};
+    if (!title.trim()) next.title = "Give the event a title.";
+    if (days.length === 0) next.days = "Choose at least one weekday.";
+    // Only a zero-length event is rejected. A schedule event may run past
+    // midnight — the backend's `validate_time_fields` checks the HH:MM format
+    // and nothing else — so refusing `start > end` would have made a stored
+    // 22:00–02:00 block unrepeatable through this form.
+    if (start === end) {
+      next.time = "The start and end times can't be the same.";
     }
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
+
     const event: ScheduleEvent = {
       title,
       type: type || "other",
@@ -86,8 +100,8 @@ export function ScheduleEventDialog({
     try {
       await add.mutateAsync(event);
       onOpenChange(false);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to add event");
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Failed to add event");
     }
   }
 
@@ -101,66 +115,88 @@ export function ScheduleEventDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-3">
-          <div className="grid gap-1.5">
-            <Label htmlFor="cal-se-title">Title</Label>
-            <Input id="cal-se-title" value={title} onChange={(e) => setTitle(e.target.value)} />
-          </div>
-          <div className="grid gap-1.5">
-            <Label>Days</Label>
-            <div className="flex flex-wrap gap-1">
-              {DOW_LABELS.map((label, d) => (
-                <button
-                  key={d}
-                  type="button"
-                  className="calendar-tab"
-                  data-active={days.includes(d)}
-                  onClick={() => toggleDay(d)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="cal-se-type">Type</Label>
-              <Input id="cal-se-type" value={type} onChange={(e) => setType(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="cal-se-sub">Note (optional)</Label>
-              <Input id="cal-se-sub" value={sub} onChange={(e) => setSub(e.target.value)} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="cal-se-start">Start</Label>
-              <Input id="cal-se-start" type="time" value={start} onChange={(e) => setStart(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="cal-se-end">End</Label>
-              <Input id="cal-se-end" type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
-            </div>
-          </div>
-          <label className="flex items-center gap-2 text-sm text-foreground">
-            <input
-              type="checkbox"
-              checked={overwriteable}
-              onChange={(e) => setOverwriteable(e.target.checked)}
-            />
-            Background activity (other events cut into it)
-          </label>
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        </div>
+        <form onSubmit={handleAdd} className="contents">
+          <DialogBody className="space-y-3">
+            <Field label="Title" required error={errors.title}>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+            </Field>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleAdd} disabled={add.isPending || !title || days.length === 0}>
-            Add event
-          </Button>
-        </DialogFooter>
+            {/* Weekdays are a multi-select, not a tab set: they were previously
+                styled with the same markup as the view switcher, which told a
+                screen reader they were tabs and that six of the seven were
+                unselected pages. */}
+            <fieldset>
+              <legend className="mb-1.5 text-sm font-medium text-foreground">
+                Days
+              </legend>
+              <div className="flex flex-wrap gap-1.5">
+                {DOW_LABELS.map((label, d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    className="min-h-11 min-w-11 rounded-[var(--radius-md)] border border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring app:min-h-9 app:min-w-9 aria-pressed:border-primary aria-pressed:bg-primary/15 aria-pressed:text-primary-emphasis"
+                    aria-pressed={days.includes(d)}
+                    onClick={() => toggleDay(d)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {errors.days ? (
+                <p role="alert" className="mt-1.5 text-xs font-medium text-destructive">
+                  {errors.days}
+                </p>
+              ) : null}
+            </fieldset>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Type" hint="Sets the color on the grid.">
+                <Input value={type} onChange={(e) => setType(e.target.value)} />
+              </Field>
+              <Field label="Note" hint="Optional.">
+                <Input value={sub} onChange={(e) => setSub(e.target.value)} />
+              </Field>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Start" required error={errors.time}>
+                <Input
+                  type="time"
+                  value={start}
+                  onChange={(e) => setStart(e.target.value)}
+                />
+              </Field>
+              <Field label="End" required>
+                <Input type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
+              </Field>
+            </div>
+
+            <label className="flex min-h-11 items-center gap-2.5 text-sm text-foreground app:min-h-9">
+              <input
+                type="checkbox"
+                className="h-6 w-6 shrink-0 accent-[hsl(var(--primary))]"
+                checked={overwriteable}
+                onChange={(e) => setOverwriteable(e.target.checked)}
+              />
+              Background activity (other events cut into it)
+            </label>
+
+            {formError ? (
+              <p role="alert" className="text-sm font-medium text-destructive">
+                {formError}
+              </p>
+            ) : null}
+          </DialogBody>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={add.isPending}>
+              Add event
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -4,14 +4,15 @@ import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Field, useFormErrors } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { DirectEvent } from "@/types/calendar";
 
 import {
@@ -23,6 +24,8 @@ import {
 const COMMON_TYPES = [
   "work", "class", "exercise", "food", "commute", "social", "health", "personal", "other",
 ];
+
+type FieldName = "title" | "date" | "time";
 
 interface Props {
   open: boolean;
@@ -46,11 +49,14 @@ export function DirectEventDialog({ open, onOpenChange, event, defaultDate }: Pr
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("10:00");
   const [sub, setSub] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const { errors, formError, setErrors, setFormError, clear } =
+    useFormErrors<FieldName>();
 
   useEffect(() => {
     if (!open) return;
-    setError(null);
+    clear();
+    setConfirmDelete(false);
     if (event) {
       setDate(event.date);
       setTitle(event.title);
@@ -66,12 +72,27 @@ export function DirectEventDialog({ open, onOpenChange, event, defaultDate }: Pr
       setEnd("10:00");
       setSub("");
     }
-  }, [open, event, defaultDate]);
+  }, [open, event, defaultDate, clear]);
 
   const pending = add.isPending || update.isPending || remove.isPending;
 
-  async function handleSave() {
-    setError(null);
+  function validate(): boolean {
+    const next: Partial<Record<FieldName, string>> = {};
+    if (!title.trim()) next.title = "Give the event a title.";
+    if (!date) next.date = "Pick a date.";
+    // Kept, unlike the schedule form: `_validate_direct_event` in the backend
+    // rejects `start >= end` outright, so a dated event cannot run past
+    // midnight there either and relaxing this would only move the same refusal
+    // to a round-trip.
+    if (start >= end) next.time = "The end time must be after the start time.";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+    if (!validate()) return;
     const payload = { date, title, type: type || "other", start, end, sub };
     try {
       if (editing) {
@@ -80,124 +101,159 @@ export function DirectEventDialog({ open, onOpenChange, event, defaultDate }: Pr
         await add.mutateAsync(payload);
       }
       onOpenChange(false);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to save");
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Failed to save");
     }
   }
 
   async function handleDelete() {
     if (!editing) return;
-    setError(null);
+    setFormError(null);
     try {
       await remove.mutateAsync(event!._direct_index as number);
+      setConfirmDelete(false);
       onOpenChange(false);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete");
+    } catch (err) {
+      setConfirmDelete(false);
+      setFormError(err instanceof Error ? err.message : "Failed to delete");
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{editing ? "Edit event" : "New event"}</DialogTitle>
-          <DialogDescription>
-            One-off events appear on the calendar and take priority over the schedule.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit event" : "New event"}</DialogTitle>
+            <DialogDescription>
+              One-off events appear on the calendar and take priority over the schedule.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="grid gap-3">
-          <div className="grid gap-1.5">
-            <Label htmlFor="cal-ev-title">Title</Label>
-            <Input
-              id="cal-ev-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Doctor's appointment"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="cal-ev-date">Date</Label>
-              <Input
-                id="cal-ev-date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="cal-ev-type">Type</Label>
-              <Input
-                id="cal-ev-type"
-                list="cal-ev-types"
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-              />
-              <datalist id="cal-ev-types">
-                {COMMON_TYPES.map((t) => (
-                  <option key={t} value={t} />
-                ))}
-              </datalist>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="cal-ev-start">Start</Label>
-              <Input
-                id="cal-ev-start"
-                type="time"
-                value={start}
-                onChange={(e) => setStart(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="cal-ev-end">End</Label>
-              <Input
-                id="cal-ev-end"
-                type="time"
-                value={end}
-                onChange={(e) => setEnd(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="cal-ev-sub">Note (optional)</Label>
-            <Input
-              id="cal-ev-sub"
-              value={sub}
-              onChange={(e) => setSub(e.target.value)}
-              placeholder="Room 204"
-            />
-          </div>
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        </div>
+          {/* The form lives inside DialogBody so the title above it and the Save
+              button below it stay pinned; at 360px this dialog is taller than
+              the viewport, and without it the footer was simply unreachable. */}
+          <form id="cal-direct-event" onSubmit={handleSave} className="contents">
+            <DialogBody className="space-y-3">
+              <Field label="Title" required error={errors.title}>
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Doctor's appointment"
+                />
+              </Field>
 
-        <DialogFooter className="sm:justify-between">
-          {editing ? (
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-destructive hover:text-destructive"
-              onClick={handleDelete}
-              disabled={pending}
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </Button>
-          ) : (
-            <span />
-          )}
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={handleSave} disabled={pending || !title || !date}>
-              {editing ? "Save" : "Add"}
-            </Button>
-          </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Date" required error={errors.date}>
+                  <Input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </Field>
+                <Field label="Type" hint="Sets the color on the grid.">
+                  <Input
+                    list="cal-ev-types"
+                    value={type}
+                    onChange={(e) => setType(e.target.value)}
+                  />
+                </Field>
+                <datalist id="cal-ev-types">
+                  {COMMON_TYPES.map((t) => (
+                    <option key={t} value={t} />
+                  ))}
+                </datalist>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Start" required error={errors.time}>
+                  <Input
+                    type="time"
+                    value={start}
+                    onChange={(e) => setStart(e.target.value)}
+                  />
+                </Field>
+                <Field label="End" required>
+                  <Input
+                    type="time"
+                    value={end}
+                    onChange={(e) => setEnd(e.target.value)}
+                  />
+                </Field>
+              </div>
+
+              <Field label="Note" hint="Optional — a room, a link, a reminder.">
+                <Input
+                  value={sub}
+                  onChange={(e) => setSub(e.target.value)}
+                  placeholder="Room 204"
+                />
+              </Field>
+
+              {formError ? (
+                <p role="alert" className="text-sm font-medium text-destructive">
+                  {formError}
+                </p>
+              ) : null}
+            </DialogBody>
+
+            <DialogFooter className="sm:justify-between">
+              {/* Confirming inline rather than in a second modal: stacking one
+                  dialog on another moves the focus trap twice for a decision
+                  that fits in the footer it was triggered from. */}
+              {editing && confirmDelete ? (
+                <div className="flex flex-wrap items-center gap-2" role="alert">
+                  <span className="text-sm font-medium text-foreground">
+                    Delete this event?
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setConfirmDelete(false)}
+                  >
+                    Keep
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    disabled={pending}
+                    onClick={() => void handleDelete()}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              ) : editing ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={pending}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </Button>
+              ) : (
+                <span className="hidden sm:block" />
+              )}
+              <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={pending}>
+                  {editing ? "Save" : "Add"}
+                </Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

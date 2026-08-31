@@ -1,49 +1,35 @@
-import { Inbox, Settings as SettingsIcon } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-
-import { type MailboxView, useWorkspaceStore } from "@/app/stores/workspaceStore";
+import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 
 import { AccountSettings } from "@mailbox/components/AccountSettings";
 import { InboxView } from "@mailbox/components/InboxView";
 
 import "@mailbox/styles/mailbox.css";
 
-const NAV: Array<{ id: MailboxView; label: string; icon: LucideIcon }> = [
-  { id: "inbox", label: "Inbox", icon: Inbox },
-  { id: "settings", label: "Settings", icon: SettingsIcon },
-];
-
+/**
+ * Mailbox root.
+ *
+ * `containerType: inline-size` here is what lets everything below size itself
+ * against the PANE rather than the viewport. The mailbox renders inside a
+ * workspace pane the user narrows by dragging the chat sidebar open, so a
+ * viewport media query answers the wrong question: at 1280px wide the pane can
+ * still be 380px.
+ *
+ * It is the outermost container, not the only one. `@[45rem]:` resolves against
+ * the NEAREST container ancestor, so a column that has to size itself by its own
+ * width — the message list, the reading pane, the account form — establishes one
+ * of its own. Measuring those off this element measures the whole workspace,
+ * list column and docked customize panel included, which is how the reading pane
+ * came to show Back and Close at once.
+ */
 export function MailboxWorkspace() {
   const view = useWorkspaceStore((s) => s.mailboxView);
-  const setView = useWorkspaceStore((s) => s.setMailboxView);
 
   return (
-    <div className="mailbox-app flex min-h-0 min-w-0 flex-1 flex-col bg-background">
-      <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2.5">
-        <nav className="flex items-center gap-1.5" aria-label="Mailbox sections">
-          {NAV.map((item) => {
-            const Icon = item.icon;
-            const active = view === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className="mailbox-tab"
-                data-active={active}
-                aria-current={active ? "page" : undefined}
-                onClick={() => setView(item.id)}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-        {view === "settings" ? <AccountSettings /> : <InboxView />}
-      </div>
+    <div
+      className="flex min-h-0 min-w-0 flex-1 flex-col bg-background text-foreground"
+      style={{ containerType: "inline-size" }}
+    >
+      {view === "settings" ? <AccountSettings /> : <InboxView />}
     </div>
   );
 }

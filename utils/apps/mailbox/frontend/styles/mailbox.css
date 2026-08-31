@@ -1,20 +1,33 @@
 /**
- * Mailbox app design system — a scoped visual layer on the Mango theme.
+ * Mailbox — the small residue that is genuinely not expressible as a utility.
  *
- * Chrome (titles, tabs, toolbar, buttons, surfaces) uses the app's own theme
- * tokens (primary / card / muted / border / foreground), so it tracks whatever
- * theme the user picks in Settings.
+ * Everything that *is* expressible (tabs, segmented controls, the drawer,
+ * inputs, status dots, scrollbars, spacing, hover and active states) now lives
+ * in Tailwind utilities on the components. What remains here is three things:
  *
- * Distinct colors are reserved ONLY for data that must be told apart — accounts,
- * providers, and sender avatars bind a --c via the .mailbox-c-* classes. This is
- * the "differentiation between the emails". Scope: `.mailbox-app`.
+ *  1. Binding a categorical accent to `--c`. The accent is chosen per account
+ *     at runtime, so the value cannot be a static utility; one class per token
+ *     keeps every colour on the theme's `--category-*` scale.
+ *  2. The compact-row grid. It has to reflow between a stacked phone layout and
+ *     a user-resizable column table, and the tracks are driven by CSS variables
+ *     the drag handles mutate directly — neither is a utility.
+ *  3. The email frame, which paints a white reading surface because email HTML
+ *     assumes one, exactly as Gmail and Outlook do.
+ *
+ * Sizing decisions here are CONTAINER queries, never viewport media queries:
+ * an app module renders inside a pane the user resizes by dragging the chat
+ * sidebar, so pane width — not screen width — is what the layout must answer to.
+ *
+ * ONE CASCADE RULE, and it bites: this file is UNLAYERED, while every Tailwind
+ * utility lives in `@layer utilities`. Unlayered CSS beats layered CSS outright,
+ * so a declaration here wins over the same property written as a utility on the
+ * element, no matter the order or specificity. Everything below therefore sets
+ * only properties that no utility on the same element also sets — and anything
+ * that must switch on pane width switches HERE, not with a `@[34rem]:` variant
+ * that would silently lose.
  */
 
-.mailbox-app {
-  color: hsl(var(--foreground));
-}
-
-/* --- category color binding (set --c via .mailbox-c-*) ---------------------- */
+/* --- categorical accent binding (sets --c; see utils/colors.ts) ------------- */
 
 .mailbox-c-sky { --c: var(--category-sky); }
 .mailbox-c-mint { --c: var(--category-mint); }
@@ -33,18 +46,13 @@
 .mailbox-c-slate { --c: var(--category-slate); }
 .mailbox-c-primary { --c: var(--primary); }
 
-.mailbox-fg { color: hsl(var(--c, var(--primary))); }
-.mailbox-bg { background: hsl(var(--c, var(--primary))); }
+/* --- accent-tinted chrome ---------------------------------------------------
+ * Each of these is one property that cannot be written as a utility without an
+ * unreadable arbitrary value: a colour mixed from the runtime accent. */
 
-/* provider badge — a colored OUTLINE around a brand logo. This is how accounts
- * are told apart now (replacing the colored dot): the ring color is the account
- * accent (--c), the glyph is the provider's logo. */
+/* Provider badge: the account accent is the RING, the provider logo is the
+ * glyph — so two accounts on the same provider are still told apart. */
 .mailbox-provider {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border-radius: var(--radius-pill);
   background: hsl(var(--card));
   border: 2px solid color-mix(in srgb, hsl(var(--c, var(--primary))) 60%, hsl(var(--border)));
 }
@@ -53,411 +61,170 @@
   height: 60%;
   display: block;
 }
-/* small inline glyph used inside account chips (no ring of its own) */
-.mailbox-chip-icon {
-  width: 1rem;
-  height: 1rem;
-  flex-shrink: 0;
-  display: block;
-}
 
-/* --- badges / chips (tinted by --c) ----------------------------------------- */
-
+/* The badge text is the accent pulled 55% toward the foreground, not the raw
+ * accent. A pale category token (mint, lime, peach) as text on its own 14% tint
+ * fails AA on the light themes — axe flagged exactly that. Mixing toward the
+ * foreground keeps the hue readable as identity while guaranteeing contrast in
+ * both directions, because `--foreground` inverts with the theme. */
 .mailbox-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: var(--radius-pill);
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: hsl(var(--c, var(--primary)));
-  background: color-mix(in srgb, hsl(var(--c, var(--primary))) 13%, transparent);
-  border: 1px solid color-mix(in srgb, hsl(var(--c, var(--primary))) 28%, transparent);
+  color: color-mix(in srgb, hsl(var(--c, var(--primary))) 45%, hsl(var(--foreground)));
+  background: color-mix(in srgb, hsl(var(--c, var(--primary))) 16%, hsl(var(--card)));
+  border: 1px solid color-mix(in srgb, hsl(var(--c, var(--primary))) 34%, transparent);
 }
-
-/* --- account chips (toolbar selector) --------------------------------------- */
 
 .mailbox-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.3rem 0.7rem;
-  border-radius: var(--radius-pill);
-  font-size: 0.8rem;
-  font-weight: 600;
-  white-space: nowrap;
-  color: hsl(var(--muted-foreground));
-  background: color-mix(in srgb, hsl(var(--foreground)) 5%, transparent);
-  /* always carry a faint accent OUTLINE so every account is color-coded */
   border: 1px solid color-mix(in srgb, hsl(var(--c, var(--primary))) 30%, hsl(var(--border)));
-  transition: all var(--motion-fast) var(--ease-standard);
 }
-.mailbox-chip:hover { color: hsl(var(--foreground)); }
 .mailbox-chip[data-active="true"] {
-  color: hsl(var(--foreground));
-  background: hsl(var(--card));
-  border-color: color-mix(in srgb, hsl(var(--c, var(--primary))) 60%, hsl(var(--border)));
-  box-shadow: var(--shadow-raised);
+  border-color: color-mix(in srgb, hsl(var(--c, var(--primary))) 65%, hsl(var(--border)));
 }
 
-/* --- segmented control (density toggle) ------------------------------------- */
-
-.mailbox-seg {
-  display: inline-flex;
-  gap: 2px;
-  padding: 3px;
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, hsl(var(--foreground)) 6%, transparent);
-  border: 1px solid hsl(var(--border));
-}
-.mailbox-seg-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.75rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: hsl(var(--muted-foreground));
-  transition: all var(--motion-fast) var(--ease-standard);
-  white-space: nowrap;
-}
-.mailbox-seg-btn:hover { color: hsl(var(--foreground)); }
-.mailbox-seg-btn[data-active="true"] {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  box-shadow: var(--shadow-raised);
-}
-
-/* --- top tab navigation (Inbox / Settings) ---------------------------------- */
-
-.mailbox-tab {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.95rem;
-  border-radius: var(--radius-md);
-  font-weight: 600;
-  font-size: 0.88rem;
-  color: hsl(var(--muted-foreground));
-  transition: all var(--motion-fast) var(--ease-standard);
-}
-.mailbox-tab:hover {
-  color: hsl(var(--foreground));
-  background: color-mix(in srgb, hsl(var(--foreground)) 5%, transparent);
-}
-.mailbox-tab[data-active="true"] {
-  color: hsl(var(--primary-foreground));
-  background: hsl(var(--primary));
-  box-shadow: var(--shadow-raised);
-}
-
-/* --- inbox color swatches (Settings > Account) ------------------------------- */
-
-.mailbox-color-swatch {
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: var(--radius-pill);
+.mailbox-swatch {
   background: hsl(var(--c, var(--primary)));
-  border: 2px solid transparent;
-  outline: 2px solid transparent;
-  outline-offset: 1px;
-  transition: outline-color var(--motion-fast) var(--ease-standard),
-              border-color var(--motion-fast) var(--ease-standard);
-  flex-shrink: 0;
-}
-.mailbox-color-swatch:hover {
-  outline-color: color-mix(in srgb, hsl(var(--c, var(--primary))) 60%, transparent);
-}
-.mailbox-color-swatch-active {
-  border-color: hsl(var(--background));
-  outline-color: hsl(var(--c, var(--primary)));
 }
 
-/* --- compact list rows (traditional inbox) ---------------------------------- */
-
-.mailbox-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.55rem 1rem 0.55rem 1.1rem;
-  border-bottom: 1px solid color-mix(in srgb, hsl(var(--border)) 70%, transparent);
-  cursor: pointer;
-  font-size: var(--mb-text, 0.875rem);
-  transition: background var(--motion-fast) var(--ease-standard);
-}
-.mailbox-row[data-tight="true"] { padding-top: 0.28rem; padding-bottom: 0.28rem; }
-.mailbox-row::before {
+/* Leading accent bar. A pseudo-element so it cannot be clipped by the row's
+ * own padding and costs no extra DOM node per message. */
+.mailbox-row::before,
+.mailbox-card::before {
   content: "";
   position: absolute;
   inset: 0 auto 0 0;
   width: 3px;
   background: hsl(var(--c, var(--primary)));
-  opacity: 0;
-  transition: opacity var(--motion-fast) var(--ease-standard);
 }
-.mailbox-row:hover { background: color-mix(in srgb, hsl(var(--foreground)) 4%, transparent); }
-.mailbox-row[data-active="true"] {
-  background: color-mix(in srgb, hsl(var(--primary)) 9%, transparent);
+.mailbox-row::before {
+  opacity: 0;
+  transition: opacity var(--motion-duration-sm) var(--motion-ease-standard);
 }
 .mailbox-row[data-active="true"]::before,
-.mailbox-row[data-unread="true"]::before { opacity: 1; }
-
-/* --- modern cards (larger boxes) -------------------------------------------- */
-
-.mailbox-card {
-  position: relative;
-  display: flex;
-  gap: 0.8rem;
-  padding: 0.85rem 0.95rem;
-  border-radius: var(--radius-md);
-  border: 1px solid hsl(var(--border));
-  background: hsl(var(--card));
-  cursor: pointer;
-  overflow: hidden;
-  font-size: var(--mb-text, 0.875rem);
-  transition:
-    transform var(--motion-base) var(--ease-standard),
-    box-shadow var(--motion-base) var(--ease-standard),
-    border-color var(--motion-base) var(--ease-standard);
+.mailbox-row[data-unread="true"]::before {
+  opacity: 1;
 }
-.mailbox-card[data-tight="true"] { padding: 0.55rem 0.7rem; gap: 0.6rem; }
 .mailbox-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
   width: 4px;
-  background: hsl(var(--c, var(--primary)));
 }
-.mailbox-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-card-hover);
-  border-color: color-mix(in srgb, hsl(var(--c, var(--primary))) 40%, hsl(var(--border)));
-}
-.mailbox-card[data-active="true"] {
-  border-color: hsl(var(--c, var(--primary)));
-  box-shadow: var(--shadow-card-hover);
-}
+
+/* Card tinting is per-ACCOUNT, not per-theme-primary: an unread card and a
+ * hovered card carry the accent of the account the message arrived on, which is
+ * the whole point of the colour scheme. */
 .mailbox-card[data-unread="true"] {
-  background: color-mix(in srgb, hsl(var(--c, var(--primary))) 5%, hsl(var(--card)));
+  background: color-mix(in srgb, hsl(var(--c, var(--primary))) 6%, hsl(var(--card)));
+}
+.mailbox-card:hover,
+.mailbox-card[data-active="true"] {
+  border-color: color-mix(in srgb, hsl(var(--c, var(--primary))) 45%, hsl(var(--border)));
 }
 
-.mailbox-unread-strong { font-weight: 700; color: hsl(var(--foreground)); }
-.mailbox-read { color: hsl(var(--muted-foreground)); }
+/* --- compact row geometry ---------------------------------------------------
+ * The defect this replaces: the row was a flex line of `flex-shrink: 0` columns
+ * summing to a 474px hard minimum, inside an `overflow-hidden` pane. At 360px
+ * the date and the right of every row were clipped and unreachable, and because
+ * density is persisted in localStorage a desktop user who picked Compact got
+ * that broken inbox on their phone.
+ *
+ * Now: below 34rem of PANE the row stacks and has no fixed track at all; at and
+ * above it the classic column table returns, with every track a `minmax()` that
+ * shrinks rather than clips. The column widths are CSS variables so the drag
+ * handles can mutate them without re-rendering the list. */
 
-/* --- prefs-driven list sizing (text size + compact column widths) ----------- */
-
-.mailbox-list { --mb-text: 0.875rem; }
-.mailbox-list[data-text="sm"] { --mb-text: 0.8rem; }
-.mailbox-list[data-text="md"] { --mb-text: 0.9rem; }
-.mailbox-list[data-text="lg"] { --mb-text: 1.02rem; }
-
-/* compact columns sized from the saved prefs (CSS vars set on .mailbox-list) */
-.mailbox-col-from {
-  width: var(--mb-from-w, 140px);
-  flex-shrink: 0;
-}
-.mailbox-col-subject {
-  width: var(--mb-subject-w, 200px);
-  flex-shrink: 0;
-}
-.mailbox-col-snippet {
-  flex: 1 1 0;
+.mailbox-grid {
+  display: grid;
   min-width: 0;
-}
-.mailbox-col-snippet[data-capped="true"] {
-  flex: 0 1 var(--mb-snippet-w);
-  max-width: var(--mb-snippet-w);
-}
-.mailbox-col-account {
-  width: var(--mb-account-w, 120px);
-  flex-shrink: 0;
   align-items: center;
-  min-width: 0;
-}
-.mailbox-col-date {
-  width: 4rem;
-  flex-shrink: 0;
-}
-
-/* --- compact column header with drag-to-resize handles --------------------- */
-
-.mailbox-col-header {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.3rem 1rem 0.3rem 1.1rem;
-  border-bottom: 1px solid hsl(var(--border));
-  background: hsl(var(--background));
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: hsl(var(--muted-foreground));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  user-select: none;
+  column-gap: 0.75rem;
+  row-gap: 0.125rem;
+  grid-template-columns: var(--mb-icon-track, auto) minmax(0, 1fr) var(--mb-date-track, auto);
+  grid-template-areas:
+    "icon from     date"
+    "icon subject  subject"
+    "icon snippet  snippet"
+    "icon account  account";
 }
 
-/* header cells share the same width classes as data cells */
-.mailbox-col-header-cell {
-  position: relative;
-  display: flex;
-  align-items: center;
-  overflow: visible;
+/* The column header only exists while there are columns to head. It is hidden
+ * here rather than with a `hidden @[34rem]:grid` pair, because `.mailbox-grid`
+ * is unlayered and would beat `hidden`. */
+.mailbox-grid[data-header="true"] {
+  display: none;
 }
 
-/* drag handle — invisible wide hit-target centered on the column boundary */
-.mailbox-col-resize {
-  position: absolute;
-  right: -0.375rem;
-  top: -0.6rem;
-  bottom: -0.6rem;
-  width: 0.75rem;
-  cursor: col-resize;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 3;
+/* The account badge is the first thing to go when the row stacks: on a phone
+ * the accent bar and the provider ring already say which account a message came
+ * from, and a fourth line is not a compact row any more. */
+.mailbox-cell-account {
+  display: none;
 }
 
-/* visual divider line */
+@container (min-width: 34rem) {
+  .mailbox-grid[data-header="true"] {
+    display: grid;
+  }
+
+  .mailbox-cell-account {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .mailbox-grid {
+    row-gap: 0;
+    grid-template-columns:
+      var(--mb-icon-track, auto)
+      minmax(3.5rem, var(--mb-from-w, 140px))
+      minmax(4rem, var(--mb-subject-w, 200px))
+      minmax(0, var(--mb-snippet-track, 1fr))
+      var(--mb-account-track, 0px)
+      var(--mb-date-track, 0px);
+    grid-template-areas: "icon from subject snippet account date";
+  }
+}
+
+.mailbox-cell-icon { grid-area: icon; }
+.mailbox-cell-from { grid-area: from; }
+.mailbox-cell-subject { grid-area: subject; }
+.mailbox-cell-snippet { grid-area: snippet; }
+.mailbox-cell-account { grid-area: account; }
+.mailbox-cell-date { grid-area: date; }
+
+/* Column divider / drag handle. The visible line is a pseudo-element so the
+ * hit target can be far wider than the 2px people are aiming at. */
 .mailbox-col-resize::after {
   content: "";
   width: 2px;
   height: 55%;
-  background: hsl(var(--border));
   border-radius: 1px;
+  background: hsl(var(--border));
   transition:
-    background var(--motion-fast) var(--ease-standard),
-    height var(--motion-fast) var(--ease-standard);
+    background var(--motion-duration-xs) var(--motion-ease-standard),
+    height var(--motion-duration-xs) var(--motion-ease-standard);
 }
-
-.mailbox-col-resize:hover::after {
+.mailbox-col-resize:hover::after,
+.mailbox-col-resize:focus-visible::after {
   background: hsl(var(--primary));
-  height: 80%;
+  height: 85%;
 }
 
-/* modern split view: full width on small screens, configurable column at lg+ */
-.mailbox-list-pane { width: 100%; }
-@media (min-width: 1024px) {
-  .mailbox-list-pane { width: var(--mb-list-w, 440px); flex-shrink: 0; }
-}
+/* --- email body -------------------------------------------------------------
+ * Sanitized HTML renders in an isolated sandboxed iframe on a white reading
+ * surface: email HTML assumes a light background and has no access to the app's
+ * theme, so honouring the theme here would make half the world's mail
+ * unreadable. Gmail and Outlook make the same call. */
 
-/* --- customize drawer (non-modal, docks right of the inbox body) ------------- */
-
-.mailbox-drawer {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 20;
-  display: flex;
-  flex-direction: column;
-  width: min(340px, 100%);
-  background: hsl(var(--card));
-  border-left: 1px solid hsl(var(--border));
-  box-shadow: var(--shadow-card-hover);
-  transform: translateX(100%);
-  transition: transform var(--motion-base) var(--ease-standard);
-}
-.mailbox-drawer[data-open="true"] { transform: translateX(0); }
-.mailbox-drawer[data-open="false"] { pointer-events: none; }
-
-/* --- sync progress indicator ------------------------------------------------ */
-
-.mailbox-sync {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.72rem;
-  color: hsl(var(--muted-foreground));
-  white-space: nowrap;
-}
-
-/* --- email body rendering --------------------------------------------------- */
-
-/* Sanitized HTML renders in an isolated, sandboxed iframe on a white reading
- * surface (emails assume a light background, like Gmail/Outlook do). */
 .mailbox-email-frame {
   width: 100%;
   height: var(--mailbox-reading-height, 65vh);
-  border: 1px solid hsl(var(--border));
-  border-radius: var(--radius-md);
   background: #ffffff;
   display: block;
 }
 
-/* privacy gate shown when an email references blocked remote content */
-.mailbox-remote-banner {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-bottom: 0.75rem;
-  padding: 0.5rem 0.7rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid color-mix(in srgb, hsl(var(--primary)) 35%, hsl(var(--border)));
-  background: color-mix(in srgb, hsl(var(--primary)) 8%, transparent);
-  font-size: 0.8rem;
-  color: hsl(var(--muted-foreground));
-}
-
-/* cleaned plain-text bodies: preserve breaks, wrap long tokens, theme-colored */
+/* Cleaned plain-text bodies: preserve authored breaks, wrap long unbroken
+ * tokens (URLs, base64) instead of forcing the pane to scroll. */
 .mailbox-email-text {
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: anywhere;
   font-size: var(--mailbox-body-size, 0.875rem);
   line-height: 1.6;
-  color: hsl(var(--foreground));
-}
-
-/* --- inputs ----------------------------------------------------------------- */
-
-.mailbox-input {
-  width: 100%;
-  background: color-mix(in srgb, hsl(var(--muted)) 45%, transparent);
-  border: 1px solid hsl(var(--border));
-  border-radius: var(--radius-sm);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.85rem;
-  color: hsl(var(--foreground));
-  transition:
-    border-color var(--motion-fast) var(--ease-standard),
-    box-shadow var(--motion-fast) var(--ease-standard);
-}
-.mailbox-input:focus {
-  outline: none;
-  border-color: hsl(var(--primary));
-  box-shadow: var(--focus-ring);
-}
-.mailbox-input::placeholder { color: hsl(var(--muted-foreground)); }
-
-/* --- status dots ------------------------------------------------------------ */
-
-.mailbox-status { width: 0.5rem; height: 0.5rem; border-radius: var(--radius-pill); flex-shrink: 0; }
-.mailbox-status-ok { background: hsl(var(--success)); }
-.mailbox-status-error { background: hsl(var(--destructive)); }
-.mailbox-status-untested { background: hsl(var(--muted-foreground)); }
-
-/* --- scrollbar -------------------------------------------------------------- */
-
-.mailbox-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-.mailbox-scroll::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, hsl(var(--foreground)) 18%, transparent);
-  border-radius: var(--radius-pill);
-}
-.mailbox-scroll::-webkit-scrollbar-track { background: transparent; }
-
-/* --- motion ----------------------------------------------------------------- */
-
-@media (prefers-reduced-motion: reduce) {
-  .mailbox-card,
-  .mailbox-card:hover { transform: none; transition: none; }
 }

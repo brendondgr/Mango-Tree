@@ -1,37 +1,101 @@
-import { useEffect, useState } from "react";
-import { Loader2, Sparkles, Trash2, Upload, X } from "lucide-react";
+import { Loader2, Plus, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
+import { AsyncBoundary } from "@/components/ui/async-boundary";
 import { Button } from "@/components/ui/button";
+import { Field, useFormErrors } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { uploadImage } from "@/services/recipesClient";
+import { Textarea } from "@recipes/components/Textarea";
+import { EditorPanel } from "@recipes/components/editor/EditorPanel";
+import { ImagePicker } from "@recipes/components/editor/ImagePicker";
+import { IngredientRow } from "@recipes/components/editor/IngredientRow";
+import { StepRow } from "@recipes/components/editor/StepRow";
 import {
   useCreateRecipe,
   useParseRecipe,
   useRecipe,
   useUpdateRecipe,
 } from "@recipes/hooks/useRecipes";
+import { EMPTY_ING, type IngRow } from "@recipes/utils/ingredientRow";
 import type { NewRecipe } from "@/types/recipes";
 
-const CATEGORIES = [
-  "Produce",
-  "Dairy & Eggs",
-  "Pantry / Dry Goods",
-  "Canned / Jarred",
-  "Proteins",
-  "Spices & Baking",
-  "Other",
-];
+/**
+ * Create or edit a recipe.
+ *
+ * The two columns are driven by a container query on the editor's own scroll
+ * area rather than by a viewport breakpoint, because this pane is resized by
+ * dragging the chat sidebar: a 900px window with the sidebar open should reflow
+ * exactly the way a phone does, and `lg:` could not see that.
+ */
 
-interface IngRow {
-  name: string;
-  quantity: string;
-  unit: string;
-  is_optional: boolean;
-  category: string;
+type FieldName = "title" | "ingredients" | "steps";
+
+/**
+ * Move focus to the control a collection-level error is about.
+ *
+ * `useFormErrors().focusFirstError` finds the first `aria-invalid` control,
+ * which covers the single fields; the ingredient and step errors belong to a
+ * list rather than to one input, so they name their target directly.
+ */
+function focusById(id: string) {
+  requestAnimationFrame(() => document.getElementById(id)?.focus());
 }
 
-const EMPTY_ING: IngRow = { name: "", quantity: "", unit: "", is_optional: false, category: "Other" };
+/** A fieldset legend with the same required marker `Field` renders. */
+function RequiredLegend({ children }: { children: string }) {
+  return (
+    <legend className="text-sm font-medium leading-none">
+      {children}
+      <span className="ml-0.5 text-destructive" aria-hidden>
+        *
+      </span>
+    </legend>
+  );
+}
+
+function CollectionError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p role="alert" className="mt-2 text-xs font-medium text-destructive">
+      {message}
+    </p>
+  );
+}
+
+/** Shared by the editor and its skeleton so the columns do not jump on load. */
+const EDITOR_GRID =
+  "mx-auto grid w-full max-w-5xl gap-4 p-3 @[36rem]:p-6 @[56rem]:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] @[56rem]:items-start";
+
+/** Stands in for the two columns while an existing recipe is being fetched. */
+function EditorSkeleton() {
+  return (
+    <div className={EDITOR_GRID}>
+      <div className="space-y-3 rounded-[var(--radius-lg)] border border-border bg-card p-3 shadow-xs @[36rem]:p-4">
+        <Skeleton className="h-5 w-28" />
+        <Skeleton className="h-4 w-4/5" />
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-11 w-full" />
+      </div>
+      <div className="space-y-3 rounded-[var(--radius-lg)] border border-border bg-card p-3 shadow-xs @[36rem]:p-4">
+        <Skeleton className="h-5 w-36" />
+        <div className="flex flex-wrap gap-3">
+          <Skeleton className="h-11 min-w-[12rem] flex-[3_1_14rem]" />
+          <Skeleton className="h-11 w-[6.5rem] flex-none" />
+        </div>
+        <Skeleton className="h-16 w-full" />
+        <div className="flex flex-wrap gap-3">
+          <Skeleton className="h-11 min-w-[9rem] flex-1" />
+          <Skeleton className="h-11 min-w-[9rem] flex-1" />
+        </div>
+        {Array.from({ length: 5 }, (_, i) => (
+          <Skeleton key={i} className="h-11 w-full" />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 interface RecipeEditorProps {
   recipeId: number | null;
@@ -40,7 +104,8 @@ interface RecipeEditorProps {
 }
 
 export function RecipeEditor({ recipeId, onSaved, onCancel }: RecipeEditorProps) {
-  const { data: existing } = useRecipe(recipeId);
+  const recipeQuery = useRecipe(recipeId);
+  const existing = recipeQuery.data;
   const createMutation = useCreateRecipe();
   const updateMutation = useUpdateRecipe();
   const parseMutation = useParseRecipe();
@@ -51,12 +116,23 @@ export function RecipeEditor({ recipeId, onSaved, onCancel }: RecipeEditorProps)
   const [cuisine, setCuisine] = useState("");
   const [mealType, setMealType] = useState("");
   const [images, setImages] = useState<string[]>([]);
-  const [newImageUrl, setNewImageUrl] = useState("");
   const [ingredients, setIngredients] = useState<IngRow[]>([{ ...EMPTY_ING }]);
   const [steps, setSteps] = useState<string[]>([""]);
   const [aiText, setAiText] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const formRef = useRef<HTMLFormElement>(null);
+  const { errors, formError, setFormError, setFieldError, clear, focusFirstError } =
+    useFormErrors<FieldName>();
+
+  // `useRecipe` is disabled without an id, so only the edit case can be pending
+  // or failing. Until the record is in hand the form must not render: it would
+  // be a blank but fully interactive "Edit Recipe" whose Save writes an empty
+  // payload over the real row, and whose fields the effect below would then
+  // overwrite anyway, silently discarding whatever had been typed.
+  const editingExisting = recipeId != null;
+  const loadingRecipe = editingExisting && recipeQuery.isPending;
+  const loadError = editingExisting ? recipeQuery.error : null;
+  const loaded = !editingExisting || existing != null;
 
   useEffect(() => {
     if (!existing) return;
@@ -84,7 +160,7 @@ export function RecipeEditor({ recipeId, onSaved, onCancel }: RecipeEditorProps)
     setIngredients((rows) => rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
 
   const runParse = async () => {
-    setError(null);
+    clear();
     try {
       const parsed = await parseMutation.mutateAsync(aiText);
       if (parsed.title) setTitle(parsed.title);
@@ -105,26 +181,22 @@ export function RecipeEditor({ recipeId, onSaved, onCancel }: RecipeEditorProps)
       }
       if (parsed.steps?.length) setSteps(parsed.steps);
     } catch (e) {
-      setError((e as Error).message);
+      setFormError((e as Error).message);
     }
   };
 
-  const onUpload = async (file: File | undefined) => {
-    if (!file) return;
-    setUploading(true);
-    setError(null);
+  const onUpload = async (file: File) => {
+    setFormError(null);
     try {
       const { url } = await uploadImage(file);
       setImages((prev) => [...prev, url]);
     } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setUploading(false);
+      setFormError((e as Error).message);
     }
   };
 
   const submit = () => {
-    setError(null);
+    clear();
     const cleanIngredients = ingredients
       .filter((i) => i.name.trim())
       .map((i) => {
@@ -140,9 +212,24 @@ export function RecipeEditor({ recipeId, onSaved, onCancel }: RecipeEditorProps)
       });
     const cleanSteps = steps.map((s) => s.trim()).filter(Boolean);
 
-    if (!title.trim()) return setError("Title is required.");
-    if (cleanIngredients.length === 0) return setError("Add at least one ingredient.");
-    if (cleanSteps.length === 0) return setError("Add at least one step.");
+    // The same three rules as before, but each reported on the control that
+    // failed — and focused — instead of as one red sentence at the bottom of a
+    // form long enough to have scrolled it out of view.
+    if (!title.trim()) {
+      setFieldError("title", "Title is required.");
+      requestAnimationFrame(() => focusFirstError(formRef.current));
+      return;
+    }
+    if (cleanIngredients.length === 0) {
+      setFieldError("ingredients", "Add at least one ingredient.");
+      focusById("ing-name-0");
+      return;
+    }
+    if (cleanSteps.length === 0) {
+      setFieldError("steps", "Add at least one step.");
+      focusById("step-0");
+      return;
+    }
 
     const payload: NewRecipe = {
       title: title.trim(),
@@ -155,7 +242,7 @@ export function RecipeEditor({ recipeId, onSaved, onCancel }: RecipeEditorProps)
       steps: cleanSteps,
     };
 
-    const onError = (e: unknown) => setError((e as Error).message);
+    const onError = (e: unknown) => setFormError((e as Error).message);
     if (recipeId != null) {
       updateMutation.mutate(
         { id: recipeId, recipe: payload },
@@ -169,259 +256,187 @@ export function RecipeEditor({ recipeId, onSaved, onCancel }: RecipeEditorProps)
   const saving = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto grid w-full max-w-5xl gap-6 p-4 lg:grid-cols-[1fr_1.6fr] lg:p-6">
-        {/* AI Chef */}
-        <section className="recipes-panel h-fit">
-          <h2 className="flex items-center gap-2 text-base font-semibold">
-            <Sparkles className="h-4 w-4 text-primary" /> AI Chef
-          </h2>
-          <p className="mb-2 mt-1 text-sm text-muted-foreground">
-            Paste recipe text and let the assistant fill out the form.
-          </p>
-          <textarea
-            className="recipes-textarea"
-            rows={10}
-            placeholder="Paste recipe text here…"
-            value={aiText}
-            onChange={(e) => setAiText(e.target.value)}
-          />
-          <Button
-            className="mt-2 w-full"
-            variant="outline"
-            disabled={parseMutation.isPending || !aiText.trim()}
-            onClick={runParse}
+    <div className="h-full overflow-y-auto" style={{ containerType: "inline-size" }}>
+      <AsyncBoundary
+        loading={loadingRecipe}
+        error={loadError}
+        onRetry={() => void recipeQuery.refetch()}
+        label="this recipe"
+        skeleton={<EditorSkeleton />}
+      >
+        <div className={EDITOR_GRID}>
+          <EditorPanel
+            title="AI Chef"
+            icon={Sparkles}
+            description="Paste recipe text and let the assistant fill out the form."
           >
-            {parseMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
-            Magic Parse
-          </Button>
-        </section>
-
-        {/* Manual form */}
-        <section className="recipes-panel">
-          <h2 className="mb-3 text-base font-semibold">
-            {recipeId != null ? "Edit Recipe" : "Recipe Details"}
-          </h2>
-
-          <div className="grid grid-cols-[1fr_100px] gap-3">
-            <div>
-              <Label htmlFor="recipe-title">Title *</Label>
-              <Input
-                id="recipe-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Spicy Miso Ramen"
-              />
-            </div>
-            <div>
-              <Label htmlFor="recipe-servings">Servings</Label>
-              <Input
-                id="recipe-servings"
-                type="number"
-                min={1}
-                value={servings}
-                onChange={(e) => setServings(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="mt-3">
-            <Label htmlFor="recipe-desc">Description</Label>
-            <textarea
-              id="recipe-desc"
-              className="recipes-textarea"
-              rows={2}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+            <Textarea
+              aria-label="Recipe text to parse"
+              rows={10}
+              placeholder="Paste recipe text here…"
+              value={aiText}
+              onChange={(e) => setAiText(e.target.value)}
             />
-          </div>
+            <Button
+              type="button"
+              className="mt-2 w-full"
+              variant="outline"
+              disabled={parseMutation.isPending || !aiText.trim()}
+              onClick={runParse}
+            >
+              {parseMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              Magic Parse
+            </Button>
+          </EditorPanel>
 
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="recipe-cuisine">Cuisine Region</Label>
-              <Input
-                id="recipe-cuisine"
-                value={cuisine}
-                onChange={(e) => setCuisine(e.target.value)}
-                placeholder="Italian"
-              />
-            </div>
-            <div>
-              <Label htmlFor="recipe-meal">Meal Type</Label>
-              <Input
-                id="recipe-meal"
-                value={mealType}
-                onChange={(e) => setMealType(e.target.value)}
-                placeholder="Dinner"
-              />
-            </div>
-          </div>
-
-          {/* Images */}
-          <div className="mt-4">
-            <Label>Images</Label>
-            <div className="mt-1 flex flex-wrap gap-2">
-              {images.map((url) => (
-                <div key={url} className="recipes-image-thumb">
-                  <img src={url} alt="" />
-                  <button
-                    type="button"
-                    aria-label="Remove image"
-                    onClick={() => setImages((prev) => prev.filter((u) => u !== url))}
+          <form
+            ref={formRef}
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
+            }}
+            className="min-w-0"
+          >
+            <EditorPanel title={recipeId != null ? "Edit Recipe" : "Recipe Details"}>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-start gap-3">
+                  <Field
+                    label="Title"
+                    required
+                    error={errors.title}
+                    className="min-w-[12rem] flex-[3_1_14rem]"
                   >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className="mt-2 flex gap-2">
-              <Input
-                value={newImageUrl}
-                onChange={(e) => setNewImageUrl(e.target.value)}
-                placeholder="Paste image URL…"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  if (newImageUrl.trim()) {
-                    setImages((prev) => [...prev, newImageUrl.trim()]);
-                    setNewImageUrl("");
-                  }
-                }}
-              >
-                Add
-              </Button>
-              <label className="recipes-upload-btn">
-                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                <input
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={(e) => onUpload(e.target.files?.[0])}
-                />
-              </label>
-            </div>
-          </div>
-
-          {/* Ingredients */}
-          <div className="mt-4">
-            <Label>Ingredients *</Label>
-            <div className="mt-1 space-y-2">
-              {ingredients.map((row, index) => (
-                <div key={index} className="recipes-ing-row">
-                  <select
-                    className="recipes-select"
-                    value={row.category}
-                    onChange={(e) => updateIng(index, { category: e.target.value })}
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                  <Input
-                    placeholder="Ingredient"
-                    value={row.name}
-                    onChange={(e) => updateIng(index, { name: e.target.value })}
-                  />
-                  <Input
-                    className="w-16"
-                    placeholder="Qty"
-                    value={row.quantity}
-                    onChange={(e) => updateIng(index, { quantity: e.target.value })}
-                  />
-                  <Input
-                    className="w-20"
-                    placeholder="Unit"
-                    value={row.unit}
-                    onChange={(e) => updateIng(index, { unit: e.target.value })}
-                  />
-                  <label className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      checked={row.is_optional}
-                      onChange={(e) => updateIng(index, { is_optional: e.target.checked })}
+                    <Input
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="Spicy Miso Ramen"
                     />
-                    opt
-                  </label>
-                  <button
-                    type="button"
-                    aria-label="Remove ingredient"
-                    className="recipes-row-remove"
-                    onClick={() => setIngredients((rows) => rows.filter((_, i) => i !== index))}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  </Field>
+                  <Field label="Servings" className="w-[6.5rem] flex-none">
+                    <Input
+                      type="number"
+                      min={1}
+                      inputMode="numeric"
+                      value={servings}
+                      onChange={(e) => setServings(e.target.value)}
+                    />
+                  </Field>
                 </div>
-              ))}
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              className="mt-2"
-              onClick={() => setIngredients((rows) => [...rows, { ...EMPTY_ING }])}
-            >
-              + Add Ingredient
-            </Button>
-          </div>
 
-          {/* Steps */}
-          <div className="mt-4">
-            <Label>Instructions *</Label>
-            <div className="mt-1 space-y-2">
-              {steps.map((step, index) => (
-                <div key={index} className="recipes-step-row">
-                  <span className="recipes-step-num">{index + 1}</span>
-                  <textarea
-                    className="recipes-textarea"
+                <Field label="Description">
+                  <Textarea
                     rows={2}
-                    value={step}
-                    onChange={(e) =>
-                      setSteps((rows) => rows.map((s, i) => (i === index ? e.target.value : s)))
-                    }
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                   />
-                  <button
-                    type="button"
-                    aria-label="Remove step"
-                    className="recipes-row-remove"
-                    onClick={() => setSteps((rows) => rows.filter((_, i) => i !== index))}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                </Field>
+
+                <div className="flex flex-wrap items-start gap-3">
+                  <Field label="Cuisine region" className="min-w-[9rem] flex-1">
+                    <Input
+                      value={cuisine}
+                      onChange={(e) => setCuisine(e.target.value)}
+                      placeholder="Italian"
+                    />
+                  </Field>
+                  <Field label="Meal type" className="min-w-[9rem] flex-1">
+                    <Input
+                      value={mealType}
+                      onChange={(e) => setMealType(e.target.value)}
+                      placeholder="Dinner"
+                    />
+                  </Field>
                 </div>
-              ))}
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              className="mt-2"
-              onClick={() => setSteps((rows) => [...rows, ""])}
-            >
-              + Add Step
-            </Button>
-          </div>
 
-          {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+                <ImagePicker
+                  images={images}
+                  onAdd={(url) => setImages((prev) => [...prev, url])}
+                  onRemove={(url) => setImages((prev) => prev.filter((u) => u !== url))}
+                  onUpload={onUpload}
+                />
 
-          <div className="mt-4 flex justify-end gap-2">
-            <Button variant="outline" onClick={onCancel} disabled={saving}>
-              Cancel
-            </Button>
-            <Button onClick={submit} disabled={saving}>
-              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              {recipeId != null ? "Save Changes" : "Save Recipe"}
-            </Button>
-          </div>
-        </section>
-      </div>
+                <fieldset className="min-w-0">
+                  <RequiredLegend>Ingredients</RequiredLegend>
+                  <ul className="mt-2 flex flex-col gap-2">
+                    {ingredients.map((row, index) => (
+                      <IngredientRow
+                        key={index}
+                        row={row}
+                        index={index}
+                        onChange={(patch) => updateIng(index, patch)}
+                        onRemove={() =>
+                          setIngredients((rows) => rows.filter((_, i) => i !== index))
+                        }
+                      />
+                    ))}
+                  </ul>
+                  <CollectionError message={errors.ingredients} />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="mt-2"
+                    onClick={() => setIngredients((rows) => [...rows, { ...EMPTY_ING }])}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add ingredient
+                  </Button>
+                </fieldset>
+
+                <fieldset className="min-w-0">
+                  <RequiredLegend>Instructions</RequiredLegend>
+                  <ol className="mt-2 flex flex-col gap-2">
+                    {steps.map((step, index) => (
+                      <StepRow
+                        key={index}
+                        value={step}
+                        index={index}
+                        onChange={(value) =>
+                          setSteps((rows) => rows.map((s, i) => (i === index ? value : s)))
+                        }
+                        onRemove={() => setSteps((rows) => rows.filter((_, i) => i !== index))}
+                      />
+                    ))}
+                  </ol>
+                  <CollectionError message={errors.steps} />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="mt-2"
+                    onClick={() => setSteps((rows) => [...rows, ""])}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add step
+                  </Button>
+                </fieldset>
+
+                {formError && (
+                  <p
+                    role="alert"
+                    className="rounded-[var(--radius-sm)] border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive"
+                  >
+                    {formError}
+                  </p>
+                )}
+
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={saving || !loaded}>
+                    {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {recipeId != null ? "Save Changes" : "Save Recipe"}
+                  </Button>
+                </div>
+              </div>
+            </EditorPanel>
+          </form>
+        </div>
+      </AsyncBoundary>
     </div>
   );
 }

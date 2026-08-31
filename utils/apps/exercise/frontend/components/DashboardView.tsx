@@ -1,8 +1,19 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { BarChart3 } from "lucide-react";
 
+import {
+  SegmentedControl,
+  type Segment,
+} from "@/components/app-shell/SegmentedControl";
+import { AsyncBoundary } from "@/components/ui/async-boundary";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { StatChart } from "@exercise/components/StatChart";
 import { useHistory, useWorkouts } from "@exercise/hooks/useExercise";
+import { CARD } from "@exercise/utils/ui";
 import {
   type Aggregation,
   type GraphType,
@@ -24,18 +35,87 @@ const SCOPES: Array<{ key: Scope; label: string }> = [
   { key: "week", label: "This Week" },
 ];
 
+const AGGREGATIONS: Segment<Aggregation>[] = [
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+];
+
+const GRAPH_TYPES: Segment<GraphType>[] = [
+  { value: "time", label: "Time" },
+  { value: "volume", label: "Volume" },
+  { value: "distance", label: "Distance" },
+];
+
+type Units = "imperial" | "metric";
+const UNITS: Segment<Units>[] = [
+  { value: "imperial", label: "Imperial" },
+  { value: "metric", label: "Metric" },
+];
+
 function toInput(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-function Triplet({ total, run, walk, dim }: { total: string; run: string; walk: string; dim?: boolean }) {
+/**
+ * One metric line inside a scope card: total, then the two activity splits.
+ *
+ * The old layout put four scopes on one fixed five-column grid, which gave each
+ * scope 34px of width on a phone and spilled the numbers across each other and
+ * past the card. Numbers now wrap within a card that is itself the grid unit,
+ * so nothing has to fit a column narrower than its content.
+ */
+function MetricRow({
+  label,
+  unit,
+  total,
+  run,
+  walk,
+  dim,
+}: {
+  label: string;
+  unit?: string;
+  total: string;
+  run: string;
+  walk: string;
+  dim?: boolean;
+}) {
   return (
-    <div className="flex items-baseline gap-1 text-xl font-bold">
-      <span className={cn(dim ? "text-muted-foreground" : "text-foreground")}>{total}</span>
-      <span className="text-sm text-muted-foreground">/</span>
-      <span className="exercise-fg exercise-c-run">{run}</span>
-      <span className="text-sm text-muted-foreground">/</span>
-      <span className="exercise-fg exercise-c-walk">{walk}</span>
+    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+      <p className="text-xs font-medium text-muted-foreground">
+        {label}
+        {unit ? <span className="ml-1 opacity-70">({unit})</span> : null}
+      </p>
+      <p className="flex items-baseline gap-1 text-lg font-bold tabular-nums">
+        <span className={cn(dim ? "text-muted-foreground" : "text-foreground")}>
+          {total}
+        </span>
+        <span aria-hidden className="text-sm font-normal text-muted-foreground">
+          /
+        </span>
+        <span className="exercise-fg exercise-c-run">{run}</span>
+        <span aria-hidden className="text-sm font-normal text-muted-foreground">
+          /
+        </span>
+        <span className="exercise-fg exercise-c-walk">{walk}</span>
+      </p>
+    </div>
+  );
+}
+
+function ControlGroup({ children }: { children: ReactNode }) {
+  return <div className="min-w-0 grow basis-56 space-y-1.5">{children}</div>;
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid gap-3 @[34rem]:grid-cols-2 @[64rem]:grid-cols-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <Skeleton key={i} className="h-32 rounded-[var(--radius-lg)]" />
+        ))}
+      </div>
+      <Skeleton className="h-28 rounded-[var(--radius-lg)]" />
+      <Skeleton className="h-80 rounded-[var(--radius-lg)]" />
     </div>
   );
 }
@@ -47,8 +127,10 @@ export function DashboardView() {
 
   const [aggregation, setAggregation] = useState<Aggregation>("weekly");
   const [graphType, setGraphType] = useState<GraphType>("time");
-  const [useMetric, setUseMetric] = useState(false);
+  const [units, setUnits] = useState<Units>("imperial");
   const [range, setRange] = useState(() => defaultDateRange("weekly"));
+
+  const useMetric = units === "metric";
 
   const onAggregation = (agg: Aggregation) => {
     setAggregation(agg);
@@ -59,7 +141,10 @@ export function DashboardView() {
     () => getBuckets(aggregation, range.start, range.end),
     [aggregation, range],
   );
-  const filtered = useMemo(() => filterByRange(logs, range.start, range.end), [logs, range]);
+  const filtered = useMemo(
+    () => filterByRange(logs, range.start, range.end),
+    [logs, range],
+  );
   const series = useMemo(
     () => buildSeries(graphType, filtered, buckets, useMetric),
     [graphType, filtered, buckets, useMetric],
@@ -67,7 +152,8 @@ export function DashboardView() {
 
   const distUnit = useMetric ? "km" : "mi";
   const volUnit = useMetric ? "kg" : "lbs";
-  const chartUnit = graphType === "time" ? "hrs" : graphType === "volume" ? volUnit : distUnit;
+  const chartUnit =
+    graphType === "time" ? "hrs" : graphType === "volume" ? volUnit : distUnit;
 
   const summary = useMemo(() => {
     const totals = series.map((s) => s.values.reduce((a, b) => a + b, 0));
@@ -76,156 +162,218 @@ export function DashboardView() {
     return { totals, grand, avg };
   }, [series, buckets.length]);
 
-  if (history.isLoading || workouts.isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading dashboard…</p>;
-  }
-  if (history.isError) {
-    return <p className="text-sm text-destructive">{(history.error as Error).message}</p>;
-  }
-
-  const fmt = (v: number) => (Math.abs(v) >= 1000 ? v.toLocaleString(undefined, { maximumFractionDigits: 0 }) : v.toFixed(1));
+  const fmt = (v: number) =>
+    Math.abs(v) >= 1000
+      ? v.toLocaleString(undefined, { maximumFractionDigits: 0 })
+      : v.toFixed(1);
 
   return (
-    <div className="exercise-fade-in flex flex-col gap-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h2>
-          <p className="text-sm text-muted-foreground">Workouts / Runs / Walks at a glance</p>
-        </div>
-      </header>
-
-      {/* Overview matrix */}
-      <section className="exercise-glass rounded-[var(--radius-lg)] p-5">
-        <div className="grid grid-cols-[5.5rem_repeat(4,minmax(0,1fr))] items-end gap-x-4 gap-y-3">
-          <div />
-          {SCOPES.map((s) => (
-            <p key={s.key} className="text-xs font-semibold text-muted-foreground">{s.label}</p>
-          ))}
-
-          <p className="exercise-fg exercise-c-exercise text-[0.65rem] font-bold uppercase tracking-wider">Activities</p>
-          {SCOPES.map((s) => (
-            <Triplet
-              key={s.key}
-              total={String(countByTypeScope(logs, "all", s.key))}
-              run={String(countByTypeScope(logs, "run", s.key))}
-              walk={String(countByTypeScope(logs, "walk", s.key))}
-            />
-          ))}
-
-          <p className="exercise-fg exercise-c-exercise text-[0.65rem] font-bold uppercase tracking-wider">Time (hrs)</p>
-          {SCOPES.map((s) => (
-            <Triplet
-              key={s.key}
-              total={hoursByTypeScope(logs, "all", s.key).toFixed(1)}
-              run={hoursByTypeScope(logs, "run", s.key).toFixed(1)}
-              walk={hoursByTypeScope(logs, "walk", s.key).toFixed(1)}
-            />
-          ))}
-
-          <p className="exercise-fg exercise-c-exercise text-[0.65rem] font-bold uppercase tracking-wider">Distance ({distUnit})</p>
-          {SCOPES.map((s) => {
-            const run = displayDistance(distanceByTypeScope(logs, "run", s.key), useMetric);
-            const walk = displayDistance(distanceByTypeScope(logs, "walk", s.key), useMetric);
+    <AsyncBoundary
+      loading={history.isLoading || workouts.isLoading}
+      error={history.error ?? workouts.error}
+      onRetry={() => {
+        void history.refetch();
+        void workouts.refetch();
+      }}
+      label="your dashboard"
+      skeleton={<DashboardSkeleton />}
+      className="flex flex-col gap-4 @[48rem]:gap-6"
+    >
+      {/* Overview — one card per scope, so no column is ever narrower than
+          the number it has to hold. */}
+      <section aria-labelledby="ex-overview" className="flex flex-col gap-3">
+        <h3 id="ex-overview" className="sr-only">
+          Overview totals
+        </h3>
+        <div className="grid gap-3 @[34rem]:grid-cols-2 @[64rem]:grid-cols-4">
+          {SCOPES.map((scope, i) => {
+            const runDist = displayDistance(
+              distanceByTypeScope(logs, "run", scope.key),
+              useMetric,
+            );
+            const walkDist = displayDistance(
+              distanceByTypeScope(logs, "walk", scope.key),
+              useMetric,
+            );
             return (
-              <Triplet key={s.key} dim total={(run + walk).toFixed(1)} run={run.toFixed(1)} walk={walk.toFixed(1)} />
+              <article
+                key={scope.key}
+                data-enter
+                style={{ "--i": i } as never}
+                className={cn(CARD, "flex flex-col gap-2.5 p-4")}
+              >
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-primary-emphasis">
+                  {scope.label}
+                </h4>
+                <MetricRow
+                  label="Activities"
+                  total={String(countByTypeScope(logs, "all", scope.key))}
+                  run={String(countByTypeScope(logs, "run", scope.key))}
+                  walk={String(countByTypeScope(logs, "walk", scope.key))}
+                />
+                <MetricRow
+                  label="Time"
+                  unit="hrs"
+                  total={hoursByTypeScope(logs, "all", scope.key).toFixed(1)}
+                  run={hoursByTypeScope(logs, "run", scope.key).toFixed(1)}
+                  walk={hoursByTypeScope(logs, "walk", scope.key).toFixed(1)}
+                />
+                <MetricRow
+                  label="Distance"
+                  unit={distUnit}
+                  dim
+                  total={(runDist + walkDist).toFixed(1)}
+                  run={runDist.toFixed(1)}
+                  walk={walkDist.toFixed(1)}
+                />
+              </article>
             );
           })}
         </div>
+        <p className="text-xs text-muted-foreground">
+          Each figure reads total /{" "}
+          <span className="exercise-fg exercise-c-run font-semibold">run</span> /{" "}
+          <span className="exercise-fg exercise-c-walk font-semibold">walk</span>.
+        </p>
       </section>
 
       {/* Controls */}
-      <section className="exercise-glass grid grid-cols-1 gap-5 rounded-[var(--radius-lg)] p-5 md:grid-cols-3">
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-foreground">Date Range</label>
-          <div className="flex gap-2">
-            <input
-              type="date"
-              aria-label="Range start date"
-              className="exercise-input min-w-0 flex-1"
-              value={toInput(range.start)}
-              onChange={(e) => setRange((r) => ({ ...r, start: new Date(`${e.target.value}T12:00:00`) }))}
-            />
-            <input
-              type="date"
-              aria-label="Range end date"
-              className="exercise-input min-w-0 flex-1"
-              value={toInput(range.end)}
-              onChange={(e) => setRange((r) => ({ ...r, end: new Date(`${e.target.value}T12:00:00`) }))}
-            />
+      <section
+        aria-label="Chart controls"
+        className={cn(CARD, "flex flex-wrap gap-4 p-4")}
+      >
+        <div className="min-w-0 grow basis-72 space-y-1.5">
+          <p className="text-sm font-medium text-foreground">Date range</p>
+          <div className="flex flex-wrap gap-2">
+            <Field label="Start date" className="min-w-0 grow basis-36">
+              <Input
+                type="date"
+                aria-label="Range start date"
+                value={toInput(range.start)}
+                onChange={(e) =>
+                  setRange((r) => ({
+                    ...r,
+                    start: new Date(`${e.target.value}T12:00:00`),
+                  }))
+                }
+              />
+            </Field>
+            <Field label="End date" className="min-w-0 grow basis-36">
+              <Input
+                type="date"
+                aria-label="Range end date"
+                value={toInput(range.end)}
+                onChange={(e) =>
+                  setRange((r) => ({
+                    ...r,
+                    end: new Date(`${e.target.value}T12:00:00`),
+                  }))
+                }
+              />
+            </Field>
           </div>
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-foreground">Aggregation</label>
-          <div className="exercise-seg">
-            {(["weekly", "monthly"] as Aggregation[]).map((a) => (
-              <button key={a} type="button" className="exercise-seg-btn capitalize" data-active={aggregation === a} onClick={() => onAggregation(a)}>
-                {a}
-              </button>
-            ))}
-          </div>
-        </div>
+        <ControlGroup>
+          <p className="text-sm font-medium text-foreground">Aggregation</p>
+          <SegmentedControl
+            segments={AGGREGATIONS}
+            value={aggregation}
+            onValueChange={onAggregation}
+            label="Aggregation"
+          />
+        </ControlGroup>
 
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-foreground">Metric</label>
-          <div className="exercise-seg">
-            {(["time", "volume", "distance"] as GraphType[]).map((g) => (
-              <button key={g} type="button" className="exercise-seg-btn capitalize" data-active={graphType === g} onClick={() => setGraphType(g)}>
-                {g}
-              </button>
-            ))}
-          </div>
-        </div>
+        <ControlGroup>
+          <p className="text-sm font-medium text-foreground">Metric</p>
+          <SegmentedControl
+            segments={GRAPH_TYPES}
+            value={graphType}
+            onValueChange={setGraphType}
+            label="Chart metric"
+          />
+        </ControlGroup>
+
+        <ControlGroup>
+          <p className="text-sm font-medium text-foreground">Units</p>
+          <SegmentedControl
+            segments={UNITS}
+            value={units}
+            onValueChange={setUnits}
+            label="Units"
+          />
+        </ControlGroup>
       </section>
 
-      {/* Chart + stats */}
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        <div className="exercise-glass rounded-[var(--radius-lg)] p-5 lg:col-span-3">
+      {/* Chart + statistics */}
+      <section className="grid gap-4 @[62rem]:grid-cols-[minmax(0,1fr)_17rem] @[48rem]:gap-6">
+        <div className={cn(CARD, "min-w-0 p-4")}>
           {filtered.length === 0 || buckets.length === 0 ? (
-            <div className="flex h-72 items-center justify-center text-sm text-muted-foreground">
-              No data available for this range
-            </div>
+            <EmptyState
+              compact
+              icon={BarChart3}
+              title="No data for this range"
+              description="Log a session, or widen the date range above."
+            />
           ) : (
-            <StatChart labels={buckets.map((b) => b.label)} series={series} unit={chartUnit} formatValue={fmt} />
+            <StatChart
+              labels={buckets.map((b) => b.label)}
+              series={series}
+              unit={chartUnit}
+              formatValue={fmt}
+            />
           )}
         </div>
 
-        <div className="exercise-glass h-fit rounded-[var(--radius-lg)] p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-foreground">Statistics</h3>
-            <button
-              type="button"
-              className="rounded-[var(--radius-sm)] border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              onClick={() => setUseMetric((m) => !m)}
-            >
-              {useMetric ? "Metric" : "Imperial"}
-            </button>
-          </div>
+        <div className={cn(CARD, "h-fit p-4")}>
+          <h3 className="mb-3 text-sm font-semibold text-foreground">
+            Statistics
+          </h3>
 
           {filtered.length === 0 ? (
-            <p className="text-center text-xs text-muted-foreground">No data in selected range</p>
+            <p className="text-sm text-muted-foreground">
+              No data in the selected range.
+            </p>
           ) : (
             <div className="space-y-3">
               <div>
                 <p className="text-xs text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold text-foreground">{fmt(summary.grand)} {chartUnit}</p>
+                <p className="text-2xl font-bold tabular-nums text-foreground">
+                  {fmt(summary.grand)}{" "}
+                  <span className="text-base font-medium text-muted-foreground">
+                    {chartUnit}
+                  </span>
+                </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">
-                  Average per {aggregation === "weekly" ? "Week" : "Month"}
+                  Average per {aggregation === "weekly" ? "week" : "month"}
                 </p>
-                <p className="text-2xl font-bold text-foreground">{fmt(summary.avg)} {chartUnit}</p>
+                <p className="text-2xl font-bold tabular-nums text-foreground">
+                  {fmt(summary.avg)}{" "}
+                  <span className="text-base font-medium text-muted-foreground">
+                    {chartUnit}
+                  </span>
+                </p>
               </div>
               {series.length > 1 && (
                 <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
                   {series.map((s, i) => (
                     <div key={s.key}>
                       <p className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <span className={cn("exercise-dot", s.colorClass)} /> {s.label}
+                        <span aria-hidden className={cn("exercise-dot", s.colorClass)} />
+                        {s.label}
                       </p>
-                      <p className={cn("exercise-fg text-lg font-bold", s.colorClass)}>
+                      <p
+                        className={cn(
+                          "exercise-fg text-lg font-bold tabular-nums",
+                          s.colorClass,
+                        )}
+                      >
                         {fmt(summary.totals[i])}
-                        <span className="ml-1 text-sm font-medium text-muted-foreground">{chartUnit}</span>
+                        <span className="ml-1 text-sm font-medium text-muted-foreground">
+                          {chartUnit}
+                        </span>
                       </p>
                     </div>
                   ))}
@@ -235,6 +383,6 @@ export function DashboardView() {
           )}
         </div>
       </section>
-    </div>
+    </AsyncBoundary>
   );
 }

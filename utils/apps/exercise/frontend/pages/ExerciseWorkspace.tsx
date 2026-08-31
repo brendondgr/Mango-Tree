@@ -6,12 +6,16 @@ import {
   LayoutDashboard,
   RefreshCw,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 import {
   type ExerciseView,
   useWorkspaceStore,
 } from "@/app/stores/workspaceStore";
+import { AppHeader } from "@/components/app-shell/AppHeader";
+import {
+  SegmentedControl,
+  type Segment,
+} from "@/components/app-shell/SegmentedControl";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DashboardView } from "@exercise/components/DashboardView";
@@ -24,13 +28,21 @@ import { useSyncStrava } from "@exercise/hooks/useExercise";
 
 import "@exercise/styles/exercise.css";
 
-const NAV: Array<{ id: ExerciseView; label: string; icon: LucideIcon }> = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "workouts", label: "Workouts", icon: Dumbbell },
-  { id: "routines", label: "Routines", icon: CalendarDays },
-  { id: "equipment", label: "Equipment", icon: Activity },
-  { id: "history", label: "History", icon: HistoryIcon },
+const SECTIONS: Segment<ExerciseView>[] = [
+  { value: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { value: "workouts", label: "Workouts", icon: Dumbbell },
+  { value: "routines", label: "Routines", icon: CalendarDays },
+  { value: "equipment", label: "Equipment", icon: Activity },
+  { value: "history", label: "History", icon: HistoryIcon },
 ];
+
+const SECTION_DESCRIPTION: Record<ExerciseView, string> = {
+  dashboard: "Workouts, runs and walks at a glance",
+  workouts: "Your custom workout programs",
+  routines: "Weekly training schedules",
+  equipment: "The gear you train with",
+  history: "Every logged session",
+};
 
 function StravaSyncButton() {
   const sync = useSyncStrava();
@@ -38,13 +50,19 @@ function StravaSyncButton() {
   return (
     <div className="flex items-center gap-2">
       {sync.isError ? (
-        <span className="text-xs text-destructive">{(sync.error as Error).message}</span>
+        <span role="alert" className="text-xs text-destructive">
+          {(sync.error as Error).message}
+        </span>
       ) : summary ? (
         <span className="text-xs text-muted-foreground">
           +{summary.imported} imported · {summary.skipped} skipped
         </span>
       ) : null}
-      <Button variant="outline" size="sm" onClick={() => sync.mutate("week")} disabled={sync.isPending}>
+      <Button
+        variant="outline"
+        onClick={() => sync.mutate("week")}
+        disabled={sync.isPending}
+      >
         <RefreshCw className={cn("h-4 w-4", sync.isPending && "animate-spin")} />
         Sync Strava
       </Button>
@@ -72,10 +90,18 @@ export function ExerciseWorkspace() {
   const setView = useWorkspaceStore((s) => s.setExerciseView);
   const session = useWorkspaceStore((s) => s.exerciseSession);
 
+  // The module lives in a pane the user resizes by dragging the chat sidebar,
+  // so every layout decision below reads the *container* width, not the
+  // viewport. This is the query root for all of them.
+  const containerStyle = { containerType: "inline-size" } as const;
+
   if (session) {
     return (
-      <div className="exercise-app flex min-h-0 flex-1 flex-col bg-background">
-        <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col p-4 lg:p-6">
+      <div
+        className="flex min-h-0 flex-1 flex-col bg-background"
+        style={containerStyle}
+      >
+        <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col p-3 @[34rem]:p-4 @[60rem]:p-6">
           <SessionView />
         </div>
       </div>
@@ -83,34 +109,27 @@ export function ExerciseWorkspace() {
   }
 
   return (
-    <div className="exercise-app flex min-h-0 flex-1 flex-col bg-background">
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-4 py-3">
-        <nav className="flex flex-wrap items-center gap-1.5" aria-label="Exercise sections">
-          {NAV.map((item) => {
-            const Icon = item.icon;
-            const active = view === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className="exercise-tab"
-                data-active={active}
-                aria-current={active ? "page" : undefined}
-                onClick={() => setView(item.id)}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
-        <div className="ml-auto">
-          <StravaSyncButton />
-        </div>
-      </div>
+    <div
+      className="flex min-h-0 flex-1 flex-col bg-background"
+      style={containerStyle}
+    >
+      <AppHeader
+        icon={Dumbbell}
+        title="Exercise"
+        description={SECTION_DESCRIPTION[view]}
+        nav={
+          <SegmentedControl
+            segments={SECTIONS}
+            value={view}
+            onValueChange={setView}
+            label="Exercise sections"
+          />
+        }
+        actions={<StravaSyncButton />}
+      />
 
-      <div className="exercise-scroll min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-6xl p-4 lg:p-6">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-6xl p-3 @[34rem]:p-4 @[60rem]:p-6">
           <ActiveView view={view} />
         </div>
       </div>

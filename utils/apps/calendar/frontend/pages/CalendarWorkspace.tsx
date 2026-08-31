@@ -1,15 +1,19 @@
 import { CalendarDays, ListTodo } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 import { type CalendarView, useWorkspaceStore } from "@/app/stores/workspaceStore";
+import { AppHeader } from "@/components/app-shell/AppHeader";
+import {
+  SegmentedControl,
+  type Segment,
+} from "@/components/app-shell/SegmentedControl";
 import { CalendarView as CalendarGrid } from "@calendar/components/CalendarView";
 import { SchedulesView } from "@calendar/components/SchedulesView";
 
 import "@calendar/styles/calendar.css";
 
-const NAV: Array<{ id: CalendarView; label: string; icon: LucideIcon }> = [
-  { id: "calendar", label: "Calendar", icon: CalendarDays },
-  { id: "schedules", label: "Schedules", icon: ListTodo },
+const NAV: Segment<CalendarView>[] = [
+  { value: "calendar", label: "Calendar", icon: CalendarDays },
+  { value: "schedules", label: "Schedules", icon: ListTodo },
 ];
 
 export function CalendarWorkspace() {
@@ -17,28 +21,26 @@ export function CalendarWorkspace() {
   const setView = useWorkspaceStore((s) => s.setCalendarView);
 
   return (
-    <div className="calendar-app flex min-h-0 flex-1 flex-col bg-background">
-      <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2.5">
-        <nav className="flex items-center gap-1.5" aria-label="Calendar sections">
-          {NAV.map((item) => {
-            const Icon = item.icon;
-            const active = view === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className="calendar-tab"
-                data-active={active}
-                aria-current={active ? "page" : undefined}
-                onClick={() => setView(item.id)}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
+    // `containerType` makes the pane itself the query container, so every
+    // `@[…]` rule below reflows when the chat sidebar is dragged, not only when
+    // the browser window changes size.
+    <div
+      className="calendar-app flex min-h-0 flex-1 flex-col bg-background"
+      style={{ containerType: "inline-size" }}
+    >
+      <AppHeader
+        icon={CalendarDays}
+        title="Calendar"
+        description="Recurring schedules and one-off events"
+        nav={
+          <SegmentedControl
+            segments={NAV}
+            value={view}
+            onValueChange={setView}
+            label="Calendar sections"
+          />
+        }
+      />
 
       <div className="min-h-0 flex-1 overflow-hidden">
         {view === "calendar" ? <CalendarGrid /> : <SchedulesView />}

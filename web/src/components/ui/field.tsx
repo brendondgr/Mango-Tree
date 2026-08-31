@@ -26,8 +26,16 @@ export interface FieldProps {
   required?: boolean;
   /** Visually hide the label while keeping it for assistive technology. */
   hideLabel?: boolean;
+  /**
+   * Set false when the child cannot receive props — a Radix `Root` component
+   * renders no DOM node, so cloned `id` / `aria-*` are silently discarded and
+   * the label ends up pointing at an id that does not exist. With `wire={false}`
+   * the caller passes `htmlFor` and puts the matching `id` on the real control
+   * (usually the trigger). `SelectField` below does this for you.
+   */
+  wire?: boolean;
   className?: string;
-  children: React.ReactElement;
+  children: React.ReactNode;
 }
 
 export function Field({
@@ -37,6 +45,7 @@ export function Field({
   error,
   required = false,
   hideLabel = false,
+  wire = true,
   className,
   children,
 }: FieldProps) {
@@ -49,19 +58,22 @@ export function Field({
     [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(" ") ||
     undefined;
 
-  const control = React.cloneElement(
-    children,
-    {
-      id,
-      "aria-invalid": error ? true : undefined,
-      "aria-describedby": describedBy,
-      "aria-required": required || undefined,
-      className: cn(
-        error && "border-destructive focus-visible:ring-destructive",
-        (children.props as { className?: string }).className,
-      ),
-    } as React.HTMLAttributes<HTMLElement>,
-  );
+  const control =
+    wire && React.isValidElement(children)
+      ? React.cloneElement(
+          children,
+          {
+            id,
+            "aria-invalid": error ? true : undefined,
+            "aria-describedby": describedBy,
+            "aria-required": required || undefined,
+            className: cn(
+              error && "border-destructive focus-visible:ring-destructive",
+              (children.props as { className?: string }).className,
+            ),
+          } as React.HTMLAttributes<HTMLElement>,
+        )
+      : children;
 
   return (
     <div className={cn("space-y-1.5", className)}>
@@ -147,4 +159,65 @@ export function useFormErrors<TField extends string>() {
     focusFirstError,
     hasErrors: Object.keys(errors).length > 0 || formError !== null,
   };
+}
+
+/**
+ * `Field` for a Radix Select.
+ *
+ * Select's root renders no DOM node, so the ordinary clone-the-child wiring
+ * lands nowhere: the label points at a missing id, the trigger gets no
+ * accessible name from it, and the error is never announced. Three separate app
+ * modules hit this independently, which is why it is a primitive rather than a
+ * note.
+ *
+ * Render the trigger with `{...selectFieldTriggerProps(ids)}`:
+ *
+ *     const ids = useSelectFieldIds();
+ *     <SelectField label="Schedule" ids={ids} error={err}>
+ *       <Select value={v} onValueChange={setV}>
+ *         <SelectTrigger {...selectFieldTriggerProps(ids, err)}>…</SelectTrigger>
+ *         <SelectContent>…</SelectContent>
+ *       </Select>
+ *     </SelectField>
+ */
+export interface SelectFieldIds {
+  controlId: string;
+  hintId: string;
+  errorId: string;
+}
+
+export function useSelectFieldIds(): SelectFieldIds {
+  const id = React.useId();
+  return { controlId: id, hintId: `${id}-hint`, errorId: `${id}-error` };
+}
+
+export function selectFieldTriggerProps(
+  ids: SelectFieldIds,
+  error?: string,
+  hint?: string,
+) {
+  const describedBy =
+    [hint ? ids.hintId : null, error ? ids.errorId : null].filter(Boolean).join(" ") ||
+    undefined;
+  return {
+    id: ids.controlId,
+    "aria-invalid": error ? true : undefined,
+    "aria-describedby": describedBy,
+    className: error ? "border-destructive focus-visible:ring-destructive" : undefined,
+  };
+}
+
+export function SelectField({
+  ids,
+  children,
+  ...props
+}: Omit<FieldProps, "htmlFor" | "wire" | "children"> & {
+  ids: SelectFieldIds;
+  children: React.ReactNode;
+}) {
+  return (
+    <Field {...props} htmlFor={ids.controlId} wire={false}>
+      {children}
+    </Field>
+  );
 }

@@ -1,42 +1,51 @@
 /**
- * Calendar workspace styles — scoped under `.calendar-app`.
+ * Calendar workspace styles.
  *
- * Chrome (tabs, headers, cells, cards) uses theme tokens so the UI tracks the
- * active theme. Distinct colors appear ONLY on event blocks, whose hex values
- * come from the API palette and are applied via inline styles.
+ * Only `.calendar-app` itself is scoped to the workspace root. Every other
+ * selector here is deliberately global: the tinted chips, the solid swatches
+ * and the timeline all appear inside Radix dialogs, popovers and selects, which
+ * portal to `document.body` and therefore render outside `.calendar-app`
+ * entirely — scoping them would leave those copies unstyled. The `calendar-`
+ * prefix on each class is what keeps them from colliding, not a parent.
+ *
+ * What is left here is only what utility classes cannot express: the timeline's
+ * custom-property-driven grid geometry, its hour rules (one repeating gradient
+ * instead of 14 absolutely positioned elements), and the month grid's 1px-gap
+ * border trick. Chrome, spacing and typography live in the markup.
+ *
+ * Colour rule: chrome reads theme tokens; anything that must be told apart
+ * reads a single `--c` HSL triplet bound inline from utils/colors.ts, which
+ * resolves to a `--category-*` token. There is no hex in this file and none is
+ * applied inline. Motion, elevation and radii come from the shared scales, so
+ * the calendar animates and casts shadow like the rest of the shell.
  */
 
 .calendar-app {
-  width: 100%;
   color: hsl(var(--foreground));
+
+  /* Local paint order, so nothing here writes a bare z-index. */
+  --calendar-z-grid: 1;
+  --calendar-z-event: 2;
+  --calendar-z-event-top: 3;
+  --calendar-z-gutter: 4;
+  --calendar-z-head: 5;
 }
 
-/* View-switcher tabs (mirrors the projectmanager tab look) */
-.calendar-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.75rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  border-radius: var(--radius-md);
-  color: hsl(var(--muted-foreground));
-  background: transparent;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s;
-}
-.calendar-tab:hover {
-  background: hsl(var(--muted));
+/* --- category tint ---------------------------------------------------------
+ * An opaque mix rather than an alpha wash: the timeline stacks segments over
+ * columns that already carry a tint, and translucent fills compound. */
+.calendar-tint {
+  background: color-mix(in srgb, hsl(var(--c, var(--primary))) 16%, hsl(var(--card)));
+  border-color: hsl(var(--c, var(--primary)));
   color: hsl(var(--foreground));
 }
-.calendar-tab[data-active="true"] {
-  background: hsl(var(--secondary));
-  color: hsl(var(--foreground));
-  border-color: hsl(var(--border));
+/* A solid fill in the bound category colour — dots, and the stats bars that
+   report the same categories the grid paints. */
+.calendar-solid {
+  background: hsl(var(--c, var(--primary)));
 }
 
-/* Month grid */
+/* --- month grid ----------------------------------------------------------- */
 .calendar-month {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -44,319 +53,168 @@
   background: hsl(var(--border));
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
   overflow: hidden;
 }
 .calendar-monthcell {
+  /* Height is a variable so the compact treatment is one inline value rather
+     than a second breakpoint. */
+  min-height: var(--calendar-cell-h, 6.5rem);
   background: hsl(var(--card));
-  min-height: 6.5rem;
-  padding: 0.3rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  text-align: left;
-  border: none;
-  cursor: pointer;
+  transition: background var(--motion-duration-xs) var(--motion-ease-standard);
 }
 .calendar-monthcell[data-outside="true"] {
-  background: hsl(var(--muted) / 0.4);
+  background: hsl(var(--surface-2));
   color: hsl(var(--muted-foreground));
 }
-.calendar-monthcell[data-today="true"] .calendar-monthcell-num {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  border-radius: 9999px;
-  width: 1.5rem;
-  height: 1.5rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.calendar-monthcell:hover {
+  background: hsl(var(--muted) / 0.5);
+}
+.calendar-monthcell[data-selected="true"] {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: -2px;
 }
 
-/* Event chip (month view; colors are inline) */
-.calendar-chip {
-  font-size: 0.66rem;
-  padding: 0.05rem 0.3rem;
-  border-radius: 9999px;
-  border-left-width: 3px;
-  border-left-style: solid;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Timeline hour-grid (Week view + Schedule editor) */
-.tg-root {
+/* --- timeline grid (week view + schedule editor) ---------------------------
+ * `--tg-cols`, `--tg-hour-h` and `--tg-min-w` are set inline by TimeGrid; the
+ * header and body share the same track list so their columns stay aligned
+ * while the whole thing scrolls in both axes. */
+.calendar-tg-root {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius-md);
+  background: hsl(var(--card));
+  box-shadow: var(--shadow-xs);
   overflow: hidden;
-  background: hsl(var(--card));
 }
-.tg-head {
+.calendar-tg-inner {
+  min-width: var(--tg-min-w);
+  /* A column at least as tall as the scroll port, so the body below can fill
+     it. `min-height` rather than `height`: the sticky header's containing block
+     is this element, and a fixed height shorter than the content would push the
+     header out of view partway down the scroll. */
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.calendar-tg-head,
+.calendar-tg-body {
   display: grid;
-  flex-shrink: 0;
-  border-bottom: 1px solid hsl(var(--border));
-  background: hsl(var(--card));
+  grid-template-columns: var(--tg-cols);
 }
-.tg-corner {
+.calendar-tg-head {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: var(--calendar-z-head);
+  background: hsl(var(--card));
+  border-bottom: 1px solid hsl(var(--border));
+}
+.calendar-tg-corner,
+.calendar-tg-gutter {
+  position: sticky;
+  left: 0;
+  background: hsl(var(--card));
   border-right: 1px solid hsl(var(--border));
 }
-.tg-dayhead {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.05rem;
-  padding: 0.4rem 0.25rem;
-  height: 40px;
+.calendar-tg-corner {
+  z-index: var(--calendar-z-head);
+}
+.calendar-tg-gutter {
+  z-index: var(--calendar-z-gutter);
+}
+.calendar-tg-dayhead {
   border-left: 1px solid hsl(var(--border));
 }
-.tg-dayhead-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: hsl(var(--foreground));
+/* The gutter already draws the divider; the first day would double it. Hiding
+   the colour rather than the border keeps every column the same width. */
+.calendar-tg-head > .calendar-tg-dayhead:nth-child(2),
+.calendar-tg-body > .calendar-tg-col:nth-child(2) {
+  border-left-color: transparent;
 }
-.tg-dayhead-sub {
-  font-size: 0.7rem;
-  color: hsl(var(--muted-foreground));
-}
-.tg-dayhead[data-today="true"] {
+.calendar-tg-dayhead[data-today="true"] {
   background: hsl(var(--secondary));
 }
-.tg-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-}
-.tg-body {
+.calendar-tg-body {
   position: relative;
-  width: 100%;
+  /* Grow into any space the hour range does not fill, never shrink below it.
+     The inline `height` is the range; at the 4-hour minimum that is half a
+     416px card, and without the grow the columns, hour rules and vertical
+     borders stopped halfway down. `1 0 auto`, not `1`, because a `0%` basis
+     would discard the range and make a long day unscrollable. */
+  flex: 1 0 auto;
 }
-/* Full-height day columns behind everything */
-.tg-cols {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-}
-.tg-col {
-  flex: 1;
+.calendar-tg-col {
+  position: relative;
   min-width: 0;
   border-left: 1px solid hsl(var(--border));
-  cursor: pointer;
-  position: relative;
+  /* One gradient draws every hour rule. */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    hsl(var(--border) / 0.55) 0 1px,
+    transparent 1px var(--tg-hour-h)
+  );
 }
-.tg-col:hover {
-  background: hsl(var(--muted) / 0.35);
+.calendar-tg-col[data-today="true"] {
+  background-color: hsl(var(--secondary) / 0.45);
 }
-.tg-col[data-today="true"] {
-  background: hsl(var(--secondary) / 0.4);
-}
-.tg-add {
+
+/* The whole column is the "add here" control: a real button, so the affordance
+ * has a keyboard path and a touch target instead of appearing on hover only. */
+.calendar-tg-colbtn {
   position: absolute;
-  top: 0.4rem;
-  left: 50%;
-  transform: translateX(-50%);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  padding: 0.2rem 0.55rem;
-  font-size: 0.7rem;
-  font-weight: 500;
-  border-radius: 9999px;
-  border: 1px solid hsl(var(--border));
-  background: hsl(var(--card));
-  color: hsl(var(--muted-foreground));
-  opacity: 0;
-  transition: opacity 0.12s;
-  z-index: 20;
+  inset: 0;
+  z-index: var(--calendar-z-grid);
+  transition: background var(--motion-duration-xs) var(--motion-ease-standard);
 }
-.tg-col:hover .tg-add {
+.calendar-tg-colbtn:hover,
+.calendar-tg-colbtn:focus-visible {
+  background: hsl(var(--muted) / 0.4);
+}
+.calendar-tg-colbtn:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: -2px;
+}
+.calendar-tg-colhint {
+  opacity: 0;
+  transition: opacity var(--motion-duration-sm) var(--motion-ease-standard);
+}
+.calendar-tg-colbtn:hover .calendar-tg-colhint,
+.calendar-tg-colbtn:focus-visible .calendar-tg-colhint {
   opacity: 1;
 }
-.tg-add:hover {
-  color: hsl(var(--foreground));
-  background: hsl(var(--muted));
+/* A touch device never hovers, so an empty column keeps the affordance on
+   screen; a busy one reveals it rather than covering its own events. */
+.calendar-tg-col[data-empty="true"] .calendar-tg-colhint {
+  opacity: 1;
 }
-/* Hour rows: a baseline rule + time label in the gutter */
-.tg-hourline {
+
+.calendar-tg-event {
   position: absolute;
-  left: 0;
-  right: 0;
-  border-top: 1px solid hsl(var(--border) / 0.6);
-  pointer-events: none;
-}
-.tg-hourlabel {
-  position: absolute;
-  top: -0.55rem;
-  left: 0;
-  width: 56px;
-  padding-right: 0.4rem;
-  text-align: right;
-  font-size: 0.66rem;
-  font-variant-numeric: tabular-nums;
-  color: hsl(var(--muted-foreground));
-  background: hsl(var(--card));
-}
-/* Event cards on the timeline */
-.tg-event {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  gap: 0.05rem;
-  overflow: hidden;
-  padding: 0.18rem 0.35rem;
+  left: 2px;
+  right: 2px;
+  z-index: var(--calendar-z-event);
   border-left-width: 3px;
   border-left-style: solid;
-  border-radius: var(--radius-sm);
-  text-align: left;
-  line-height: 1.1;
-  cursor: pointer;
-  box-shadow: 0 1px 2px hsl(var(--foreground) / 0.08);
+  box-shadow: var(--shadow-xs);
+  transition:
+    box-shadow var(--motion-duration-sm) var(--motion-ease-standard),
+    transform var(--motion-duration-sm) var(--motion-ease-standard);
 }
-.tg-event[data-segment="true"] {
-  opacity: 0.92;
+.calendar-tg-event[data-top="true"] {
+  z-index: var(--calendar-z-event-top);
+}
+.calendar-tg-event[data-segment="true"] {
   border-left-style: dashed;
 }
-.tg-event-title {
-  font-size: 0.72rem;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.calendar-tg-event:hover {
+  box-shadow: var(--shadow-sm);
 }
-.tg-event-time {
-  font-size: 0.64rem;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.85;
-}
-.tg-event-sub {
-  font-size: 0.64rem;
-  opacity: 0.8;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.tg-empty {
-  position: absolute;
-  top: 1.5rem;
-  left: 56px;
-  right: 0;
-  text-align: center;
-  font-size: 0.8rem;
-  color: hsl(var(--muted-foreground));
-  pointer-events: none;
-}
-
-/* Category chips + edit popover */
-.calendar-cat {
-  position: relative;
-  display: inline-block;
-}
-.calendar-cat-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.3rem 0.65rem;
-  font-size: 0.8rem;
-  border-radius: 9999px;
-  border: 1px solid hsl(var(--border));
-  background: hsl(var(--card));
-  color: hsl(var(--foreground));
-  cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
-}
-.calendar-cat-btn:hover,
-.calendar-cat-btn[data-open="true"] {
-  background: hsl(var(--muted));
-  border-color: hsl(var(--ring));
-}
-.calendar-cat-pop {
-  position: absolute;
-  z-index: 40;
-  top: calc(100% + 0.35rem);
-  left: 0;
-  width: 16rem;
-  padding: 0.75rem;
-  border-radius: var(--radius-md);
-  border: 1px solid hsl(var(--border));
-  background: hsl(var(--popover));
-  color: hsl(var(--popover-foreground));
-  box-shadow: 0 8px 24px hsl(var(--foreground) / 0.16);
-}
-.calendar-cat-label {
-  display: block;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: hsl(var(--muted-foreground));
-  margin-bottom: 0.3rem;
-}
-.calendar-cat-input {
-  flex: 1;
-  min-width: 0;
-  padding: 0.3rem 0.5rem;
-  font-size: 0.8rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid hsl(var(--border));
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-}
-.calendar-cat-save {
-  padding: 0.3rem 0.7rem;
-  font-size: 0.78rem;
-  font-weight: 500;
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  cursor: pointer;
-}
-.calendar-cat-save:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.calendar-swatches {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 0.3rem;
-}
-.calendar-swatch {
-  aspect-ratio: 1;
-  border-radius: 0.3rem;
-  border-width: 1px;
-  border-style: solid;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.calendar-swatch[data-active="true"] {
+.calendar-tg-event:focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 1px;
-}
-
-/* Schedule weekly grid */
-.calendar-legend-swatch {
-  width: 0.85rem;
-  height: 0.85rem;
-  border-radius: 0.2rem;
-  border-width: 1px;
-  border-style: solid;
-  display: inline-block;
-}
-.calendar-stat-bar {
-  height: 0.5rem;
-  border-radius: 9999px;
-  background: hsl(var(--muted));
-  overflow: hidden;
-}
-.calendar-stat-fill {
-  height: 100%;
-  background: hsl(var(--primary));
+  z-index: var(--calendar-z-event-top);
 }

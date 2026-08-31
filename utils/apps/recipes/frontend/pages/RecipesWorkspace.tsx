@@ -1,14 +1,21 @@
+import { ArrowLeft, ChefHat, Plus } from "lucide-react";
 import { useState } from "react";
-import { ChefHat, Plus } from "lucide-react";
 
 import { useWorkspaceStore } from "@/app/stores/workspaceStore";
+import { AppHeader } from "@/components/app-shell/AppHeader";
 import { Button } from "@/components/ui/button";
 import { BrowseView } from "@recipes/components/BrowseView";
 import { RecipeDetail } from "@recipes/components/RecipeDetail";
 import { RecipeEditor } from "@recipes/components/RecipeEditor";
 
-import "@recipes/styles/recipes.css";
-
+/**
+ * Recipes: browse a pantry-matched grid, read one recipe, or edit one.
+ *
+ * The header is `AppHeader` rather than a hand-rolled bar, so the title
+ * rhythm and the wrapping action row match the other seven app modules. It
+ * supplies the pane's `h2`; everything below descends from it without
+ * skipping a level.
+ */
 export function RecipesWorkspace() {
   const view = useWorkspaceStore((s) => s.recipesView);
   const setView = useWorkspaceStore((s) => s.setRecipesView);
@@ -31,29 +38,37 @@ export function RecipesWorkspace() {
     setView("browse");
   };
 
+  const editing = view === "editor";
+
   return (
-    <div className="recipes-app flex min-h-0 flex-1 flex-col bg-background">
-      <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
-        <div className="flex items-center gap-2 font-semibold">
-          <ChefHat className="h-5 w-5 text-primary" />
-          Recipes
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          {view === "editor" ? (
-            <Button size="sm" variant="outline" onClick={openBrowse}>
-              Back to Browse
+    <div className="flex min-h-0 flex-1 flex-col bg-background">
+      <AppHeader
+        icon={ChefHat}
+        title="Recipes"
+        description={
+          editing
+            ? editingId != null
+              ? "Edit this recipe"
+              : "Add a new recipe"
+            : "Match recipes to what is in your pantry"
+        }
+        actions={
+          editing ? (
+            <Button variant="outline" onClick={openBrowse}>
+              <ArrowLeft className="h-4 w-4" />
+              Back to browse
             </Button>
           ) : (
-            <Button size="sm" onClick={openNew}>
+            <Button onClick={openNew}>
               <Plus className="h-4 w-4" />
-              New Recipe
+              New recipe
             </Button>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       <div className="min-h-0 flex-1 overflow-hidden">
-        {view === "editor" ? (
+        {editing ? (
           <RecipeEditor recipeId={editingId} onSaved={afterSave} onCancel={openBrowse} />
         ) : selectedId != null ? (
           <RecipeDetail
@@ -63,7 +78,7 @@ export function RecipesWorkspace() {
             onDeleted={() => setSelectedId(null)}
           />
         ) : (
-          <BrowseView onSelect={setSelectedId} />
+          <BrowseView onSelect={setSelectedId} onCreate={openNew} />
         )}
       </div>
     </div>

@@ -1,16 +1,33 @@
 import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { CalendarRange, ListTodo, Trash2 } from "lucide-react";
 
+import { AsyncBoundary } from "@/components/ui/async-boundary";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Field,
+  SelectField,
+  selectFieldTriggerProps,
+  useFormErrors,
+  useSelectFieldIds,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton, SkeletonList } from "@/components/ui/skeleton";
 
 import {
   useAddEntry,
@@ -18,6 +35,8 @@ import {
   useDeleteEntry,
   useSchedules,
 } from "../hooks/useCalendar";
+
+type FieldName = "schedule" | "start" | "end";
 
 function strip(name: string): string {
   return name.replace(/\.json$/, "");
@@ -43,24 +62,31 @@ export function ActiveDatesDialog({
   const [schedule, setSchedule] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const { errors, formError, setErrors, setFormError, clear } =
+    useFormErrors<FieldName>();
+  const scheduleIds = useSelectFieldIds();
 
   useEffect(() => {
     if (!open) return;
-    setError(null);
+    clear();
     setStart("");
     setEnd("");
     setSchedule((s) => s || schedules.data?.[0] || "");
-  }, [open, schedules.data]);
+  }, [open, schedules.data, clear]);
 
   const entries = (config.data?.entries ?? []).map((e, i) => ({ ...e, _index: i }));
 
-  async function handleAdd() {
-    setError(null);
-    if (!schedule || !start || !end) {
-      setError("Pick a schedule and both dates.");
-      return;
-    }
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+    const next: Partial<Record<FieldName, string>> = {};
+    if (!schedule) next.schedule = "Pick a schedule.";
+    if (!start) next.start = "Pick a start date.";
+    if (!end) next.end = "Pick an end date.";
+    if (start && end && start > end) next.end = "The end date must not precede the start.";
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
+
     try {
       await addEntry.mutateAsync({
         start_date: start,
@@ -69,8 +95,8 @@ export function ActiveDatesDialog({
       });
       setStart("");
       setEnd("");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to add mapping");
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Failed to add mapping");
     }
   }
 
@@ -85,79 +111,128 @@ export function ActiveDatesDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-3">
-          {/* existing mappings */}
-          <ul className="flex max-h-44 flex-col gap-1 overflow-y-auto">
-            {entries.map((e) => (
-              <li
-                key={e._index}
-                className="flex items-center gap-2 rounded-[var(--radius-sm)] border border-border px-3 py-1.5 text-sm"
+        <form onSubmit={handleAdd} className="contents">
+          <DialogBody className="space-y-4">
+            <section aria-label="Existing mappings">
+              {/* `config.data?.entries ?? []` reads the same as "there are no
+                  mappings" whether the request is still in flight or failed
+                  outright, so the four states go through AsyncBoundary rather
+                  than collapsing into the empty one. */}
+              <AsyncBoundary
+                label="the existing mappings"
+                loading={config.isPending}
+                error={config.error}
+                empty={entries.length === 0}
+                onRetry={() => void config.refetch()}
+                skeleton={<SkeletonList count={2} />}
+                emptyIcon={CalendarRange}
+                emptyTitle="No mappings yet"
+                emptyDescription="Nothing is scheduled onto a date range."
               >
-                <span className="font-medium text-foreground">
-                  {strip(e.schedule_filename)}
-                </span>
-                <span className="text-muted-foreground">
-                  {e.start_date} → {e.end_date}
-                </span>
-                <button
-                  type="button"
-                  className="ml-auto text-muted-foreground hover:text-destructive"
-                  onClick={() => deleteEntry.mutate(e._index)}
-                  aria-label="Remove mapping"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </li>
-            ))}
-            {entries.length === 0 ? (
-              <li className="text-sm text-muted-foreground">No mappings yet.</li>
-            ) : null}
-          </ul>
+                <ul className="flex flex-col gap-1">
+                  {entries.map((e, idx) => (
+                    <li
+                      key={e._index}
+                      data-enter
+                      style={{ "--i": idx } as never}
+                      className="flex min-h-11 flex-wrap items-center gap-x-2 gap-y-0.5 rounded-[var(--radius-sm)] border border-border px-3 py-1.5 text-sm app:min-h-9"
+                    >
+                      <span className="font-medium text-foreground">
+                        {strip(e.schedule_filename)}
+                      </span>
+                      <span className="tabular-nums text-muted-foreground">
+                        {e.start_date} → {e.end_date}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="ml-auto text-muted-foreground hover:text-destructive"
+                        onClick={() => deleteEntry.mutate(e._index)}
+                        aria-label={`Remove ${strip(e.schedule_filename)} from ${e.start_date} to ${e.end_date}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </AsyncBoundary>
+            </section>
 
-          {/* add a mapping */}
-          <div className="grid gap-1.5">
-            <Label htmlFor="cal-ad-schedule">Schedule</Label>
-            <select
-              id="cal-ad-schedule"
-              className="rounded-[var(--radius-sm)] border border-border bg-background px-2 py-2 text-sm"
-              value={schedule}
-              onChange={(e) => setSchedule(e.target.value)}
+            {/* The boundary sits outside the field so a pending or failed
+                fetch never leaves a label pointing at a trigger that is not on
+                screen; an empty dropdown is not the same as "no schedules". */}
+            <AsyncBoundary
+              label="schedules"
+              loading={schedules.isPending}
+              error={schedules.error}
+              empty={schedules.data?.length === 0}
+              onRetry={() => void schedules.refetch()}
+              skeleton={
+                <div className="space-y-1.5">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-10 w-full rounded-[var(--radius-md)]" />
+                </div>
+              }
+              emptyIcon={ListTodo}
+              emptyTitle="No schedules yet"
+              emptyDescription="Create a schedule on the Schedules tab, then map it onto dates here."
             >
-              {(schedules.data ?? []).map((file) => (
-                <option key={file} value={file}>
-                  {strip(file)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="cal-ad-start">Start</Label>
-              <Input
-                id="cal-ad-start"
-                type="date"
-                value={start}
-                onChange={(e) => setStart(e.target.value)}
-              />
+              {/* SelectField, not Field: Select's root renders no DOM node, so
+                  the cloned id / aria-* were dropped and the label pointed at
+                  an id that never existed. */}
+              <SelectField
+                label="Schedule"
+                ids={scheduleIds}
+                required
+                error={errors.schedule}
+              >
+                <Select value={schedule} onValueChange={setSchedule}>
+                  <SelectTrigger
+                    {...selectFieldTriggerProps(scheduleIds, errors.schedule)}
+                  >
+                    <SelectValue placeholder="Pick a schedule" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(schedules.data ?? []).map((file) => (
+                      <SelectItem key={file} value={file}>
+                        {strip(file)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </SelectField>
+            </AsyncBoundary>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Start" required error={errors.start}>
+                <Input
+                  type="date"
+                  value={start}
+                  onChange={(e) => setStart(e.target.value)}
+                />
+              </Field>
+              <Field label="End" required error={errors.end}>
+                <Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
+              </Field>
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="cal-ad-end">End</Label>
-              <Input
-                id="cal-ad-end"
-                type="date"
-                value={end}
-                onChange={(e) => setEnd(e.target.value)}
-              />
-            </div>
-          </div>
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          <Button
-            onClick={handleAdd}
-            disabled={addEntry.isPending || !schedule || !start || !end}
-          >
-            Map dates
-          </Button>
-        </div>
+
+            {formError ? (
+              <p role="alert" className="text-sm font-medium text-destructive">
+                {formError}
+              </p>
+            ) : null}
+          </DialogBody>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+            <Button type="submit" disabled={addEntry.isPending}>
+              Map dates
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
