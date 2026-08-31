@@ -1,0 +1,100 @@
+# =============================================================================
+# repo-profile.yaml — Mango Tree
+# =============================================================================
+# Scoping record for the repo-audit skill (structure, docs, README, front page).
+# Distinct from docs/audit-profile.yaml, which scopes the *rendered UI* audit.
+#
+# Fields marked VERIFIED were measured, not assumed; the command is named inline.
+# Regenerate detected fields with:
+#   python3 scripts/audit_structure.py . --detect
+# =============================================================================
+
+repo:
+  name: Mango-Tree
+  archetype: web-app          # VERIFIED — audit_structure.py --detect, confidence 0.73
+  secondary: service          # long-running local Django + agent loop; .env.example
+  one_liner: >-
+    A local-first agent workspace where eight self-hosted apps — mail, calendar,
+    workouts, recipes, films, time, projects, files — are reachable both through
+    a React UI and by a LangGraph agent whose access is gated per session in code.
+  status: active
+  status_honest_note: >-
+    Single-developer project, worked on continuously through 2026. The eight app
+    modules, auth, and the agent loop work; the planner, memory, permission
+    engine, embeddings, object storage and task queue are empty placeholders and
+    the README says so.
+  visibility: private         # VERIFIED — gh repo view. Intended to go public.
+
+purpose: portfolio            # user-stated: hiring managers, portfolio, and public users
+reader: hiring-manager
+role_family: swe
+
+ecosystem:
+  primary: python             # VERIFIED — 399 .py vs 284 .ts/.tsx
+  package_manager: uv
+  lockfile: uv.lock           # plus web/package-lock.json
+  layout: flat                # domain code under utils/, frontend under web/
+  min_version: "3.13"
+
+entrypoints:
+  setup: "uv sync --extra dev"        # one of six documented commands, not a single entrypoint
+  run: "python run.py"
+  test: "uv run pytest"
+  verified: false             # VERIFIED FAILING — see below
+  steps_to_first_run: 7       # VERIFIED — README.md lines 84-107, seven fenced commands
+  seconds_to_first_run: null  # not reached; setup fails at step 6
+  clean_clone_result: >-
+    FAIL. Clean clone into ghcr.io/astral-sh/uv:python3.13-bookworm, 2026-08-31.
+    `uv sync --extra dev` 11.7s OK; `manage.py migrate` OK;
+    `manage.py migrate --database=imdbspy` -> OperationalError: unable to open
+    database file (data/imdbspy/ does not exist; data/ is gitignored).
+    `uv run pytest` -> 3 failed, 459 passed, 170 errors.
+
+showcase:
+  has_ui: true
+  showable:
+    - "the chat workspace with a streaming agent turn"
+    - "the apps launcher and a couple of app tabs (mailbox, timekeeper grid)"
+    - "the theme switcher across the eight themes"
+    - "the tool-group gate refusing, then being enabled from the chip"
+  assets_dir: docs/assets
+  demo_url: null              # single-owner and self-hosted by design; no public demo
+  pages_url: null
+  personal_site_url: null
+  personal_site_has_page: false
+  video_url: null
+  social_preview_set: false   # VERIFIED — gh: usesCustomOpenGraphImage false
+  hero_asset: docs/assets/mango-color.svg   # SVG only; see report SHOW-1
+  links_verified_on: 2026-08-31             # VERIFIED — check_links.py, 3/3 external OK
+
+docs:
+  surface: docs-dir
+  file_count: 59              # VERIFIED — git ls-files docs/ | wc -l
+  governing_rules:
+    - docs/skills/global/SKILL.md
+    - docs/skills/repo-structure/SKILL.md
+    - docs/skills/app-modules/SKILL.md
+    - docs/skills/django-backend/SKILL.md
+    - docs/skills/ui-frontend/SKILL.md
+    - docs/skills/website-architecture/SKILL.md
+    - docs/skills/app-migration/SKILL.md
+    - docs/skills/plan/SKILL.md
+  historical_dirs:
+    # Records of the repo as it WAS. Exempt from path propagation.
+    - docs/audit-report.md    # the 2026-08-31 UI audit, incl. its re-audit diff
+    - docs/overhaul-plan.md   # the completed remediation sequence
+
+constraints:
+  do_not_publish: []
+  do_not_move:
+    - docs/skills/          # symlinked into .claude/, .cursor/, .codex/; moving breaks all three
+    - utils/scripts/link-skills.sh
+    - utils/scripts/link-skills.ps1
+    - data/                 # gitignored; holds the live SQLite databases and media
+  history_rewrite_allowed: false
+
+meta:
+  created: 2026-08-31
+  audited_by: "repo-audit skill"
+  report: docs/repo-audit.md
+  plan: docs/repo-restructure-plan.md
