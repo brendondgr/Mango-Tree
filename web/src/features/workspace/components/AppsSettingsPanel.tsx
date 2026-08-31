@@ -3,13 +3,17 @@ import { useState } from "react";
 import { useAuthStore } from "@/app/stores/authStore";
 import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { AppToggleGrid } from "@/features/workspace/apps/AppToggleGrid";
+import { SettingsSection } from "@/features/workspace/components/WorkspaceSettingsDialog";
+
+/** Stable identity: a fresh [] literal in the selector re-renders forever. */
+const NO_APPS: string[] = [];
 
 /**
  * Settings → Apps. Enable or disable workspace apps at any time. Changes save
  * immediately; disabling an app also closes its open tab.
  */
 export function AppsSettingsPanel() {
-  const enabled = useAuthStore((s) => s.user?.preferences.enabled_apps ?? []);
+  const enabled = useAuthStore((s) => s.user?.preferences.enabled_apps ?? NO_APPS);
   const setPreferences = useAuthStore((s) => s.setPreferences);
   const closeAppTab = useWorkspaceStore((s) => s.closeAppTab);
 
@@ -31,26 +35,22 @@ export function AppsSettingsPanel() {
   }
 
   return (
-    <div>
-      <div className="mb-4 flex items-baseline justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">Apps</h3>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Turn apps on or off. The chat window is always available.
-          </p>
-        </div>
+    <SettingsSection
+      title="Enabled apps"
+      description="Turn apps on or off. The chat window is always available."
+      action={
         <span className="text-xs text-muted-foreground" aria-live="polite">
           {saving ? "Saving…" : `${enabled.length} enabled`}
         </span>
-      </div>
-
+      }
+    >
       {error ? (
-        <p className="mb-3 text-sm text-destructive" role="alert">
+        <p className="text-sm text-destructive" role="alert">
           {error}
         </p>
       ) : null}
 
       <AppToggleGrid selected={enabled} onToggle={toggle} />
-    </div>
+    </SettingsSection>
   );
 }
