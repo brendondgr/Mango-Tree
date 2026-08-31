@@ -18,6 +18,14 @@ dependencies = [
     "python-dotenv>=1.0",
     "stravalib>=2.5.0",
     "reportlab>=4.0",
+    # LLM provider SDKs. The abstraction in utils/shared/llm/kit imports these
+    # lazily, so a missing one raises a clear error instead of breaking start-up
+    # — but the owner is meant to be able to choose any provider from the
+    # settings UI without a terminal, so all four ship by default.
+    "httpx>=0.27",          # Ollama native API, llama.cpp /props, health probes
+    "openai>=1.60",         # OpenAI, vLLM, llama.cpp, LM Studio, DeepSeek, any /v1
+    "anthropic>=0.40",      # Claude
+    "google-genai>=1.0",    # Gemini (NOT google-generativeai, which is deprecated)
 ]
 
 [project.optional-dependencies]
