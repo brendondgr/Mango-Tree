@@ -17,6 +17,21 @@ uv run utils/scripts/init_data.py --verbose
 
 `./scripts/bootstrap` calls it; you rarely need to run it directly.
 
+## Screenshots
+
+`capture_screenshots.py` writes the README's images into `docs/assets/` from a
+running workspace, so they can be regenerated when the UI changes instead of
+going stale.
+
+```bash
+MANGO_AUDIT_USER=you MANGO_AUDIT_PASSWORD=yourpassword \
+    uv run --extra audit utils/scripts/capture_screenshots.py
+```
+
+**Point it at a throwaway instance.** Screenshots of a real install show real
+mail, a real calendar and real ratings. Its docstring has the full set of
+`MANGO_*_DB` overrides that stand one up without touching your own data.
+
 ## Skill links
 
 - `link-skills.ps1` — recreate `.cursor/`, `.claude/`, and `.codex/` skill directory links on Windows
@@ -56,7 +71,7 @@ the layout probes and says it skipped the accessibility scan.
 
 ### Running
 
-Start the app (`python run.py`), then point the scripts at it. Credentials come
+Start the app (`./scripts/server`), then point the scripts at it. Credentials come
 from the environment — they are never stored in the repo.
 
 ```bash

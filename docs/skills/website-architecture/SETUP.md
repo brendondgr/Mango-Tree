@@ -41,7 +41,7 @@ cd web && npm run build
 Or start Django and Vite together from the repo root:
 
 ```bash
-python run.py
+./scripts/server
 ```
 
 ## Required Docs

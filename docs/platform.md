@@ -43,8 +43,9 @@ configured. `backend/tasks/` modules exist in a few apps but no broker runs them
 │   ├── api/                # DRF route modules
 │   ├── apps/{name}/        # backend, frontend, agent, shared per app
 │   ├── shared/             # auth, search, llm, events (+ empty permissions/storage/embeddings)
-│   ├── scripts/            # dev + link-skills scripts
+│   ├── scripts/            # init_data, screenshots, UI audit, link-skills
 │   └── tests/              # pytest suite
+├── scripts/                # bootstrap, server, test — one entrypoint per verb
 ├── manage.py
 ├── run.py                  # starts Django and Vite together
 └── pyproject.toml
@@ -195,6 +196,13 @@ data/
 └── recipes/recipes.db
 ```
 
+The platform's own database — owner account, sessions, security audit log, LLM
+provider records, and the imdbspy Django schema — is `.django-test.sqlite3` at
+the repo root rather than under `data/`. Despite the name it is not a test
+artifact. Override it with `MANGO_DEFAULT_DB`, which is what makes a throwaway
+instance possible (`utils/scripts/capture_screenshots.py` documents the full
+set).
+
 Three storage patterns are in play:
 
 - **Legacy SQLite, bound read/write.** exercise, projectmanager, and timekeeper
@@ -245,16 +253,28 @@ the session never sticks, and every subsequent request 403s. For that case set
 ## Running
 
 ```bash
-uv sync --extra dev
-cp .env.example .env
-cd web && npm install && cd ..
-uv run manage.py migrate
-uv run manage.py migrate --database=imdbspy
-python run.py
+./scripts/bootstrap
+./scripts/server
 ```
 
-`run.py` starts Django on **32553** and Vite on **5173** together. Open
-`http://localhost:5173`. Django serves `/api` only and 404s at its own root.
+`bootstrap` is idempotent and never overwrites an existing database or `.env`.
+It expands to:
+
+```bash
+uv sync --extra dev
+cp .env.example .env
+uv run utils/scripts/init_data.py       # data/ tree + the legacy app schemas
+uv run manage.py migrate
+uv run manage.py migrate --database=imdbspy
+cd web && npm install && cd ..
+```
+
+`init_data.py` is the step a clean clone cannot skip: `data/` is gitignored, and
+SQLite creates a missing database *file* but never a missing *directory*.
+
+`server` runs `run.py`, which starts Django on **32553** and Vite on **5173**
+together. Open `http://localhost:5173`. Django serves `/api` only and 404s at
+its own root.
 
 To run them separately:
 
@@ -291,6 +311,18 @@ Configuration lives in `config/` (Django settings plus the artifacts, models,
 permissions, search, and tools YAML). Secrets go in `.env` only.
 
 ## Testing
+
+```bash
+./scripts/test
+```
+
+`./scripts/test backend` and `./scripts/test frontend` run one half. A fresh
+clone reports **570 passed, 62 skipped**: the skips carry the
+`needs_legacy_data` marker and assert against rows in the databases exercise,
+projectmanager and timekeeper were migrated from, which are not in the
+repository. Nothing should fail.
+
+Underneath:
 
 ```bash
 uv run pytest
