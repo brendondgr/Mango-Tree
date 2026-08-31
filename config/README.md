@@ -23,4 +23,10 @@ code under `utils/agents/`, and there are no workflow manifests.
 `DATABASE_ROUTERS` binds those five to their app. Only `imdbspy` uses Django-managed
 models; the rest bind `managed = False` to schemas their app owns.
 
+`default` is the exception in two ways worth knowing: it sits at the repo root
+rather than under `data/`, and it is the only connection with no `MANGO_*_DB`
+override. It holds the owner account, sessions, the security audit log, the LLM
+provider and key records, and the `imdbspy` Django schema — so despite the name,
+it is not a test artifact and deleting it destroys the platform's own state.
+
 No PostgreSQL, pgvector, Redis, or Celery broker is configured.

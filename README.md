@@ -10,7 +10,9 @@ DRF endpoints, the agent through registered tools. What the agent can touch is
 decided by which tool groups you switch on, enforced in code rather than asked
 for in a prompt.
 
-Everything runs on your machine: SQLite databases and files under `data/`.
+Everything runs on your machine. The per-app SQLite databases and all files
+live under `data/`; the platform's own database — owner account, sessions,
+security log, LLM providers — is `.django-test.sqlite3` at the repo root.
 Models are your choice — a local OpenAI-compatible server, Ollama, or a hosted
 provider — configured from the settings page rather than a config file.
 
@@ -204,7 +206,7 @@ irreversible tools must refuse without `confirm: true`.
 ```text
 .
 ├── config/            # Django settings, urls, and runtime YAML
-├── data/              # gitignored runtime state: artifacts, SQLite, caches
+├── data/              # gitignored runtime state: artifacts, per-app SQLite, caches
 ├── docs/
 │   ├── platform.md    # architecture, storage, security, running
 │   ├── api.md         # HTTP API contract
