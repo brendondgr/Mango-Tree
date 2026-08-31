@@ -33,6 +33,7 @@ import {
 } from "@/features/chat/utils/slashCommands";
 import { useContextUsage } from "@/features/chat/hooks/useContextUsage";
 import { useComposerArtifactStore } from "@/features/chat/stores/composerArtifactStore";
+import { useComposerDraftStore } from "@/features/chat/stores/composerDraftStore";
 import { useComposerWebSearchStore } from "@/features/chat/stores/composerWebSearchStore";
 import type { PendingAttachment } from "@/features/chat/types/attachment";
 import { artifactToPendingAttachment } from "@/features/chat/utils/artifactToPendingAttachment";
@@ -70,6 +71,8 @@ export function ChatComposer({
   onSubmit,
 }: ChatComposerProps) {
   const [text, setText] = useState("");
+  const pendingDraft = useComposerDraftStore((state) => state.pending);
+  const consumeDraft = useComposerDraftStore((state) => state.consume);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -158,6 +161,21 @@ export function ChatComposer({
     },
     [toolGroupCatalogue, enabledToolGroups, executeSlash],
   );
+
+  useEffect(() => {
+    if (pendingDraft === null) return;
+    const draft = consumeDraft();
+    if (draft === null) return;
+    setText(draft);
+    // Caret at the end, so a suggestion is a starting point rather than
+    // something the user has to clear before typing.
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(draft.length, draft.length);
+    });
+  }, [consumeDraft, pendingDraft]);
 
   const adjustTextareaHeight = useCallback(() => {
     const el = textareaRef.current;

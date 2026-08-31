@@ -22,8 +22,10 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatComposer } from "@/features/chat/components/ChatComposer";
 import { ChatEmptyState } from "@/features/chat/components/ChatEmptyState";
+import { useComposerDraftStore } from "@/features/chat/stores/composerDraftStore";
 import { ChatMessage as ChatMessageBubble } from "@/features/chat/components/ChatMessage";
 import { SessionInfoDialog } from "@/features/chat/components/SessionInfoDialog";
+import { TypingIndicator } from "@/features/chat/components/TypingIndicator";
 import { useChatAutoScroll } from "@/features/chat/hooks/useChatAutoScroll";
 import type { PendingAttachment } from "@/features/chat/types/attachment";
 import { formatLlmError } from "@/features/chat/utils/buildLlmMessageContent";
@@ -146,8 +148,11 @@ export function ChatWindow() {
     const abortController = new AbortController();
     streamAbortRef.current = abortController;
 
+    // Declared outside the try so the `finally` can always tear it down.
+    let unsubscribe: (() => void) | null = null;
+
     try {
-      const unsubscribe = useAgentStore.subscribe((state) => {
+      unsubscribe = useAgentStore.subscribe((state) => {
         let content = state.finalAnswer || "";
         
         if (state.error) {
@@ -162,7 +167,12 @@ export function ChatWindow() {
           currentNode: state.currentNode || undefined,
           references: state.references,
         });
-        forceScrollToBottom();
+        // Deliberately NOT forceScrollToBottom: forcing resets the stick-to-
+        // bottom flag, so a user who scrolled up to read an earlier message was
+        // yanked back down by the next streamed token. `streamScrollKey` drives
+        // useChatAutoScroll's effect, which follows the stream only while the
+        // user is already at the bottom, and raises the "New messages"
+        // affordance when they are not.
       });
 
       const historyPayload = messages.map((msg) => ({
@@ -184,7 +194,6 @@ export function ChatWindow() {
         wsState.boundWorkspaceId,
       );
       
-      unsubscribe();
       const finalState = useAgentStore.getState();
       updateMessage(agentMessageId, {
         isStreaming: false,
@@ -206,6 +215,7 @@ export function ChatWindow() {
         isStreaming: false,
       });
     } finally {
+      unsubscribe?.();
       if (streamAbortRef.current === abortController) {
         streamAbortRef.current = null;
       }
@@ -298,12 +308,21 @@ export function ChatWindow() {
           onOpenChange={setSessionInfoOpen}
         />
 
+        <p aria-live="polite" className="sr-only">
+          {isTyping ? "The agent is responding." : "The agent has finished responding."}
+        </p>
+
         <ScrollArea viewportRef={viewportRef} className="min-w-0 flex-1 bg-background">
           <div className="flex min-w-0 max-w-full flex-col gap-3 p-3">
-            {messages.length === 0 && !isTyping && <ChatEmptyState />}
+            {messages.length === 0 && !isTyping && (
+              <ChatEmptyState
+                onSuggestion={useComposerDraftStore.getState().suggest}
+              />
+            )}
             {groupMessagesIntoTurns(messages).map((turn) => (
               <ChatMessageBubble key={turn.id} turn={turn} />
             ))}
+            {isTyping && <TypingIndicator />}
           </div>
         </ScrollArea>
 

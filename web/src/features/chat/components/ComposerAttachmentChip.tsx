@@ -36,7 +36,7 @@ export function ComposerAttachmentChip({
   return (
     <div
       className={cn(
-        "group relative flex max-w-full items-center gap-2 rounded-md border px-2 py-1.5 text-xs",
+        "group relative flex max-w-full items-center gap-2 rounded-[var(--radius-sm)] border px-2 py-1.5 text-xs",
         isError
           ? "border-destructive/40 bg-destructive/5 text-destructive"
           : "border-border bg-muted/40 text-foreground",
@@ -62,7 +62,7 @@ export function ComposerAttachmentChip({
       )}
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{pending.file.name}</p>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-[0.625rem] text-muted-foreground">
           {isError
             ? pending.error
             : isProcessing
@@ -72,11 +72,17 @@ export function ComposerAttachmentChip({
       </div>
       <button
         type="button"
-        className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+        className={cn(
+          // 24px is the WCAG 2.2 AA floor for a target; the icon stays small so
+          // the chip does not grow, but the hit area does not.
+          "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-[var(--radius-sm)]",
+          "text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        )}
         aria-label={`Remove ${pending.file.name}`}
         onClick={() => onRemove(pending.id)}
       >
-        <X className="h-3.5 w-3.5" />
+        <X className="h-3.5 w-3.5" aria-hidden />
       </button>
     </div>
   );
