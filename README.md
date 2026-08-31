@@ -10,8 +10,9 @@ DRF endpoints, the agent through registered tools. What the agent can touch is
 decided by which tool groups you switch on, enforced in code rather than asked
 for in a prompt.
 
-Everything runs on your machine: SQLite databases, files under `data/`, and
-whatever OpenAI-compatible model server you point it at.
+Everything runs on your machine: SQLite databases and files under `data/`.
+Models are your choice — a local OpenAI-compatible server, Ollama, or a hosted
+provider — configured from the settings page rather than a config file.
 
 ## What's here
 
@@ -51,7 +52,7 @@ You → utils/agents/coordinator/graph → utils/agents/tools/ → utils/apps/{a
 | API | `utils/api/` | DRF surface. Thin views that call services |
 | Agents | `utils/agents/` | The agent loop, tool registry, LLM client |
 | Apps | `utils/apps/{name}/` | Domain services, UI fragments, agent tools |
-| Shared | `utils/shared/` | Auth, search, LLM config |
+| Shared | `utils/shared/` | Auth, search, the LLM provider layer |
 | Config | `config/` | Django settings and runtime YAML |
 
 The agent is one LangGraph graph in `utils/agents/coordinator/graph.py`:
@@ -71,7 +72,7 @@ launcher, tab strip, nav rail, and body routing at once.
 | API | Django 5.2, Django REST Framework |
 | Agents | LangGraph |
 | Database | SQLite — one `default` connection plus one per SQLite-backed app |
-| Models | Any OpenAI-compatible endpoint |
+| Models | OpenAI-compatible servers (vLLM, llama.cpp, LM Studio), Ollama, Anthropic, OpenAI, Gemini |
 | Storage | Local filesystem under `data/` |
 | Search | SearXNG (optional) |
 | Tooling | [uv](https://docs.astral.sh/uv/), Python 3.13+, npm |
@@ -105,7 +106,10 @@ uv run manage.py migrate
 uv run manage.py migrate --database=imdbspy
 ```
 
-Edit `.env` if your model server is not at `http://localhost:9090/v1`.
+Edit `.env` if your model server is not at `http://localhost:9090/v1`. You can
+also add providers, paste API keys and pick a model from **Settings → LLM**
+once the app is running — nothing about the model backend has to be decided at
+setup time.
 
 On Windows, if the skill links under `.cursor/`, `.claude/`, or `.codex/` appear
 as plain text files after cloning:
@@ -147,7 +151,7 @@ through Vite, which proxies `/api` to it.
 | --- | --- | --- |
 | Vite dev server | `http://localhost:5173` | yes |
 | Django / DRF | `http://localhost:32553` | yes |
-| LLM (OpenAI-compatible) | `http://localhost:9090` | for chat |
+| Model provider | `http://localhost:9090` by default | for chat — or any provider set in Settings → LLM |
 | SearXNG | `http://localhost:8080` | for web search |
 
 Health check: `GET http://localhost:32553/api/health/`.
@@ -170,11 +174,10 @@ and leave it unset behind TLS.
 
 | Location | Purpose |
 | --- | --- |
-| `.env` | LLM base URL, model, API key; OAuth and Strava credentials; database path overrides |
-| `web/.env` | Optional. `VITE_LLM_BASE_URL` / `VITE_LLM_MODEL` seed the frontend's LLM settings; without it they default to `http://localhost:9090/v1` and `local-model`. Copy from `web/.env.example` |
+| `.env` | Default LLM endpoint and any provider API keys named by `config/models.yaml`; OAuth and Strava credentials; database path overrides |
 | `config/django/settings.py` | Databases, DRF defaults, cookie and CSRF security |
 | `config/artifacts.yaml` | Artifact root, size limits, allowed kinds |
-| `config/models.yaml` | LLM provider defaults |
+| `config/models.yaml` | Declared LLM providers. Secrets are *named* here (`api_key_env`), never embedded; providers the owner adds in Settings → LLM live in the database instead |
 | `config/tools.yaml` | Agent tool registry and tool groups |
 | `config/permissions.yaml` | Declared filesystem and network scopes (verified by tests) |
 | `config/search.yaml` | SearXNG endpoint and fetch limits |

@@ -15,7 +15,7 @@ This document describes what exists. Anything not built is labelled as such.
 | API | Django 5.2 + Django REST Framework |
 | Agents | LangGraph (one graph, in `utils/agents/coordinator/`) |
 | Database | SQLite — one `default` connection plus one per SQLite-backed app |
-| Models | Any OpenAI-compatible HTTP endpoint (default `http://localhost:9090/v1`) |
+| Models | Any provider the layer in `utils/shared/llm/` adapts: OpenAI-compatible servers (vLLM, llama.cpp, LM Studio, DeepSeek), Ollama, Anthropic, OpenAI, Gemini. Chosen in Settings → LLM; default `http://localhost:9090/v1` |
 | Storage | Local filesystem under `data/` |
 | Search | SearXNG (optional, for the `search_web` tool) |
 | Python tooling | `uv`, Python 3.13+ |
@@ -61,7 +61,7 @@ User → utils/agents/coordinator/graph → utils/agents/tools/ → utils/apps/{
 | --- | --- | --- |
 | Frontend | `web/` | SPA shell and workspace; API clients only |
 | API | `utils/api/` | DRF route modules, one per app |
-| Agents | `utils/agents/` | The agent loop, tool registry, and LLM client |
+| Agents | `utils/agents/` | The agent loop and tool registry. Model access goes through `utils/shared/llm/` |
 | Apps | `utils/apps/{name}/` | Domain services, UI fragments, agent tools |
 | Shared | `utils/shared/` | Auth, search, LLM config, artifact traces |
 
@@ -266,15 +266,26 @@ uv run manage.py runserver 32553
 cd web && npm run dev
 ```
 
-An OpenAI-compatible LLM server on port **9090** is required for chat; a SearXNG
-instance on **8080** is optional and only needed for `search_web`.
+Chat needs a model provider. Out of the box that is an OpenAI-compatible server
+on port **9090**, but any provider added in **Settings → LLM** works instead —
+including hosted ones, whose keys are stored server-side and never sent to the
+browser. A SearXNG instance on **8080** is optional and only needed for
+`search_web`.
 
 | Service | Default |
 | --- | --- |
 | Vite dev server | localhost:5173 |
 | Django / DRF | localhost:32553 |
-| LLM (OpenAI-compatible) | localhost:9090 |
+| Model provider | localhost:9090, or whatever Settings → LLM selects |
 | SearXNG (optional) | localhost:8080 |
+
+**Providers.** `config/models.yaml` declares endpoints in the repo and *names*
+its secrets (`api_key_env: ANTHROPIC_API_KEY`), so the file stays safe to
+commit. Providers the owner adds through the settings page are stored in the
+database instead. Either way the browser never calls a model endpoint: model
+discovery, the connection test and token counting all run server-side, because
+a hosted provider refuses a cross-origin browser request and would otherwise
+report as unreachable when it is not. See `docs/api.md` § "LLM providers".
 
 Configuration lives in `config/` (Django settings plus the artifacts, models,
 permissions, search, and tools YAML). Secrets go in `.env` only.
