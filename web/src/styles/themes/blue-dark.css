@@ -18,7 +18,7 @@
   --muted-foreground: 215 20% 62%;
   --accent: 187 85% 53%;
   --accent-foreground: 222 47% 11%;
-  --destructive: 0 84% 60%;
+  --destructive: 0 70% 50%;
   --destructive-foreground: 0 0% 100%;
   --border: 217 22% 28%;
   --input: 217 22% 28%;
@@ -51,6 +51,17 @@
   --category-crimson: 350 70% 50%;
   --category-slate: 213 27% 56%;
 
+  /* Surface layering — build depth without inventing colours. */
+  --surface-1: 217 33% 17%;
+  --surface-2: 217 30% 21%;
+  --surface-3: 217 28% 25%;
+
+  /* Elevation inputs. globals.css derives the five-step scale from these,
+     which is what makes shadows visible on dark backgrounds. */
+  --shadow-color: 222 60% 4%;
+  --shadow-strength: 50%;
+
+  /* Geometry & motion (shared contract across all themes) */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;

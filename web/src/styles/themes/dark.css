@@ -18,11 +18,14 @@
   --muted-foreground: 220 8% 58%;
   --accent: 183 100% 40%;
   --accent-foreground: 0 0% 100%;
-  --destructive: 0 100% 67%;
+  --destructive: 0 70% 50%;
   --destructive-foreground: 0 0% 100%;
   --border: 220 8% 28%;
   --input: 220 8% 28%;
-  --ring: 271 79% 54%;
+  /* Decoupled from --primary: the primary colour is below the 3:1
+     non-text minimum against this background, so focus would be
+     invisible to a keyboard user. */
+  --ring: 271 90% 74%;
   --success: 168 100% 36%;
 
   --brand-gradient: linear-gradient(135deg, #7d2ae8, #00c4cc);
@@ -51,6 +54,17 @@
   --category-crimson: 350 75% 52%;
   --category-slate: 213 30% 58%;
 
+  /* Surface layering — build depth without inventing colours. */
+  --surface-1: 220 12% 17%;
+  --surface-2: 220 12% 21%;
+  --surface-3: 220 11% 25%;
+
+  /* Elevation inputs. globals.css derives the five-step scale from these,
+     which is what makes shadows visible on dark backgrounds. */
+  --shadow-color: 220 40% 3%;
+  --shadow-strength: 45%;
+
+  /* Geometry & motion (shared contract across all themes) */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;

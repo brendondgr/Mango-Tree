@@ -17,4 +17,9 @@ export function useMediaQuery(query: string): boolean {
   return matches;
 }
 
-export const MOBILE_BREAKPOINT = "(max-width: 820px)";
+/**
+ * Re-exported so existing call sites keep working. The value itself lives in
+ * `@/lib/shellGeometry`, alongside the `--breakpoint-app` CSS token it must
+ * match; `shellGeometry.test.ts` asserts the two agree.
+ */
+export { MOBILE_BREAKPOINT } from "@/lib/shellGeometry";

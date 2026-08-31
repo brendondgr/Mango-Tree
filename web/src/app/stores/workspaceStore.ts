@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { SIDEBAR_DEFAULT, clampSidebarWidth } from "@/lib/shellGeometry";
+
 import type { ChatAttachment } from "@/features/chat/types/attachment";
 import type { ChatReference } from "@/features/agent/types";
 import type { WorkspaceTabId } from "@/features/workspace/components/workspaceTabs";
@@ -34,18 +36,18 @@ export interface ChatMessage {
   references?: ChatReference[];
 }
 
-export const SIDEBAR_DEFAULT = 360;
-export const MAIN_PANEL_MIN = 200;
-
-export function getSidebarMaxWidth(): number {
-  if (typeof window === "undefined") return 1200;
-  return Math.max(0, window.innerWidth - MAIN_PANEL_MIN);
-}
-
-export function clampSidebarWidth(width: number, maxWidth?: number): number {
-  const max = maxWidth ?? getSidebarMaxWidth();
-  return Math.max(0, Math.min(max, width));
-}
+/**
+ * Sidebar geometry lives in `@/lib/shellGeometry` beside the CSS tokens it
+ * mirrors. Re-exported here because the store is where most callers already
+ * import it from.
+ */
+export {
+  MAIN_PANEL_MIN,
+  SIDEBAR_DEFAULT,
+  SIDEBAR_MIN,
+  clampSidebarWidth,
+  getSidebarMaxWidth,
+} from "@/lib/shellGeometry";
 
 function newChatSessionId(): string {
   return crypto.randomUUID();

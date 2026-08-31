@@ -6,12 +6,17 @@
  * sees them. Without these @source directives every utility class used ONLY in
  * an app module is dropped at build time and the module renders unstyled.
  * Any new utils/apps/<name>/frontend MUST be registered here.
+ *
+ * This list is asserted by web/src/lib/themeContract.test.ts, because a missing
+ * entry fails silently: it typechecks, it tests, it builds, and only the
+ * production CSS is wrong.
  */
+@source "../../../utils/apps/calendar/frontend";
 @source "../../../utils/apps/exercise/frontend";
+@source "../../../utils/apps/imdbspy/frontend";
 @source "../../../utils/apps/mailbox/frontend";
 @source "../../../utils/apps/media_viewer/frontend";
-@source "../../../utils/apps/calendar/frontend";
-@source "../../../utils/apps/imdbspy/frontend";
+@source "../../../utils/apps/projectmanager/frontend";
 @source "../../../utils/apps/recipes/frontend";
 @source "../../../utils/apps/timekeeper/frontend";
 
@@ -23,6 +28,84 @@
 @import "./themes/fsu-dark.css";
 @import "./themes/pulse-light.css";
 @import "./themes/pulse-dark.css";
+
+/* ---------------------------------------------------------------------------
+ * Shell geometry, z-scale, motion, and elevation.
+ *
+ * These are theme-INVARIANT: they describe the structure of the app, not its
+ * colour. Themes supply only `--shadow-color` and `--shadow-strength`, from
+ * which the elevation scale below is derived — which is why a dialog is
+ * visibly raised on a near-black background as well as on a white one.
+ * ------------------------------------------------------------------------- */
+
+:root {
+  /* Shell geometry. Single source of truth; JS mirrors these in
+     web/src/lib/shellGeometry.ts. */
+  --rail-w: 3.25rem; /* desktop icon rail */
+  --bottom-nav-h: 3.5rem; /* compact bottom navigation */
+  --header-h: 3rem;
+  --sidebar-default: 22.5rem;
+  --sidebar-min: 17.5rem;
+  --main-min: 20rem;
+
+  /* Z-scale. One ladder, in paint order. Never write a bare z-index. */
+  --z-base: 0;
+  --z-header: 10;
+  --z-rail: 20;
+  --z-backdrop: 30;
+  --z-drawer: 40;
+  --z-sheet: 45;
+  --z-overlay: 50; /* dialogs, popovers, dropdowns */
+  --z-toast: 60;
+
+  /* Motion. Reduced motion is the BASE state: travel and stagger are zero
+     until explicitly opted in below. A component written against these tokens
+     is therefore correct in both modes without a `reduce` branch of its own. */
+  --motion-duration-xs: 70ms; /* hover, focus ring, press */
+  --motion-duration-sm: 110ms; /* toggle, chip */
+  --motion-duration-md: 160ms; /* dropdown, tooltip, popover */
+  --motion-duration-lg: 240ms; /* card expand, list enter */
+  --motion-duration-xl: 320ms; /* dialog, sheet, tab body */
+  --motion-ease-standard: cubic-bezier(0.2, 0, 0.38, 0.9);
+  --motion-ease-entrance: cubic-bezier(0, 0, 0.38, 0.9);
+  --motion-ease-exit: cubic-bezier(0.2, 0, 1, 0.9);
+  --motion-travel-sm: 0px;
+  --motion-travel-md: 0px;
+  --motion-travel-lg: 0px;
+  --motion-stagger: 0ms;
+  --motion-stagger-max: 6;
+
+  /* Elevation, derived from the two per-theme shadow tokens. */
+  --elevation-1: 0 1px 2px hsl(var(--shadow-color) / var(--shadow-strength));
+  --elevation-2:
+    0 1px 2px hsl(var(--shadow-color) / var(--shadow-strength)),
+    0 2px 6px hsl(var(--shadow-color) / calc(var(--shadow-strength) * 0.8));
+  --elevation-3:
+    0 2px 4px hsl(var(--shadow-color) / var(--shadow-strength)),
+    0 8px 16px hsl(var(--shadow-color) / calc(var(--shadow-strength) * 0.9));
+  --elevation-4:
+    0 4px 8px hsl(var(--shadow-color) / var(--shadow-strength)),
+    0 16px 32px hsl(var(--shadow-color) / calc(var(--shadow-strength) * 1.1));
+  --elevation-5:
+    0 8px 16px hsl(var(--shadow-color) / var(--shadow-strength)),
+    0 24px 56px hsl(var(--shadow-color) / calc(var(--shadow-strength) * 1.3));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root {
+    --motion-travel-sm: 0.375rem;
+    --motion-travel-md: 0.75rem;
+    --motion-travel-lg: 1.5rem;
+    --motion-stagger: 38ms;
+  }
+}
+
+@theme {
+  /* The one breakpoint that separates the compact shell from the expanded one.
+     web/src/hooks/useMediaQuery.ts derives its media query from the same
+     number so JS and CSS can never disagree. */
+  --breakpoint-app: 821px;
+}
 
 @theme inline {
   --color-background: hsl(var(--background));
@@ -46,10 +129,29 @@
   --color-ring: hsl(var(--ring));
   --color-success: hsl(var(--success));
   --color-surface-reasoning: hsl(var(--surface-reasoning));
+
+  /* Layered surfaces, for building depth without inventing colours. */
+  --color-surface-1: hsl(var(--surface-1));
+  --color-surface-2: hsl(var(--surface-2));
+  --color-surface-3: hsl(var(--surface-3));
+
   --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
+
+  /* Override Tailwind's shadow scale with the theme-derived one, so every
+     existing `shadow-sm` / `shadow-lg` in the codebase becomes theme-aware
+     without touching a single call site. Tailwind's fixed black alphas are
+     invisible on the four dark themes. */
+  --shadow-xs: var(--elevation-1);
+  --shadow-sm: var(--elevation-2);
+  --shadow-md: var(--elevation-3);
+  --shadow-lg: var(--elevation-4);
+  --shadow-xl: var(--elevation-5);
+  --shadow-2xl: var(--elevation-5);
 }
 
 *,
@@ -77,14 +179,20 @@ html[data-theme="pulse-dark"] {
 body {
   margin: 0;
   min-width: 320px;
+  /* dvh tracks the visible viewport as mobile browser chrome retracts; the vh
+     fallback is for anything that does not support it. */
   min-height: 100vh;
+  min-height: 100dvh;
   font-family: var(--font-sans);
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 :focus-visible {
@@ -92,6 +200,58 @@ body {
   outline-offset: 2px;
 }
 
+/* ---------------------------------------------------------------------------
+ * Enter choreography.
+ *
+ * The hidden state lives ONLY inside the keyframe's `from` block with
+ * `animation-fill-mode: both`, never in a static base rule. If the CSS is
+ * blocked, JS fails, or the animation never runs, the content is simply
+ * visible. That is the fail-open rule, and it is why content revealed this way
+ * cannot go missing.
+ *
+ * Usage: <li data-enter style={{ "--i": index }}>
+ * ------------------------------------------------------------------------- */
+
+@keyframes enter-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-travel-md));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes enter-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-enter] {
+    animation: enter-rise var(--motion-duration-lg) var(--motion-ease-entrance)
+      both;
+    /* Cap the stagger so a 40-item grid still finishes in ~470ms rather than
+       taking 1.6s to become readable. */
+    animation-delay: calc(
+      min(var(--i, 0), var(--motion-stagger-max)) * var(--motion-stagger)
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-enter] {
+    animation: enter-fade var(--motion-duration-sm) linear both;
+  }
+}
+
+/* A net, not the strategy: individual components should be written against the
+   motion tokens above, which already collapse to zero travel. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -99,5 +259,14 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* A spinner is a status indicator, not decoration. Slow it rather than
+     deleting it — substitution, not removal, or a loading state reads as a
+     frozen one. */
+  .animate-spin {
+    animation-duration: 1.5s !important;
+    animation-iteration-count: infinite !important;
   }
 }
