@@ -270,3 +270,146 @@ body {
     animation-iteration-count: infinite !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Overlay motion.
+ *
+ * The shadcn primitives ship `animate-in` / `fade-in-0` / `zoom-in-95` class
+ * strings, which come from the `tailwindcss-animate` plugin. That plugin is not
+ * installed, so every one of those classes compiled to nothing and every
+ * dialog, popover, dropdown, tooltip and lightbox opened as a hard cut. Rather
+ * than add the dependency, these keyframes are written against the motion
+ * tokens above — which means they collapse correctly under reduced motion
+ * without a second set of rules.
+ *
+ * Radix waits for `animationend` before unmounting, so the `closed` animations
+ * must exist for exit transitions to be seen at all.
+ * ------------------------------------------------------------------------- */
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes surface-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-travel-sm)) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes surface-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(var(--motion-travel-sm)) scale(0.98);
+  }
+}
+
+@keyframes sheet-in-bottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-out-bottom {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes sheet-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes sheet-out-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.anim-overlay[data-state="open"] {
+  animation: overlay-in var(--motion-duration-md) var(--motion-ease-entrance);
+}
+.anim-overlay[data-state="closed"] {
+  animation: overlay-out var(--motion-duration-md) var(--motion-ease-exit);
+}
+
+.anim-surface[data-state="open"] {
+  animation: surface-in var(--motion-duration-md) var(--motion-ease-entrance);
+}
+.anim-surface[data-state="closed"] {
+  animation: surface-out var(--motion-duration-sm) var(--motion-ease-exit);
+}
+
+.anim-sheet-bottom[data-state="open"] {
+  animation: sheet-in-bottom var(--motion-duration-xl)
+    var(--motion-ease-standard);
+}
+.anim-sheet-bottom[data-state="closed"] {
+  animation: sheet-out-bottom var(--motion-duration-lg) var(--motion-ease-exit);
+}
+
+.anim-sheet-left[data-state="open"] {
+  animation: sheet-in-left var(--motion-duration-xl) var(--motion-ease-standard);
+}
+.anim-sheet-left[data-state="closed"] {
+  animation: sheet-out-left var(--motion-duration-lg) var(--motion-ease-exit);
+}
+
+/* Utility: a scroll region that keeps its own overflow instead of clipping.
+   Data tables and wide grids inside a workspace pane must scroll, not be cut
+   off — and the region needs to be focusable so it is keyboard-scrollable. */
+.scroll-region {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+.scroll-region:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: -2px;
+}
+
+/* Skeleton shimmer. A composited transform on an overlay, not a
+   background-position animation, so it does not repaint the box each frame. */
+@keyframes skeleton-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
