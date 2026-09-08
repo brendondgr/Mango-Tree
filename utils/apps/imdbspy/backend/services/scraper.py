@@ -7,7 +7,9 @@ JSON-LD scrape returns nothing (titles came back as "Unknown Title" / "N/A").
 This scraper instead queries IMDb's public GraphQL endpoint
 (``api.graphql.imdb.com``), which is *not* behind the challenge and returns all
 title metadata — plot, ratings, genres, credits, and cast **with headshot URLs**
-— in a single unauthenticated request. That is both reliable and faster than the
+— in a single request. The endpoint needs no credentials, but it does 403 any
+caller that omits the client headers imdb.com's own web app sends, so
+``api_headers`` below carries them. That is both reliable and faster than the
 old approach (no per-actor page fetch). Posters and headshots are pulled from the
 Amazon image CDN, capped to 512px height, and converted to WebP in the media
 cache (``services.media.media_root``).
@@ -37,6 +39,11 @@ except ImportError:  # pragma: no cover - pillow is a declared dependency
 
 
 GRAPHQL_URL = "https://api.graphql.imdb.com/"
+
+_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+)
 
 # One query fetches everything the app stores. Cast is requested with headshot
 # URLs inline so no per-actor page fetch is needed.
@@ -125,14 +132,24 @@ class IMDbScraper:
         self.timeout = timeout
         self.verbose = verbose
 
+        # Image downloads hit the Amazon CDN, which only wants a browser UA.
         self.headers = {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-            ),
+            "User-Agent": _USER_AGENT,
+            "Accept": "image/webp,image/avif,image/*,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+        }
+        # The GraphQL endpoint rejects (403) any caller that does not identify
+        # itself the way imdb.com's own web client does, so send those headers.
+        self.api_headers = {
+            "User-Agent": _USER_AGENT,
             "Accept": "application/json",
             "Accept-Language": "en-US,en;q=0.9",
             "Content-Type": "application/json",
+            "Origin": "https://www.imdb.com",
+            "Referer": "https://www.imdb.com/",
+            "x-imdb-client-name": "imdb-web-next",
+            "x-imdb-user-country": "US",
+            "x-imdb-user-language": "en-US",
         }
 
         os.makedirs(self.actors_path, exist_ok=True)
@@ -157,8 +174,17 @@ class IMDbScraper:
             "variables": {"id": f"tt{imdb_id}", "castLimit": self.max_actors},
         }
         response = requests.post(
-            GRAPHQL_URL, headers=self.headers, data=json.dumps(payload), timeout=self.timeout
+            GRAPHQL_URL,
+            headers=self.api_headers,
+            data=json.dumps(payload),
+            timeout=self.timeout,
         )
+        if response.status_code in (401, 403):
+            raise ValueError(
+                f"IMDb rejected the metadata request for tt{imdb_id} "
+                f"(HTTP {response.status_code}). IMDb may have changed the "
+                "client headers its GraphQL API requires."
+            )
         response.raise_for_status()
         body = response.json()
         # Partial errors can accompany usable data; only fail when there is no data.
