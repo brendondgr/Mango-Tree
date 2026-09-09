@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { Brain, Wrench, Sparkles, ChevronDown, CheckCircle2, XCircle, Loader2, Terminal } from "lucide-react";
+import { Brain, Wrench, Sparkles, ChevronDown, CheckCircle2, XCircle, Loader2, Terminal, Layers } from "lucide-react";
+import { useWorkspaceStore } from "@/app/stores/workspaceStore";
 import { MarkdownContent } from "@/components/markdown/MarkdownContent";
 import { EnableToolGroupChip } from "@/features/chat/components/EnableToolGroupChip";
+import type { ToolGroupSelection } from "@/features/agent/types";
 import { cn } from "@/lib/utils";
 
 interface ToolCall {
@@ -24,24 +26,42 @@ interface AgentActivityTrackerProps {
   isStreaming?: boolean;
   toolCalls?: ToolCall[];
   toolResults?: ToolResult[];
+  toolSelection?: ToolGroupSelection;
   currentNode?: string;
 }
+
+const SELECTION_SOURCE_LABEL: Record<string, string> = {
+  model: "chosen by Mango",
+  keyword_fallback: "matched by keywords",
+  no_candidates: "nothing to choose",
+  manual: "manual",
+  model_request: "added mid-turn",
+};
 
 export function AgentActivityTracker({
   thinking,
   isStreaming = false,
   toolCalls = [],
   toolResults = [],
+  toolSelection,
   currentNode,
 }: AgentActivityTrackerProps) {
   const [expanded, setExpanded] = useState(false);
+  const catalogue = useWorkspaceStore((s) => s.toolGroupCatalogue);
 
   const hasThinking = Boolean(thinking?.trim());
   const hasTools = toolCalls.length > 0 || toolResults.length > 0;
+  // A manual pass-through says nothing worth a row; an automatic decision does,
+  // even when it picked nothing — that is the decision.
+  const hasSelection = Boolean(toolSelection && toolSelection.source !== "manual");
 
-  if (!hasThinking && !hasTools && !isStreaming) {
+  if (!hasThinking && !hasTools && !hasSelection && !isStreaming) {
     return null;
   }
+
+  const labelFor = (id: string) => catalogue.find((g) => g.id === id)?.label ?? id;
+  const selectedLabels = (toolSelection?.selected ?? []).map(labelFor);
+  const pinnedLabels = (toolSelection?.pinned ?? []).filter((g) => g !== "core").map(labelFor);
 
   const completedCount = toolResults.length;
   const totalCount = Math.max(toolCalls.length, toolResults.length);
@@ -53,7 +73,10 @@ export function AgentActivityTracker({
   let statusBadge = null;
 
   if (isStreaming) {
-    if (currentNode === "reason") {
+    if (currentNode === "select") {
+      HeaderIcon = Layers;
+      headerText = "Choosing tools…";
+    } else if (currentNode === "reason") {
       HeaderIcon = Sparkles;
       headerText = "Thinking…";
     } else if (currentNode === "act" || currentNode === "observe" || isRunningTools) {
@@ -122,6 +145,30 @@ export function AgentActivityTracker({
       {/* Expanded Content */}
       {expanded && (
         <div className="min-w-0 max-w-full overflow-hidden border-t border-border/50 px-3 py-2.5 space-y-3">
+          {/* Which app tool groups this reply ran with, and who decided */}
+          {hasSelection && toolSelection && (
+            <div className="space-y-1" data-testid="tool-selection">
+              <div className="text-[10px] font-bold tracking-wider text-muted-foreground/60 uppercase flex items-center gap-1.5">
+                <Layers className="h-3 w-3" />
+                Tool selection
+              </div>
+              <div className="rounded-[var(--radius-sm)] border border-border/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                <p>
+                  <span className="font-medium text-foreground">
+                    {selectedLabels.length > 0 ? selectedLabels.join(", ") : "No app tools"}
+                  </span>
+                  <span className="ml-1 text-[10px] uppercase tracking-wide">
+                    {SELECTION_SOURCE_LABEL[toolSelection.source] ?? toolSelection.source}
+                  </span>
+                  {pinnedLabels.length > 0 && (
+                    <span className="ml-1">· pinned: {pinnedLabels.join(", ")}</span>
+                  )}
+                </p>
+                {toolSelection.reason && <p className="mt-0.5">{toolSelection.reason}</p>}
+              </div>
+            </div>
+          )}
+
           {/* Real-time Streaming Thoughts / Reasoning */}
           {hasThinking && (
             <div className="space-y-1">

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ToolCall, ToolResult, ChatReference } from "./types";
+import type { ToolCall, ToolResult, ChatReference, ToolGroupSelection } from "./types";
 
 export interface AgentRunState {
   status: "idle" | "running" | "error" | "done";
@@ -7,6 +7,7 @@ export interface AgentRunState {
   thinking: string;
   toolCalls: ToolCall[];
   toolResults: ToolResult[];
+  toolSelection: ToolGroupSelection | null;
   finalAnswer: string;
   references: ChatReference[];
   error: string | null;
@@ -15,6 +16,7 @@ export interface AgentRunState {
   appendThinking: (delta: string) => void;
   addToolCall: (call: ToolCall) => void;
   addToolResult: (result: ToolResult) => void;
+  setToolSelection: (selection: ToolGroupSelection) => void;
   setFinalAnswer: (answer: string, references?: ChatReference[]) => void;
   setError: (error: string) => void;
   setStatus: (status: "idle" | "running" | "error" | "done") => void;
@@ -26,6 +28,7 @@ export const useAgentStore = create<AgentRunState>((set) => ({
   thinking: "",
   toolCalls: [],
   toolResults: [],
+  toolSelection: null,
   finalAnswer: "",
   references: [],
   error: null,
@@ -36,6 +39,7 @@ export const useAgentStore = create<AgentRunState>((set) => ({
       thinking: "",
       toolCalls: [],
       toolResults: [],
+      toolSelection: null,
       finalAnswer: "",
       references: [],
       error: null,
@@ -45,6 +49,7 @@ export const useAgentStore = create<AgentRunState>((set) => ({
   addToolCall: (call) => set((s) => ({ toolCalls: [...s.toolCalls, call] })),
   addToolResult: (result) =>
     set((s) => ({ toolResults: [...s.toolResults, result] })),
+  setToolSelection: (selection) => set({ toolSelection: selection }),
   setFinalAnswer: (answer, references = []) =>
     set({ finalAnswer: answer, references, status: "done" }),
   setError: (error) => set({ error, status: "error" }),

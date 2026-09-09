@@ -2,8 +2,10 @@
  * Client-side slash commands for the chat composer (see docs/tool-groups.md).
  *
  *   /tools            open the tool-toggle popover
- *   /enable <group>   enable a tool group for this chat
- *   /disable <group>  disable a tool group for this chat
+ *   /enable <group>   enable (pin) a tool group for this chat
+ *   /disable <group>  disable (unpin) a tool group for this chat
+ *   /auto             let the agent choose app tool groups per message
+ *   /manual           use only the switched-on groups
  *
  * These are pure store mutations — no new endpoints. Group ids/labels are
  * validated against the fetched catalogue.
@@ -14,7 +16,8 @@ import type { ToolGroupInfo } from "@/services/toolsClient";
 export type SlashAction =
   | { kind: "tools" }
   | { kind: "enable"; group: string }
-  | { kind: "disable"; group: string };
+  | { kind: "disable"; group: string }
+  | { kind: "mode"; mode: "auto" | "manual" };
 
 export interface SlashSuggestion {
   /** Display label (the completed command). */
@@ -35,6 +38,8 @@ const COMMANDS: CommandDef[] = [
   { name: "/tools", hint: "Open the tool toggles", needsGroup: false },
   { name: "/enable", hint: "Enable a tool group", needsGroup: true },
   { name: "/disable", hint: "Disable a tool group", needsGroup: true },
+  { name: "/auto", hint: "Let Mango choose tools per message", needsGroup: false },
+  { name: "/manual", hint: "Use only the switched-on tool groups", needsGroup: false },
 ];
 
 /** True when the text is (the start of) a slash command worth intercepting. */
@@ -87,6 +92,8 @@ export function resolveSlashCommand(
 ): SlashAction | null {
   const trimmed = text.trim();
   if (trimmed === "/tools") return { kind: "tools" };
+  if (trimmed === "/auto") return { kind: "mode", mode: "auto" };
+  if (trimmed === "/manual") return { kind: "mode", mode: "manual" };
 
   const match = /^\/(enable|disable)\s+(\S+)$/.exec(trimmed);
   if (!match) return null;

@@ -44,6 +44,16 @@ describe("workspaceStore tool groups", () => {
     expect(state.boundWorkspaceId).toBeNull();
   });
 
+  it("defaults to automatic tool selection and can switch to manual", () => {
+    expect(useWorkspaceStore.getState().toolSelectionMode).toBe("auto");
+    useWorkspaceStore.getState().setToolSelectionMode("manual");
+    expect(useWorkspaceStore.getState().toolSelectionMode).toBe("manual");
+    // A new chat keeps the mode: it is a preference, not session state.
+    useWorkspaceStore.getState().startNewChat();
+    expect(useWorkspaceStore.getState().toolSelectionMode).toBe("manual");
+    useWorkspaceStore.getState().setToolSelectionMode("auto");
+  });
+
   it("save-as-default promotes the session set to the persisted default", () => {
     useWorkspaceStore.getState().setEnabledToolGroups(["core", "recipes"]);
     useWorkspaceStore.getState().setDefaultEnabledToolGroups(

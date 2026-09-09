@@ -12,9 +12,18 @@ import type { ChatReference } from "@/features/agent/types";
 import type { WorkspaceTabId } from "@/features/workspace/components/workspaceTabs";
 import type { LlmUsage } from "@/services/llmTypes";
 import type { ToolGroupInfo } from "@/services/toolsClient";
+import type { ToolGroupSelection } from "@/features/agent/types";
 
 /** Groups a fresh session starts with enabled until the catalogue loads. */
 const DEFAULT_TOOL_GROUPS = ["core"];
+
+/**
+ * How a turn's app tool groups are chosen. "auto" (the default): the agent
+ * picks the groups each message needs and the session switches only pin
+ * groups always-on. "manual": the switches are the whole set (the pre-D16
+ * behaviour). See docs/tool-groups.md.
+ */
+export type ToolSelectionMode = "auto" | "manual";
 
 export type { ChatAttachment } from "@/features/chat/types/attachment";
 export type MessageRole = "user" | "agent";
@@ -38,6 +47,8 @@ export interface ChatMessage {
   }[];
   currentNode?: string;
   references?: ChatReference[];
+  /** The tool groups the agent chose for this reply, and why. */
+  toolSelection?: ToolGroupSelection;
 }
 
 /**
@@ -227,6 +238,8 @@ interface WorkspaceState {
   boundWorkspaceId: string | null;
   /** Whether the composer tool-toggle popover is open (driven by /tools too). */
   toolGroupsPopoverOpen: boolean;
+  /** Persisted: automatic (agent picks per message) or manual (switches only). */
+  toolSelectionMode: ToolSelectionMode;
   setSidebarWidth: (width: number, maxWidth?: number) => void;
   setCompactView: (view: CompactView) => void;
   setLastWidth: (width: number) => void;
@@ -273,6 +286,7 @@ interface WorkspaceState {
         | "toolResults"
         | "currentNode"
         | "references"
+        | "toolSelection"
       >
     >,
   ) => void;
@@ -284,6 +298,7 @@ interface WorkspaceState {
   resetToolGroupsToDefault: () => void;
   bindWorkspace: (workspaceId: string | null) => void;
   setToolGroupsPopoverOpen: (open: boolean) => void;
+  setToolSelectionMode: (mode: ToolSelectionMode) => void;
   startNewChat: () => void;
   clearMessages: () => void;
   toggleSidebar: (mobile: boolean) => void;
@@ -321,6 +336,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       enabledToolGroups: [...DEFAULT_TOOL_GROUPS],
       boundWorkspaceId: null,
       toolGroupsPopoverOpen: false,
+      toolSelectionMode: "auto",
 
       setSidebarWidth: (width, maxWidth) => {
         const clamped = clampSidebarWidth(width, maxWidth);
@@ -529,6 +545,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
       setToolGroupsPopoverOpen: (open) => set({ toolGroupsPopoverOpen: open }),
 
+      setToolSelectionMode: (mode) => set({ toolSelectionMode: mode }),
+
       startNewChat: () =>
         set((state) => ({
           messages: [],
@@ -572,6 +590,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         recipesView: state.recipesView,
         timekeeperView: state.timekeeperView,
         defaultEnabledToolGroups: state.defaultEnabledToolGroups,
+        toolSelectionMode: state.toolSelectionMode,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
@@ -594,6 +613,9 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           state.enabledToolGroups = [...savedDefault];
           state.toolGroupCatalogue = [];
           state.boundWorkspaceId = null;
+          if (state.toolSelectionMode !== "manual") {
+            state.toolSelectionMode = "auto";
+          }
         }
       },
     },

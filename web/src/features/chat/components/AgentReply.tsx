@@ -2,7 +2,7 @@ import { MarkdownContent } from "@/components/markdown/MarkdownContent";
 import { AgentActivityTracker } from "@/features/chat/components/AgentActivityTracker";
 import { CopyReplyMenu } from "@/features/chat/components/CopyReplyMenu";
 import { ReferencesDialog } from "@/features/chat/components/ReferencesDialog";
-import type { ChatReference } from "@/features/agent/types";
+import type { ChatReference, ToolGroupSelection } from "@/features/agent/types";
 import { cn } from "@/lib/utils";
 
 interface AgentReplyProps {
@@ -19,6 +19,7 @@ interface AgentReplyProps {
     summary: string;
     artifact_ids: string[];
   }[];
+  toolSelection?: ToolGroupSelection;
   currentNode?: string;
   references?: ChatReference[];
 }
@@ -37,6 +38,7 @@ export function AgentReply({
   timestamp,
   toolCalls,
   toolResults,
+  toolSelection,
   currentNode,
   references,
 }: AgentReplyProps) {
@@ -63,6 +65,7 @@ export function AgentReply({
           isStreaming={isStreaming}
           toolCalls={toolCalls}
           toolResults={toolResults}
+          toolSelection={toolSelection}
           currentNode={currentNode}
         />
         {content ? (

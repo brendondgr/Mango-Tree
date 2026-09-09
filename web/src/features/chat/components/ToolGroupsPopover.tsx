@@ -60,6 +60,9 @@ export function ToolGroupsPopover({ disabled }: { disabled?: boolean }) {
   const boundWorkspaceId = useWorkspaceStore((s) => s.boundWorkspaceId);
   const open = useWorkspaceStore((s) => s.toolGroupsPopoverOpen);
   const setOpen = useWorkspaceStore((s) => s.setToolGroupsPopoverOpen);
+  const mode = useWorkspaceStore((s) => s.toolSelectionMode);
+  const setMode = useWorkspaceStore((s) => s.setToolSelectionMode);
+  const autoMode = mode === "auto";
 
   const toolCount = catalogue
     .filter((group) => enabled.includes(group.id))
@@ -94,8 +97,24 @@ export function ToolGroupsPopover({ disabled }: { disabled?: boolean }) {
         <div className="mb-3">
           <p className="text-sm font-medium">Tools</p>
           <p className="text-xs text-muted-foreground">
-            Choose which tool groups the agent can use in this chat.
+            {autoMode
+              ? "Mango picks the app tools each message needs. Core tools are always on; switch a group on below to keep it always available."
+              : "Choose which tool groups the agent can use in this chat."}
           </p>
+        </div>
+
+        <div className="mb-2 flex items-center justify-between gap-3 rounded-[var(--radius-sm)] border border-border/60 px-2 py-1.5">
+          <div className="min-w-0">
+            <span className="text-sm font-medium">Choose tools automatically</span>
+            <p className="text-[11px] text-muted-foreground">
+              {autoMode ? "On — decided per message" : "Off — only the groups below"}
+            </p>
+          </div>
+          <Switch
+            checked={autoMode}
+            onCheckedChange={(value) => setMode(value ? "auto" : "manual")}
+            aria-label="Choose tools automatically"
+          />
         </div>
 
         <div className="grid max-h-[320px] gap-1 overflow-y-auto">
@@ -148,7 +167,7 @@ export function ToolGroupsPopover({ disabled }: { disabled?: boolean }) {
 
         <div className="mt-3 flex items-center justify-between border-t border-border pt-2 text-xs text-muted-foreground">
           <span>
-            {enabled.length} group{enabled.length === 1 ? "" : "s"}
+            {enabled.length} {autoMode ? "pinned" : ""} group{enabled.length === 1 ? "" : "s"}
             {catalogue.length > 0 ? ` · ${toolCount} tools` : ""}
           </span>
           <button

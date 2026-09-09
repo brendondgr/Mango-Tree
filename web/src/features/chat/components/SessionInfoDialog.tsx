@@ -26,6 +26,7 @@ export function SessionInfoDialog({ open, onOpenChange }: SessionInfoDialogProps
   const isTyping = useWorkspaceStore((s) => s.isTyping);
   const enabledToolGroups = useWorkspaceStore((s) => s.enabledToolGroups);
   const toolGroupCatalogue = useWorkspaceStore((s) => s.toolGroupCatalogue);
+  const toolSelectionMode = useWorkspaceStore((s) => s.toolSelectionMode);
   const llmConfig = useLlmConfigStore((s) => s.config);
 
   const userCount = messages.filter((message) => message.role === "user").length;
@@ -50,7 +51,11 @@ export function SessionInfoDialog({ open, onOpenChange }: SessionInfoDialogProps
       value: `${messages.length} total (${userCount} user, ${agentCount} agent)`,
     },
     { label: "Status", value: isTyping ? "Generating…" : "Idle" },
-    { label: "Active tools", value: activeTools },
+    {
+      label: "Tool selection",
+      value: toolSelectionMode === "auto" ? "Automatic (chosen per message)" : "Manual",
+    },
+    { label: toolSelectionMode === "auto" ? "Pinned tools" : "Active tools", value: activeTools },
     { label: "Model", value: llmConfig.model },
     { label: "Endpoint", value: llmConfig.baseUrl },
   ];

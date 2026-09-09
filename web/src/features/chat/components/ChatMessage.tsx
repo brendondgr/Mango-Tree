@@ -70,6 +70,7 @@ export function ChatMessage({ turn }: ChatMessageProps) {
           timestamp={reply.timestamp}
           toolCalls={reply.toolCalls}
           toolResults={reply.toolResults}
+          toolSelection={reply.toolSelection}
           currentNode={reply.currentNode}
           references={reply.references}
         />

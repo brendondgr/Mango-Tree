@@ -16,6 +16,7 @@ export async function runAgentTurn(
   llmConfig?: LlmConfig,
   enabledGroups?: string[],
   workspaceId?: string | null,
+  toolSelection: "auto" | "manual" = "auto",
 ): Promise<void> {
   const store = useAgentStore.getState();
   store.reset();
@@ -51,6 +52,9 @@ export async function runAgentTurn(
         history,
         attachments,
         web_search_mode: webSearchMode,
+        // "auto": core stays on, `enabled_groups` are pinned, and the agent
+        // selects whatever else the message needs. "manual": exactly the set.
+        tool_selection: toolSelection,
         ...(enabledGroups ? { enabled_groups: enabledGroups } : {}),
         ...(workspaceId ? { workspace_id: workspaceId } : {}),
         ...(llmConfigPayload ? { llm_config: llmConfigPayload } : {}),
@@ -126,6 +130,9 @@ function handleAgentEvent(event: AgentEvent) {
       break;
     case "tool_result":
       store.addToolResult(event.payload);
+      break;
+    case "tool_groups_selected":
+      store.setToolSelection(event.payload);
       break;
     case "final_answer":
       store.setFinalAnswer(

@@ -164,6 +164,7 @@ export function ChatWindow() {
           thinking: state.thinking,
           toolCalls: state.toolCalls,
           toolResults: state.toolResults,
+          toolSelection: state.toolSelection ?? undefined,
           currentNode: state.currentNode || undefined,
           references: state.references,
         });
@@ -192,6 +193,7 @@ export function ChatWindow() {
         useLlmConfigStore.getState().config,
         wsState.enabledToolGroups,
         wsState.boundWorkspaceId,
+        wsState.toolSelectionMode,
       );
       
       const finalState = useAgentStore.getState();

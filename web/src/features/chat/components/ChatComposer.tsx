@@ -125,6 +125,7 @@ export function ChatComposer({
   const setToolGroupsPopoverOpen = useWorkspaceStore(
     (s) => s.setToolGroupsPopoverOpen,
   );
+  const setToolSelectionMode = useWorkspaceStore((s) => s.setToolSelectionMode);
 
   const slashItems = useMemo(
     () => getSlashSuggestions(text, toolGroupCatalogue, enabledToolGroups),
@@ -140,13 +141,15 @@ export function ChatComposer({
     (action: SlashAction) => {
       if (action.kind === "tools") {
         setToolGroupsPopoverOpen(true);
+      } else if (action.kind === "mode") {
+        setToolSelectionMode(action.mode);
       } else {
         setToolGroupEnabled(action.group, action.kind === "enable");
       }
       setText("");
       setSlashDismissed(false);
     },
-    [setToolGroupEnabled, setToolGroupsPopoverOpen],
+    [setToolGroupEnabled, setToolGroupsPopoverOpen, setToolSelectionMode],
   );
 
   const pickSlashSuggestion = useCallback(

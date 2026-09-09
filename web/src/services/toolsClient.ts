@@ -9,6 +9,8 @@
 export interface ToolGroupInfo {
   id: string;
   label: string;
+  /** One line on what the group's tools reach; what the router reads. */
+  description?: string;
   tools: string[];
   default_enabled: boolean;
   /** A session capability the group is gated behind (D15); absent when open. */

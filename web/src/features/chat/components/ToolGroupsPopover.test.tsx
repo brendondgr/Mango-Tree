@@ -29,6 +29,20 @@ describe("ToolGroupsPopover", () => {
     expect(trigger.textContent).toContain("6");
   });
 
+  it("offers the automatic-selection switch and pinned wording when open", () => {
+    useWorkspaceStore.getState().setToolGroupCatalogue(CATALOGUE);
+    useWorkspaceStore.getState().setEnabledToolGroups(["core"]);
+    useWorkspaceStore.getState().setToolSelectionMode("auto");
+    useWorkspaceStore.getState().setToolGroupsPopoverOpen(true);
+
+    render(<ToolGroupsPopover />);
+
+    const modeSwitch = screen.getByRole("switch", { name: "Choose tools automatically" });
+    expect(modeSwitch.getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByText(/Mango picks the app tools/i)).toBeTruthy();
+    useWorkspaceStore.getState().setToolGroupsPopoverOpen(false);
+  });
+
   it("disables the trigger when the composer is disabled", () => {
     render(<ToolGroupsPopover disabled />);
     const trigger = screen.getByRole("button", { name: "Tool groups" });
