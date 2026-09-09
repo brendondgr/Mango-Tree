@@ -17,6 +17,17 @@ uv run utils/scripts/init_data.py --verbose
 
 `./scripts/bootstrap` calls it; you rarely need to run it directly.
 
+## Tool scenarios
+
+`run_tool_scenarios.py` drives every agent tool through the real coordinator
+loop and writes a report of what was called, why, and what came back
+(`docs/tool-scenarios.md`). Scripted mode needs no model; `--mode live` and
+`--mode router` use the configured provider.
+
+```bash
+uv run utils/scripts/run_tool_scenarios.py --only exercise imdbspy
+```
+
 ## Screenshots
 
 `capture_screenshots.py` writes the README's images into `docs/assets/` from a

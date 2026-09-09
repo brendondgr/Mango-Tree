@@ -77,12 +77,17 @@ Request body:
 | Field | Purpose |
 | --- | --- |
 | `messages` | The conversation so far |
-| `enabled_groups` | Tool groups this turn may use. Unknown group → `validation_error`; a group whose `requires` capability is unmet → `permission_denied` |
+| `enabled_groups` | In automatic selection: the groups pinned always-on. In manual: exactly the groups this turn may use. Unknown group → `validation_error`; a group whose `requires` capability is unmet → `permission_denied` |
+| `tool_selection` | `auto` (default): core is always on and a `select` node adds the app groups the message needs; `manual`: `enabled_groups` is the whole set |
 | `workspace_id` | Optional; satisfies the `workspace` capability for group gating |
 | `web_search_mode` | `auto` (default) or `forced` |
 | `llm_config` | Optional per-request `base_url` / `model` / `api_key` override; falls back to the `LLM_*` environment defaults |
 
-Event stream: `node_start`, `tool_call`, `tool_result`, `final_answer`, `error`.
+Event stream: `node_start`, `tool_groups_selected`, `thinking_delta`, `tool_call`,
+`tool_result`, `final_answer`, `error`. `tool_groups_selected` carries `groups`,
+`pinned`, `selected`, `reason` and `source` (`model`, `keyword_fallback`,
+`no_candidates`, `manual`, or `model_request` for a mid-turn
+`request_tool_groups` grant); it fires again if the model widens the set.
 The final answer carries de-duplicated citations collected from `search_web`
 results. The loop runs at most six reason/act/observe cycles per turn.
 
@@ -90,10 +95,10 @@ Errors map `validation_error` → `400` and `permission_denied` → `403`.
 
 ### Tools
 
-Read-only catalogue of the agent tool groups the session toggle UI controls
-(see `docs/tool-groups.md`). Group membership derives from each tool's `app` in
-`config/tools.yaml`; `core` is on by default and the app groups are off until the
-user enables them. The enabled set is not stored server-side — it is sent per
+Read-only catalogue of the agent tool groups (see `docs/tool-groups.md`). Group
+membership derives from each tool's `app` in `config/tools.yaml`; each group
+carries a `description` — the sentence the tool router reads. `core` is on by
+default; app groups are selected per message by the agent, or pinned by the user. The enabled set is not stored server-side — it is sent per
 turn on `POST /api/agent/{session_id}/agent_turn/` as `enabled_groups` (with an
 optional `workspace_id`), validated there (unknown group → `validation_error`; a
 group whose `requires` capability is unmet → `permission_denied`).
@@ -106,8 +111,9 @@ group whose `requires` capability is unmet → `permission_denied`).
     {
       "id": "core",
       "label": "Core",
+      "description": "Saved files and artifacts, agent skills, the chat context, and web search. Always available.",
       "tools": ["inspect_chat_context", "inspect_skills", "list_artifacts",
-                "read_artifact", "read_skill", "search_web"],
+                "read_artifact", "read_skill", "request_tool_groups", "search_web"],
       "default_enabled": true
     },
     {

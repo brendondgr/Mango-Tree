@@ -45,7 +45,7 @@ SCENARIOS = [
         title="Exercise + IMDbSpy: log a session, then change a show's status",
         groups=["core", "exercise", "imdbspy"],
         prompt=("Log my Scenario Push Day session for 2026-09-08 (45 minutes, 4800 volume), "
-                "and mark Severance as abandoned — I gave up on it."),
+                "and mark the show Severance as abandoned — I gave up on it."),
         notes="Two apps in one request: the independent write and read go out together, the dependent write follows.",
         turns=[
             h.calls(
@@ -203,7 +203,7 @@ SCENARIOS = [
         id="mixed.partial_groups_denied",
         title="Only exercise is on: the IMDbSpy half is refused by the group gate",
         groups=["core", "exercise"],
-        prompt="Log a 20 minute walk for 2026-09-08 and mark Severance as abandoned.",
+        prompt="Log a 20 minute walk for 2026-09-08 and mark the show Severance as abandoned.",
         notes="Assembly hides the disabled tools; if the model calls one anyway the registry denies it with the enable_tool_group action.",
         turns=[
             h.calls(

@@ -46,7 +46,7 @@ SCENARIOS = [
         title="Two apps: exercise and IMDbSpy for one message",
         tool_selection="auto",
         groups=["core", "exercise", "imdbspy"],
-        prompt="Log a 30 minute run for 2026-09-08 and mark Severance as abandoned.",
+        prompt="Log a 30 minute run for 2026-09-08 and mark the show Severance as abandoned.",
         selection=h.Selection(["exercise", "imdbspy"], "a workout log and a tracker status change"),
         turns=[
             h.calls(
@@ -96,7 +96,7 @@ SCENARIOS = [
         title="The router misses a group; the model adds it mid-turn with request_tool_groups",
         tool_selection="auto",
         groups=["core", "exercise"],
-        prompt="Log a 20 minute walk for 2026-09-08 and mark Severance as abandoned.",
+        prompt="Log a 20 minute walk for 2026-09-08 and mark the show Severance as abandoned.",
         notes="The select node picked only exercise. The system prompt lists imdbspy as not selected; the model requests it, and the next step offers its tools.",
         selection=h.Selection(["exercise"], "scripted miss: only the workout half was noticed"),
         turns=[

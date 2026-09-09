@@ -88,3 +88,6 @@ $RECYCLE.BIN/
 
 # UI audit runs (utils/scripts/audit_ui.py) — commit findings, not runs
 .audit/
+
+# Tool scenario reports (utils/tests/scenarios, utils/scripts/run_tool_scenarios.py)
+.tool-scenarios/

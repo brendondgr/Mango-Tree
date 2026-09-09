@@ -13,9 +13,10 @@ Requires the dev extra: `uv sync --extra dev`.
 
 ```text
 utils/tests/
-├── agents/        # coordinator graph, LLM provider, tool groups and their enforcement
+├── agents/        # coordinator graph, LLM provider, tool groups, selection and their enforcement
 ├── api/           # DRF route tests, one module per app, plus health and tools
 ├── config/        # settings behaviour (cookie security)
+├── scenarios/     # the tool-call scenario suite: every tool through the real loop (docs/tool-scenarios.md)
 └── utils/
     ├── apps/      # per-app service, API, and agent tool tests
     └── shared/    # auth, events, search

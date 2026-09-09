@@ -46,7 +46,7 @@ tool_groups:
     label: IMDbSpy
     default_enabled: false
     description: The movie and TV tracker — tracked titles and their seen/unseen status, adding titles from IMDb, ratings and reviews, season progress.
-    keywords: [movie, movies, film, films, show, shows, series, tv, episode, season, imdb, watch, watched, watchlist, rating, rate]
+    keywords: [movie, movies, film, films, tv show, tv shows, shows, series, tv, episode, season, imdb, watch, watched, watchlist, rating, rate]
     prompt: utils.apps.imdbspy.agent.prompts:IMDBSPY_TOOLS_PROMPT
   recipes:
     label: Recipes

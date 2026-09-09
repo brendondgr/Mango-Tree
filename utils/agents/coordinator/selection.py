@@ -31,6 +31,10 @@ from utils.shared.llm.kit.types import Message
 #: is always included and marked; the rest only help resolve references.
 CONTEXT_MESSAGES = 6
 
+#: Output budget for the router. Generous on purpose: a reasoning model spends
+#: part of it thinking before the JSON, and an empty reply costs a fallback.
+ROUTER_MAX_TOKENS = 1500
+
 #: Attribution of a selection decision.
 SOURCE_MODEL = "model"
 SOURCE_KEYWORDS = "keyword_fallback"
@@ -212,7 +216,7 @@ def select_tool_groups(
         build_router_messages(messages, candidates),
         tools=None,
         config=llm_config,
-        params=GenParams(temperature=0, max_tokens=400),
+        params=GenParams(temperature=0, max_tokens=ROUTER_MAX_TOKENS),
     ):
         if chunk.model:
             model_id = chunk.model

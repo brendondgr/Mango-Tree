@@ -7,12 +7,13 @@ The tool registry and the tool-group gate.
 | `registry.py` | `ToolRegistry` (dict-backed `register` decorator + `execute`), and the core tools |
 | `groups.py` | Reads `config/tools.yaml`, derives groups, generates JSON schemas, and registers every app tool at import time |
 | `web_search.py` | The `search_web` core tool, backed by `utils/shared/search/` |
+| `selection_tool.py` | The `request_tool_groups` core tool — how the model adds a group mid-turn in automatic selection |
 
 ## Core tools
 
 Registered directly in this package, in the always-on `core` group:
 `list_artifacts`, `read_artifact`, `inspect_skills`, `read_skill`,
-`inspect_chat_context`, `search_web`.
+`inspect_chat_context`, `search_web`, `request_tool_groups`.
 
 ## App tools
 
@@ -25,8 +26,11 @@ one at module import. To add a tool, write the function under
 ## Enforcement
 
 A tool's group is its `app` value unless it sets `group`. Only `core` is
-`default_enabled`; all 63 app tools start off. The enabled set is client-driven
-per turn, validated by `resolve_enabled_groups`, and enforced twice:
+`default_enabled`; all 63 app tools start off. The enabled set for a turn is
+`core` + the client's pinned groups + whatever the `select` node (the router in
+`utils/agents/coordinator/selection.py`) chose for the message — or, in manual
+mode, exactly the client's set. It is validated by `resolve_enabled_groups` and
+enforced twice:
 `build_tool_schemas` only offers schemas for enabled groups, and
 `registry.execute` denies a disabled group's tool with a `permission_denied`
 result even if the model calls it anyway.

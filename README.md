@@ -7,8 +7,8 @@
 Mango Tree is a **local-first, single-owner agent platform**. A React workspace
 and a LangGraph agent loop both reach the same Django services — the UI through
 DRF endpoints, the agent through registered tools. What the agent can touch is
-decided by which tool groups you switch on, enforced in code rather than asked
-for in a prompt.
+decided by which tool groups are enabled — chosen per message by the agent,
+pinned by you — and enforced in code rather than asked for in a prompt.
 
 Everything runs on your machine. The per-app SQLite databases and all files
 live under `data/`; the platform's own database — owner account, sessions,
@@ -58,14 +58,19 @@ by the agent through its tools:
 | **Projects** | Projects, goals, deadlines, timeline | 4 |
 | **Artifacts** | Upload, browse, and view images, video, PDF, markdown, LaTeX, text | 4 |
 
-Plus six core tools (artifacts, skills inspection, chat context, web search)
-that are always available.
+Plus seven core tools (artifacts, skills inspection, chat context, web search,
+and a request for more tool groups) that are always available.
 
-**Tool groups.** All 63 app tools start **off**. You enable a group per session
-from the composer, a slash command (`/enable mailbox`), or the chip that appears
-when the agent is refused. The gate runs twice — a disabled group's tools are
-never offered to the model, and are refused at execution if it calls one anyway.
-See [docs/tool-groups.md](docs/tool-groups.md).
+**Tool groups.** Core is always on. For each message the agent decides which
+app groups it needs — a small routing call before it reasons, recorded with its
+reason and shown under the reply — and can add a group mid-turn if it missed
+one. You can pin groups always-on from the composer or `/enable mailbox`, or
+switch to manual mode (`/manual`) where only the switched-on groups exist. The
+gate runs twice either way — a group that is not enabled has its tools never
+offered to the model, and refused at execution if it calls one anyway. See
+[docs/tool-groups.md](docs/tool-groups.md). Every one of the 70 tools is driven
+through the real loop by the scenario suite in
+[docs/tool-scenarios.md](docs/tool-scenarios.md).
 
 ## What it looks like
 
