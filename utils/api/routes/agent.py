@@ -20,6 +20,14 @@ def _parse_web_search_mode(value) -> str:
     return "auto"
 
 
+def _parse_tool_selection(value) -> str:
+    """``"auto"`` (the default: the agent picks app tool groups per message) or
+    ``"manual"`` (the client's ``enabled_groups`` is used exactly as sent)."""
+    if isinstance(value, str) and value.strip().lower() == "manual":
+        return "manual"
+    return "auto"
+
+
 def _parse_workspace_id(value):
     if isinstance(value, str) and value.strip():
         return value.strip()
@@ -108,6 +116,11 @@ def _build_initial_state(data: dict):
         "llm_turns": [],
         "web_search_mode": _parse_web_search_mode(data.get("web_search_mode", "auto")),
         "enabled_groups": enabled_groups,
+        # In automatic selection the client's set is what stays pinned on; the
+        # select node adds whatever else the message needs (D16).
+        "pinned_groups": list(enabled_groups),
+        "tool_selection": _parse_tool_selection(data.get("tool_selection")),
+        "selection": None,
         "workspace_id": workspace_id,
         "llm_config": _parse_llm_config(data.get("llm_config")),
         "callback": None,

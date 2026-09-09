@@ -39,8 +39,9 @@ SCENARIOS = [
     ),
     h.Scenario(
         id="decisions.core_off_strips_base_tools",
-        title="Disabling core removes the base tools too",
+        title="Disabling core removes the base tools too (manual mode only)",
         groups=["recipes"],
+        tags={"manual_only"},
         prompt="Search the web for a pasta recipe and list mine.",
         turns=[
             h.calls(

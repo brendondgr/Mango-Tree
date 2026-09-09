@@ -33,14 +33,17 @@ def test_scripted_run_records_every_decision():
     assert first.why.startswith("must list before reading")
     assert first.iteration == 0 and second.iteration == 1
     assert [r["edge"] for r in run.routes] == [
+        "select -> reason",
         "reason -> act", "act -> observe", "observe -> reason",
         "reason -> act", "act -> observe", "observe -> reason",
         "reason -> respond",
     ]
     assert run.offered[0]["tools_offered"] == sorted(
         ["list_artifacts", "read_artifact", "inspect_skills", "read_skill",
-         "inspect_chat_context", "search_web"]
+         "inspect_chat_context", "request_tool_groups", "search_web"]
     )
+    # Manual selection: the select node passed the session's set through.
+    assert run.selection["source"] == "manual" and run.selection["groups"] == ["core"]
     # The result of iteration 0's call was replayed to the model on iteration 1.
     assert run.offered[1]["tool_result_ids"] == [first.call_id]
     assert run.final_answer == "The artifacts skill explains the workspace store."
@@ -149,6 +152,7 @@ def test_provider_error_scenario():
 class _Raiser:
     shown = []
     emitted = []
+    injected = {}
     overran = False
 
     def __init__(self, exc):

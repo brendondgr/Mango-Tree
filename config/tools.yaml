@@ -4,41 +4,61 @@
 # default). `prompt` (module:ATTR) is the app-specific guidance block appended to
 # the system prompt when the group is enabled. Optional `requires: <capability>`
 # gates a group behind a session precondition (none set today).
+# `description` is what the tool router reads when it decides, per message,
+# which groups a turn needs (docs/tool-groups.md, D16); `keywords` back a
+# last-resort match when the router's answer cannot be parsed.
 tool_groups:
   core:
     label: Core
     default_enabled: true
+    description: Saved files and artifacts, agent skills, the chat context, and web search. Always available.
   media_viewer:
     label: Media Viewer
     default_enabled: false
+    description: The local artifact store — list, inspect, save and delete uploaded or generated files (images, video, PDF, text).
+    keywords: [artifact, artifacts, file, files, upload, uploaded, image, images, photo, video, pdf, save as]
     prompt: utils.apps.media_viewer.agent.prompts:MEDIA_VIEWER_PROMPT
   mailbox:
     label: Mailbox
     default_enabled: false
+    description: Email accounts — read folders and messages, move, mark, file, delete, send and reply.
+    keywords: [email, e-mail, mail, inbox, folder, send, reply, unread, gmail, outlook]
     prompt: utils.apps.mailbox.agent.prompts:MAILBOX_TOOLS_PROMPT
   calendar:
     label: Calendar
     default_enabled: false
+    description: The dated calendar — events on a day/week/range, free slots, upcoming events, adding and moving one-off events, mapping weekly schedules.
+    keywords: [calendar, schedule, event, events, appointment, meeting, free slot, free time, upcoming, book, booking]
     prompt: utils.apps.calendar.agent.prompts:CALENDAR_TOOLS_PROMPT
   exercise:
     label: Exercise
     default_enabled: false
+    description: The workout tracker — workout templates, weekly routines, equipment, logged sessions and history, Strava import.
+    keywords: [workout, workouts, exercise, gym, run, ran, running, walk, lift, lifting, routine, equipment, strava, training, session, reps, sets]
     prompt: utils.apps.exercise.agent.prompts:EXERCISE_TOOLS_PROMPT
   projectmanager:
     label: Project Manager
     default_enabled: false
+    description: Projects and goals — the project board, goal deadlines and what is overdue, creating projects and adding goals.
+    keywords: [project, projects, goal, goals, deadline, deadlines, due, overdue, milestone, task board]
     prompt: utils.apps.projectmanager.agent.prompts:PROJECTMANAGER_TOOLS_PROMPT
   imdbspy:
     label: IMDbSpy
     default_enabled: false
+    description: The movie and TV tracker — tracked titles and their seen/unseen status, adding titles from IMDb, ratings and reviews, season progress.
+    keywords: [movie, movies, film, films, show, shows, series, tv, episode, season, imdb, watch, watched, watchlist, rating, rate]
     prompt: utils.apps.imdbspy.agent.prompts:IMDBSPY_TOOLS_PROMPT
   recipes:
     label: Recipes
     default_enabled: false
+    description: The recipe book and pantry — browse recipes, full recipe detail, what can be cooked from ingredients on hand, creating and editing recipes.
+    keywords: [recipe, recipes, cook, cooking, ingredient, ingredients, pantry, meal, dinner, lunch, breakfast, dish, bake]
     prompt: utils.apps.recipes.agent.prompts:RECIPES_TOOLS_PROMPT
   timekeeper:
     label: Time Keeper
     default_enabled: false
+    description: Five-minute time tracking — what was tracked on a day, minutes per day, the category taxonomy, painting or clearing a day's blocks.
+    keywords: [track, tracked, tracking, time keeper, timekeeper, hours spent, time spent, log time, paint, painted]
     prompt: utils.apps.timekeeper.agent.prompts:TIMEKEEPER_TOOLS_PROMPT
 
 tools:
@@ -98,6 +118,27 @@ tools:
     parameters:
       type: object
       properties: {}
+  request_tool_groups:
+    app: core
+    module: utils.agents.tools.selection_tool
+    function: request_tool_groups
+    description: >-
+      Ask for one or more app tool groups to be added to this turn when the task
+      needs an app whose tools are not currently listed (for example
+      "exercise" or "calendar"). The group's tools become available on your
+      next step. Give the group ids exactly as listed in the system prompt.
+    parameters:
+      type: object
+      properties:
+        groups:
+          type: array
+          items:
+            type: string
+          description: Tool group ids to add, e.g. ["exercise", "imdbspy"].
+        reason:
+          type: string
+          description: One sentence on why the task needs them.
+      required: [groups]
   search_web:
     app: core
     module: utils.agents.tools.web_search

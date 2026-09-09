@@ -394,3 +394,4 @@ def read_skill(skill_name: Optional[str] = None) -> ToolResult:
         )
 
 import utils.agents.tools.web_search  # noqa: F401, E402 — register search_web tool
+import utils.agents.tools.selection_tool  # noqa: F401, E402 — register request_tool_groups

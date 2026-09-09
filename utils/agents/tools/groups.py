@@ -98,6 +98,36 @@ def group_requires(group: str) -> Optional[str]:
     return _groups_config().get(group, {}).get("requires")
 
 
+def group_description(group: str) -> str:
+    """One sentence on what the group's tools reach, for the router and the UI."""
+    text = _groups_config().get(group, {}).get("description")
+    if text:
+        return str(text).strip()
+    return f"Tools: {', '.join(tool_groups().get(group, []))}"
+
+
+def group_keywords(group: str) -> List[str]:
+    """Words that indicate the group in a plain request (router fallback only)."""
+    words = _groups_config().get(group, {}).get("keywords") or []
+    return [str(w).strip().lower() for w in words if str(w).strip()]
+
+
+def selectable_groups(pinned=None, capabilities: Optional[set] = None) -> List[str]:
+    """Groups the router may add to a turn: every known non-core group that is
+    not already pinned and whose ``requires`` capability (D15) is satisfied."""
+    pinned_set = set(pinned or [])
+    capabilities = capabilities or set()
+    out: List[str] = []
+    for group in all_group_ids():
+        if group == CORE_GROUP or group in pinned_set:
+            continue
+        requires = group_requires(group)
+        if requires and requires not in capabilities:
+            continue
+        out.append(group)
+    return out
+
+
 def _group_default_enabled(group: str) -> bool:
     cfg = _groups_config().get(group, {})
     if "default_enabled" in cfg:
@@ -177,6 +207,7 @@ def group_metadata() -> List[Dict[str, Any]]:
         entry: Dict[str, Any] = {
             "id": group,
             "label": group_label(group),
+            "description": group_description(group),
             "tools": tool_groups().get(group, []),
             "default_enabled": _group_default_enabled(group),
         }

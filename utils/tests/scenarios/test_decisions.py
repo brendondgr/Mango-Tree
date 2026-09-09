@@ -23,7 +23,7 @@ def test_all_groups_offer_all_tools(sandbox):
     assert run.passed, run.describe()
     every_tool = sorted(n for names in tool_groups.tool_groups().values() for n in names)
     assert run.offered[0]["tools_offered"] == every_tool
-    assert len(every_tool) == 69
+    assert len(every_tool) == 70
 
 
 def test_partial_groups_offer_only_their_union(sandbox):

@@ -44,6 +44,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Union
 from unittest.mock import patch
 
+from utils.agents.coordinator import selection as selection_module
 from utils.agents.coordinator.graph import agent_graph
 from utils.agents.schemas.agent import AgentMessage
 from utils.agents.tools import groups as tool_groups
@@ -196,15 +197,40 @@ class LiveExpectation:
     answer_any: Sequence[str] = ()
     #: Upper bound on the number of tool calls (a sanity check against loops).
     max_calls: int = 12
+    #: Automatic mode: groups the router (or a mid-turn request) must end up enabling.
+    groups_required: Sequence[str] = ()
+    #: Automatic mode: groups that must never be enabled for this message.
+    groups_forbidden: Sequence[str] = ()
     #: Set when the scenario is only meaningful with a scripted provider.
     skip: str = ""
+
+
+@dataclass
+class Selection:
+    """What the scripted tool router answers in automatic mode.
+
+    ``groups``/``reason`` become the JSON reply; ``raw`` replaces the reply
+    text wholesale (to exercise the parser and the keyword fallback);
+    ``raise_error`` makes the router call fail like a dead provider.
+    """
+
+    groups: Optional[List[str]] = None
+    reason: str = "selected by the scripted router"
+    raw: Optional[str] = None
+    raise_error: Optional[Exception] = None
+    #: Expected attribution of the decision (``model``, ``keyword_fallback``, ...).
+    expect_source: Optional[str] = None
+    #: Ids the router must have dropped as unknown.
+    expect_dropped: Sequence[str] = ()
 
 
 @dataclass
 class Scenario:
     id: str
     title: str
-    #: Enabled tool groups for the session (the user's toggles).
+    #: The tool groups this turn runs with. Manual mode: exactly the session's
+    #: switches. Automatic mode: what ``core`` + pinned + the router's choice
+    #: must add up to right after the select node.
     groups: List[str]
     #: The user's message this turn.
     prompt: str
@@ -224,6 +250,22 @@ class Scenario:
     #: Raised by the scripted provider instead of answering (simulates a 401, a
     #: dead server, ...). Live mode ignores it.
     provider_failure: Optional[Exception] = None
+    #: ``"manual"`` (the default): ``groups`` is the session's switch set.
+    #: ``"auto"``: the select node runs; ``pinned`` is what the user kept on and
+    #: ``selection`` is the scripted router's answer (defaults to the non-core,
+    #: non-pinned part of ``groups``).
+    tool_selection: str = "manual"
+    pinned: List[str] = field(default_factory=lambda: ["core"])
+    selection: Optional[Selection] = None
+
+    @property
+    def auto(self) -> bool:
+        return self.tool_selection == "auto"
+
+    def router_groups(self) -> List[str]:
+        if self.selection is not None and self.selection.groups is not None:
+            return list(self.selection.groups)
+        return [g for g in self.groups if g != "core" and g not in self.pinned]
     #: A short note on what the scenario proves, for the report.
     notes: str = ""
     #: Post-run check on the sandbox state (did the write land? is the row gone?).
@@ -308,6 +350,29 @@ class ScriptedProvider:
         )
 
 
+class ScriptedRouter:
+    """Plays the tool router in automatic mode (see :class:`Selection`)."""
+
+    def __init__(self, scenario: Scenario):
+        self.scenario = scenario
+        self.calls: List[Dict[str, Any]] = []
+
+    def __call__(self, messages, tools=None, config=None, **kwargs):
+        sel = self.scenario.selection or Selection()
+        self.calls.append({"message_roles": [m.role for m in messages], "tools": tools})
+        if sel.raise_error is not None:
+            raise sel.raise_error
+        if sel.raw is not None:
+            text = sel.raw
+        else:
+            text = json.dumps({"groups": self.scenario.router_groups(), "reason": sel.reason})
+        return [
+            StreamChunk(type="start", model="scripted-router"),
+            StreamChunk(type="text", text=text, model="scripted-router"),
+            StreamChunk(type="done", finish_reason="stop", model="scripted-router"),
+        ]
+
+
 # --- trace recording -----------------------------------------------------------
 
 @dataclass
@@ -348,6 +413,8 @@ class TraceRecorder:
         self._reasoning: List[str] = []
         self.reasoning_by_iteration: Dict[int, str] = {}
         self._pending_gate_calls: List[Dict[str, Any]] = []
+        #: Every selection decision, with the first reason iteration it applies to.
+        self.selections: List[Dict[str, Any]] = []
 
     def _stamp(self) -> float:
         return round((time.perf_counter() - self._t0) * 1000, 2)
@@ -376,6 +443,11 @@ class TraceRecorder:
                  "success": payload.get("success"), "summary": payload.get("summary"),
                  "outcome": classify(payload), "iteration": self._iteration}
             )
+        elif event == "tool_groups_selected":
+            record = dict(payload)
+            record["from_iteration"] = self._iteration + 1
+            self.selections.append(record)
+            entry.update({k: payload.get(k) for k in ("groups", "selected", "pinned", "reason", "source")})
         elif event == "final_answer":
             entry["text"] = payload.get("text")
             entry["references"] = payload.get("references")
@@ -407,6 +479,11 @@ class TraceRecorder:
 
         return execute
 
+    def groups_for_iteration(self, iteration: int) -> Optional[List[str]]:
+        """The enabled set in force when reason iteration ``iteration`` ran."""
+        applicable = [s for s in self.selections if s["from_iteration"] <= iteration]
+        return list(applicable[-1]["groups"]) if applicable else None
+
     def pop_gate(self, tool: str) -> Dict[str, Any]:
         for index, entry in enumerate(self._pending_gate_calls):
             if entry["tool"] == tool:
@@ -423,7 +500,10 @@ class TraceRecorder:
         out = []
         for previous, current in zip(nodes, nodes[1:]):
             edge = f"{previous['node']} -> {current['node']}"
-            if previous["node"] == "reason":
+            if previous["node"] == "select":
+                reason = ("tool groups chosen -> reason" if current["node"] == "reason"
+                          else "the tool router failed -> respond")
+            elif previous["node"] == "reason":
                 reason = ("the model returned tool calls" if current["node"] == "act"
                           else "no tool calls (answer or error) -> respond")
             elif previous["node"] == "observe":
@@ -457,6 +537,13 @@ class ScenarioRun:
     model: str = ""
     notes: str = ""
     reasoning: Dict[int, str] = field(default_factory=dict)
+    #: Every ``tool_groups_selected`` record, in order (select node, then requests).
+    selections: List[Dict[str, Any]] = field(default_factory=list)
+    tool_selection: str = "manual"
+
+    @property
+    def selection(self) -> Optional[Dict[str, Any]]:
+        return self.selections[-1] if self.selections else None
 
     @property
     def passed(self) -> bool:
@@ -478,6 +565,8 @@ class ScenarioRun:
             "failures": self.failures,
             "final_answer": self.final_answer,
             "error": self.error,
+            "tool_selection": self.tool_selection,
+            "selections": self.selections,
             "steps_used": self.steps_used,
             "duration_ms": self.duration_ms,
             "notes": self.notes,
@@ -501,8 +590,13 @@ class ScenarioRun:
     def describe(self) -> str:
         """A compact human-readable trace, used in assertion messages."""
         lines = [f"[{self.mode}] {self.scenario_id} — {self.title}",
-                 f"  groups: {self.groups}",
+                 f"  groups: {self.groups} (selection: {self.tool_selection})",
                  f"  prompt: {self.prompt!r}"]
+        for sel in self.selections:
+            lines.append(
+                f"  selected: {sel.get('selected')} pinned={sel.get('pinned')} "
+                f"source={sel.get('source')} — {sel.get('reason')}"
+            )
         for c in self.calls:
             flag = "" if c.expected in (None, c.outcome) else f"  <-- expected {c.expected}"
             lines.append(
@@ -547,6 +641,7 @@ def _shrink(value: Any, limit: int = 6000) -> Any:
 def initial_state(scenario: Scenario, callback, llm_config=None) -> Dict[str, Any]:
     """The same shape ``utils.api.routes.agent._build_initial_state`` produces."""
     messages = list(scenario.history) + [AgentMessage(role="user", content=scenario.prompt)]
+    starting_groups = list(scenario.pinned) if scenario.auto else list(scenario.groups)
     return {
         "messages": messages,
         "step_count": 0,
@@ -557,7 +652,10 @@ def initial_state(scenario: Scenario, callback, llm_config=None) -> Dict[str, An
         "error": None,
         "llm_turns": [],
         "web_search_mode": scenario.web_search_mode,
-        "enabled_groups": list(scenario.groups),
+        "enabled_groups": starting_groups,
+        "pinned_groups": starting_groups,
+        "tool_selection": scenario.tool_selection,
+        "selection": None,
         "workspace_id": None,
         "llm_config": llm_config,
         "callback": callback,
@@ -579,8 +677,10 @@ def run_scripted(scenario: Scenario, sandbox: Any = None) -> ScenarioRun:
         if event == "tool_result":
             observations_view.append(payload)
 
+    router = ScriptedRouter(scenario)
     started = time.perf_counter()
     with patch("utils.agents.coordinator.graph.stream_chat", side_effect=provider), \
+         patch.object(selection_module, "stream_chat", side_effect=router), \
          patch.object(registry, "execute", recorder.wrap_execute(registry.execute)):
         final = agent_graph.invoke(initial_state(scenario, callback))
     duration = round((time.perf_counter() - started) * 1000, 2)
@@ -588,13 +688,16 @@ def run_scripted(scenario: Scenario, sandbox: Any = None) -> ScenarioRun:
     calls = _collect_calls(recorder, final, why_for=_scripted_why(provider))
     run = ScenarioRun(
         scenario_id=scenario.id, title=scenario.title, mode="scripted",
-        groups=list(scenario.groups), prompt=scenario.prompt, calls=calls,
-        offered=provider.shown, routes=recorder.routes(), events=recorder.events,
+        groups=list(final.get("enabled_groups") or scenario.groups), prompt=scenario.prompt,
+        calls=calls, offered=provider.shown, routes=recorder.routes(), events=recorder.events,
         final_answer=_final_text(recorder, final), error=final.get("error"),
         steps_used=final.get("step_count", 0), duration_ms=duration, failures=[],
         model="scripted", notes=scenario.notes, reasoning=recorder.reasoning_by_iteration,
+        selections=recorder.selections, tool_selection=scenario.tool_selection,
     )
-    run.failures = _check_scripted(scenario, provider, run) + _verify(scenario, sandbox)
+    run.failures = (
+        _check_scripted(scenario, provider, router, recorder, run) + _verify(scenario, sandbox)
+    )
     return run
 
 
@@ -629,12 +732,13 @@ def run_live(scenario: Scenario, sandbox: Any = None, llm_config=None) -> Scenar
     calls = _collect_calls(recorder, final, why_for=_live_why(recorder))
     run = ScenarioRun(
         scenario_id=scenario.id, title=scenario.title, mode="live",
-        groups=list(scenario.groups), prompt=scenario.prompt, calls=calls,
-        offered=offered, routes=recorder.routes(), events=recorder.events,
+        groups=list(final.get("enabled_groups") or scenario.groups), prompt=scenario.prompt,
+        calls=calls, offered=offered, routes=recorder.routes(), events=recorder.events,
         final_answer=_final_text(recorder, final), error=final.get("error"),
         steps_used=final.get("step_count", 0), duration_ms=duration, failures=[],
         model=model_seen["id"], notes=scenario.notes,
         reasoning=recorder.reasoning_by_iteration,
+        selections=recorder.selections, tool_selection=scenario.tool_selection,
     )
     run.failures = _check_live(scenario, run) + _verify(scenario, sandbox)
     return run
@@ -710,8 +814,19 @@ def _collect_calls(recorder: TraceRecorder, final: Dict[str, Any], why_for) -> L
 
 # --- checks --------------------------------------------------------------------
 
-def _check_scripted(scenario: Scenario, provider: ScriptedProvider, run: ScenarioRun) -> List[str]:
+def _check_scripted(
+    scenario: Scenario, provider: ScriptedProvider, router: ScriptedRouter,
+    recorder: TraceRecorder, run: ScenarioRun,
+) -> List[str]:
     failures: List[str] = []
+    failures += _check_selection(scenario, router, run)
+    if scenario.expect_error and not run.calls and not provider.shown:
+        # The router failed before any reasoning: only the error contract applies.
+        if not run.error or scenario.expect_error not in run.error:
+            failures.append(f"expected error containing {scenario.expect_error!r}, got {run.error!r}")
+        if run.final_answer is not None:
+            failures.append("a failed turn must not produce a final answer")
+        return failures
     expected_tools = scenario.scripted_tools
     if run.tool_sequence != expected_tools:
         failures.append(
@@ -743,9 +858,12 @@ def _check_scripted(scenario: Scenario, provider: ScriptedProvider, run: Scenari
             except Exception as exc:  # a check that crashes is a failure, not an error
                 failures.append(f"{record.tool}: result check raised {exc!r}")
 
-    # Assembly gate: exactly the enabled groups' tools were offered, every iteration.
-    expected_offered = sorted(t.name for t in tool_groups.build_tool_schemas(scenario.groups))
+    # Assembly gate: exactly the enabled groups' tools were offered, every
+    # iteration — the set in force at that iteration, which a mid-turn
+    # request_tool_groups may have widened.
     for shown in provider.shown:
+        groups_now = recorder.groups_for_iteration(shown["iteration"]) or scenario.groups
+        expected_offered = sorted(t.name for t in tool_groups.build_tool_schemas(groups_now))
         if shown["tools_offered"] != expected_offered:
             missing = set(expected_offered) - set(shown["tools_offered"])
             extra = set(shown["tools_offered"]) - set(expected_offered)
@@ -781,6 +899,35 @@ def _check_scripted(scenario: Scenario, provider: ScriptedProvider, run: Scenari
     return failures
 
 
+def _check_selection(scenario: Scenario, router: ScriptedRouter, run: ScenarioRun) -> List[str]:
+    """Automatic mode: the select node must land on exactly ``scenario.groups``."""
+    failures: List[str] = []
+    if not scenario.auto:
+        if router.calls:
+            failures.append("the tool router was called although selection is manual")
+        return failures
+    sel = scenario.selection or Selection()
+    if sel.raise_error is None and len(router.calls) != 1:
+        failures.append(f"the tool router should be called exactly once, was called {len(router.calls)}x")
+    first = run.selections[0] if run.selections else None
+    if sel.raise_error is not None:
+        if first is not None:
+            failures.append("a failed router must not record a selection")
+        return failures
+    if first is None:
+        failures.append("no tool_groups_selected event was recorded")
+        return failures
+    if set(first["groups"]) != set(scenario.groups):
+        failures.append(f"select node enabled {sorted(first['groups'])}, expected {sorted(scenario.groups)}")
+    if "core" not in first["groups"]:
+        failures.append("core must always be enabled in automatic mode")
+    if sel.expect_source and first.get("source") != sel.expect_source:
+        failures.append(f"selection source {first.get('source')!r}, expected {sel.expect_source!r}")
+    if sel.expect_dropped and sorted(first.get("dropped", [])) != sorted(sel.expect_dropped):
+        failures.append(f"dropped {first.get('dropped')}, expected {list(sel.expect_dropped)}")
+    return failures
+
+
 def _check_live(scenario: Scenario, run: ScenarioRun) -> List[str]:
     failures: List[str] = []
     live = scenario.live
@@ -788,6 +935,14 @@ def _check_live(scenario: Scenario, run: ScenarioRun) -> List[str]:
         return ["scenario has no live expectation"]
     if run.error:
         failures.append(f"turn ended with an error: {run.error}")
+    if scenario.auto:
+        final_groups = set((run.selection or {}).get("groups", []))
+        for group in live.groups_required:
+            if group not in final_groups:
+                failures.append(f"the router never selected group {group} (final set {sorted(final_groups)})")
+        for group in live.groups_forbidden:
+            if group in final_groups:
+                failures.append(f"the router selected group {group}, which the scenario forbids")
     seq = run.tool_sequence
     for tool in live.required:
         if tool not in seq:
@@ -851,11 +1006,11 @@ def render_markdown(runs: Iterable[ScenarioRun]) -> str:
     passed = sum(1 for r in runs if r.passed)
     lines.append(f"{passed}/{len(runs)} scenarios passed.")
     lines.append("")
-    lines.append("| Scenario | Mode | Groups | Calls | Result |")
-    lines.append("| --- | --- | --- | --- | --- |")
+    lines.append("| Scenario | Mode | Selection | Groups | Calls | Result |")
+    lines.append("| --- | --- | --- | --- | --- | --- |")
     for r in runs:
         lines.append(
-            f"| {r.scenario_id} | {r.mode} | {', '.join(r.groups)} | "
+            f"| {r.scenario_id} | {r.mode} | {r.tool_selection} | {', '.join(r.groups)} | "
             f"{' → '.join(r.tool_sequence) or '—'} | {'pass' if r.passed else 'FAIL'} |"
         )
     lines.append("")
@@ -874,6 +1029,11 @@ def render_markdown(runs: Iterable[ScenarioRun]) -> str:
         lines.append(f"- Prompt: {r.prompt}")
         if r.notes:
             lines.append(f"- Proves: {r.notes}")
+        for sel in r.selections:
+            lines.append(
+                f"- Tool selection ({sel.get('source')}): selected {sel.get('selected') or '[]'}"
+                f" on top of pinned {sel.get('pinned')} — {_cell(sel.get('reason', ''))}"
+            )
         lines.append(f"- Result: **{'pass' if r.passed else 'FAIL'}**, "
                      f"{len(r.calls)} call(s), {r.steps_used} step(s), {r.duration_ms:.0f} ms")
         for f in r.failures:

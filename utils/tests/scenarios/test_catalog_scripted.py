@@ -29,4 +29,4 @@ def test_catalog_exercises_every_registered_tool():
 def test_scenario_ids_are_namespaced_by_group():
     for s in SCENARIOS:
         prefix = s.id.split(".", 1)[0]
-        assert prefix in set(s.groups) | {"mixed", "decisions", "core"}, s.id
+        assert prefix in set(s.groups) | {"mixed", "decisions", "core", "selection"}, s.id

@@ -17,6 +17,18 @@ class AgentState(TypedDict):
     enabled_groups: Optional[List[str]]
     # Bound workspace id, if any — a session capability that a group may require.
     workspace_id: Optional[str]
+    # How the app tool groups for this turn are chosen (docs/tool-groups.md, D16).
+    # ``"auto"``: the ``select`` node asks the model which groups the latest
+    # message needs and adds them to ``pinned_groups``; the model can add more
+    # mid-turn through the ``request_tool_groups`` core tool. ``"manual"`` (and a
+    # state that never set the key): ``enabled_groups`` is used exactly as given.
+    tool_selection: Optional[str]
+    # Groups the user keeps always-on. Core is always included on top.
+    pinned_groups: Optional[List[str]]
+    # The record of this turn's selection decision — what was chosen, by whom
+    # (model / keyword fallback / manual / a mid-turn request) and why. Also
+    # streamed to the client as the ``tool_groups_selected`` event.
+    selection: Optional[Dict[str, Any]]
     # Per-request LLM selection forwarded from the frontend settings:
     # ``{provider: slug, model: id}``, resolved server-side through
     # ``utils.shared.llm.services.registry`` so no API key crosses the wire.

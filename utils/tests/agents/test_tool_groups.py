@@ -15,6 +15,7 @@ CORE_TOOLS = {
     "inspect_skills",
     "read_skill",
     "inspect_chat_context",
+    "request_tool_groups",
     "search_web",
 }
 
@@ -51,7 +52,7 @@ def test_every_tool_resolves_to_exactly_one_group():
 
 def test_core_group_membership():
     assert set(groups.tool_groups()["core"]) == CORE_TOOLS
-    assert len(groups.tool_groups()["core"]) == 6
+    assert len(groups.tool_groups()["core"]) == 7
 
 
 def test_all_group_ids_and_ordering():
@@ -119,6 +120,8 @@ def test_group_metadata_shape():
     assert meta["mailbox"]["default_enabled"] is False
     assert meta["mailbox"]["label"] == "Mailbox"
     assert "mailbox_send_message" in meta["mailbox"]["tools"]
+    # Every group carries the one-line description the router and the UI read.
+    assert all(g["description"] for g in meta.values())
     # No group declares a precondition today.
     assert all("requires" not in g for g in meta.values())
 
