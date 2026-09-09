@@ -165,14 +165,17 @@ class Turn:
     steps: Sequence[ToolStep] = ()
     text: str = ""
     thinking: str = ""
+    #: Calls the *loop itself* adds to this turn (forced web search): not emitted
+    #: by the provider, but expected in the sequence right after ``steps``.
+    injected: Sequence[ToolStep] = ()
 
     @property
     def is_final(self) -> bool:
         return not self.steps
 
 
-def answer(text: str, thinking: str = "") -> Turn:
-    return Turn(text=text, thinking=thinking)
+def answer(text: str, thinking: str = "", injected: Sequence[ToolStep] = ()) -> Turn:
+    return Turn(text=text, thinking=thinking, injected=list(injected))
 
 
 def calls(*steps: ToolStep, thinking: str = "") -> Turn:
@@ -226,7 +229,7 @@ class Scenario:
 
     @property
     def scripted_tools(self) -> List[str]:
-        return [s.tool for t in self.turns for s in t.steps]
+        return [s.tool for t in self.turns for s in (*t.steps, *t.injected)]
 
 
 # --- the scripted provider -----------------------------------------------------
@@ -247,6 +250,11 @@ class ScriptedProvider:
         self.shown: List[Dict[str, Any]] = []
         self.overran = False
         self.emitted: List[Dict[str, Any]] = []
+        #: Steps the loop injects on its own, looked up by tool name when a call
+        #: arrives with an id the provider never issued.
+        self.injected: Dict[str, ToolStep] = {
+            step.tool: step for turn in scenario.turns for step in turn.injected
+        }
 
     def __call__(self, messages, tools=None, config=None, **kwargs):
         shown = {
@@ -642,7 +650,12 @@ def _scripted_why(provider: ScriptedProvider):
     by_id = {e["id"]: e for e in provider.emitted}
 
     def why(call_id: str, iteration: int) -> str:
-        return by_id.get(call_id, {}).get("why", "(not scripted)")
+        if call_id in by_id:
+            return by_id[call_id]["why"]
+        for tool, step in provider.injected.items():
+            if call_id.startswith("forced_search_") and tool == "search_web":
+                return step.why
+        return "(not scripted)"
 
     return why
 
@@ -693,6 +706,9 @@ def _check_scripted(scenario: Scenario, provider: ScriptedProvider, run: Scenari
     by_id = {e["id"]: e for e in provider.emitted}
     for record in run.calls:
         emitted = by_id.get(record.call_id)
+        if not emitted and record.tool in provider.injected:
+            step = provider.injected[record.tool]
+            emitted = {"expect": step.expect, "check": step.check}
         if not emitted:
             failures.append(f"call {record.call_id} ({record.tool}) was not scripted")
             continue
