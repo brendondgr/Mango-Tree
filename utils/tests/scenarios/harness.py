@@ -221,6 +221,9 @@ class Scenario:
     web_search_mode: str = "auto"
     #: For provider-failure scenarios: the error message the turn must end with.
     expect_error: Optional[str] = None
+    #: Raised by the scripted provider instead of answering (simulates a 401, a
+    #: dead server, ...). Live mode ignores it.
+    provider_failure: Optional[Exception] = None
     #: A short note on what the scenario proves, for the report.
     notes: str = ""
     #: Post-run check on the sandbox state (did the write land? is the row gone?).
@@ -269,6 +272,9 @@ class ScriptedProvider:
             ],
         }
         self.shown.append(shown)
+        if self.scenario.provider_failure is not None:
+            self.iteration += 1
+            raise self.scenario.provider_failure
         if self.iteration < len(self.scenario.turns):
             turn = self.scenario.turns[self.iteration]
         else:
@@ -584,7 +590,7 @@ def run_scripted(scenario: Scenario, sandbox: Any = None) -> ScenarioRun:
         scenario_id=scenario.id, title=scenario.title, mode="scripted",
         groups=list(scenario.groups), prompt=scenario.prompt, calls=calls,
         offered=provider.shown, routes=recorder.routes(), events=recorder.events,
-        final_answer=final.get("final_answer"), error=final.get("error"),
+        final_answer=_final_text(recorder, final), error=final.get("error"),
         steps_used=final.get("step_count", 0), duration_ms=duration, failures=[],
         model="scripted", notes=scenario.notes, reasoning=recorder.reasoning_by_iteration,
     )
@@ -625,7 +631,7 @@ def run_live(scenario: Scenario, sandbox: Any = None, llm_config=None) -> Scenar
         scenario_id=scenario.id, title=scenario.title, mode="live",
         groups=list(scenario.groups), prompt=scenario.prompt, calls=calls,
         offered=offered, routes=recorder.routes(), events=recorder.events,
-        final_answer=final.get("final_answer"), error=final.get("error"),
+        final_answer=_final_text(recorder, final), error=final.get("error"),
         steps_used=final.get("step_count", 0), duration_ms=duration, failures=[],
         model=model_seen["id"], notes=scenario.notes,
         reasoning=recorder.reasoning_by_iteration,
@@ -644,6 +650,17 @@ def _verify(scenario: Scenario, sandbox: Any) -> List[str]:
     except Exception as exc:  # a verify that crashes is a failure, not an error
         return [f"post-run verify raised {exc!r}"]
     return []
+
+
+def _final_text(recorder: TraceRecorder, final: Dict[str, Any]) -> Optional[str]:
+    """What the client was told: the respond node's ``final_answer`` event, which
+    falls back to "Done." when the loop ran out of steps without an answer."""
+    if final.get("error"):
+        return None
+    for event in reversed(recorder.events):
+        if event["event"] == "final_answer":
+            return event.get("text")
+    return final.get("final_answer")
 
 
 def _scripted_why(provider: ScriptedProvider):
