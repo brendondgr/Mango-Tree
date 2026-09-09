@@ -220,6 +220,9 @@ class Scenario:
     expect_error: Optional[str] = None
     #: A short note on what the scenario proves, for the report.
     notes: str = ""
+    #: Post-run check on the sandbox state (did the write land? is the row gone?).
+    #: Runs in both modes; an AssertionError becomes a failure.
+    verify: Optional[Callable[[Any], None]] = None
 
     @property
     def scripted_tools(self) -> List[str]:
@@ -577,7 +580,7 @@ def run_scripted(scenario: Scenario, sandbox: Any = None) -> ScenarioRun:
         steps_used=final.get("step_count", 0), duration_ms=duration, failures=[],
         model="scripted", notes=scenario.notes, reasoning=recorder.reasoning_by_iteration,
     )
-    run.failures = _check_scripted(scenario, provider, run)
+    run.failures = _check_scripted(scenario, provider, run) + _verify(scenario, sandbox)
     return run
 
 
@@ -619,8 +622,20 @@ def run_live(scenario: Scenario, sandbox: Any = None, llm_config=None) -> Scenar
         model=model_seen["id"], notes=scenario.notes,
         reasoning=recorder.reasoning_by_iteration,
     )
-    run.failures = _check_live(scenario, run)
+    run.failures = _check_live(scenario, run) + _verify(scenario, sandbox)
     return run
+
+
+def _verify(scenario: Scenario, sandbox: Any) -> List[str]:
+    if scenario.verify is None:
+        return []
+    try:
+        scenario.verify(sandbox)
+    except AssertionError as exc:
+        return [f"post-run verify failed: {exc}"]
+    except Exception as exc:  # a verify that crashes is a failure, not an error
+        return [f"post-run verify raised {exc!r}"]
+    return []
 
 
 def _scripted_why(provider: ScriptedProvider):
