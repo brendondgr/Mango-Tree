@@ -55,6 +55,26 @@ class ToolRegistry:
                 summary=f"Tool '{name}' not found in registry.",
                 artifact_ids=[]
             )
+        # The provider hands back a sentinel when the model's argument JSON did
+        # not parse. Splatting that into the tool crashes it on an unexpected
+        # keyword; refuse the call with a typed envelope the model can act on.
+        if not isinstance(arguments, dict):
+            arguments = {}
+        if arguments.get("_parse_error"):
+            raw = str(arguments.get("_raw") or "")
+            return ToolResult(
+                success=False,
+                result={"error": {"code": "invalid_arguments",
+                                  "message": (
+                                      f"The arguments for '{name}' were not valid JSON. "
+                                      "Send one JSON object holding the documented fields."),
+                                  "details": {"raw": raw[:500]}}},
+                summary=(
+                    f"Tool '{name}' was not run: its arguments were not valid JSON. "
+                    "Call it again with a single JSON object."
+                ),
+                artifact_ids=[],
+            )
         try:
             return self._tools[name](**arguments)
         except Exception as e:

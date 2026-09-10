@@ -101,6 +101,21 @@ SCENARIOS = [
         ],
     ),
     h.Scenario(
+        id="decisions.malformed_arguments",
+        title="Unparseable argument JSON is refused before the tool runs",
+        groups=["core", "exercise"],
+        prompt="Show my workout history.",
+        notes="A server that concatenates two argument fragments hands the loop a parse-error sentinel; it must never reach the tool as keyword arguments.",
+        turns=[
+            h.calls(h.call("exercise_list_history", "the provider could not parse the model's arguments",
+                           expect=h.error("invalid_arguments"),
+                           _parse_error=True, _raw="{}{}")),
+            h.calls(h.call("exercise_list_history", "retry with a well-formed object")),
+            h.answer("Here is your recent history."),
+        ],
+        live=h.LiveExpectation(skip="the sentinel can only be injected with a scripted provider"),
+    ),
+    h.Scenario(
         id="decisions.crashing_tool",
         title="A tool that raises does not take the loop down",
         groups=["core"],

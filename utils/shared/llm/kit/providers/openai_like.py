@@ -486,14 +486,7 @@ class OpenAICompatible(Provider):
                     if tc.function and tc.function.arguments:
                         slot["args"] += tc.function.arguments
 
-            for slot in partial.values():
-                yield StreamChunk(
-                    type="tool_call",
-                    tool_call=ToolCall(
-                        id=slot["id"], name=slot["name"], arguments=_loads(slot["args"])
-                    ),
-                    model=model,
-                )
+            yield from _tool_call_chunks(partial, model)
 
             yield StreamChunk(
                 type="done", usage=usage, finish_reason=_finish(finish), model=model
@@ -607,14 +600,8 @@ class OpenAICompatible(Provider):
                     if tc.function and tc.function.arguments:
                         slot["args"] += tc.function.arguments
 
-            for slot in partial.values():
-                yield StreamChunk(
-                    type="tool_call",
-                    tool_call=ToolCall(
-                        id=slot["id"], name=slot["name"], arguments=_loads(slot["args"])
-                    ),
-                    model=model,
-                )
+            for chunk in _tool_call_chunks(partial, model):
+                yield chunk
 
             yield StreamChunk(
                 type="done", usage=usage, finish_reason=_finish(finish), model=model
@@ -1023,6 +1010,25 @@ def _looks_like_reasoning(model: str) -> bool:
     import re
 
     return bool(re.match(r"^(o[1-9]|gpt-5)", model.lower()))
+
+
+def _tool_call_chunks(partial: dict, model: str):
+    """Turn the accumulated streaming slots into ``tool_call`` chunks.
+
+    A slot that never received a function name is not a call. Some servers emit
+    a stray delta beside the real one; forwarding it only buys a bogus "tool not
+    found" observation downstream.
+    """
+    for slot in partial.values():
+        if not slot["name"]:
+            continue
+        yield StreamChunk(
+            type="tool_call",
+            tool_call=ToolCall(
+                id=slot["id"], name=slot["name"], arguments=_loads(slot["args"])
+            ),
+            model=model,
+        )
 
 
 def _loads(s: Any) -> dict:
