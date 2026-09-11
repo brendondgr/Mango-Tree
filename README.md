@@ -1,8 +1,10 @@
 <p align="center">
-  <img src="docs/assets/mango-color.svg" alt="Mango Tree logo" width="160" />
+  <img src="docs/assets/header.svg" width="880"
+       alt="Mango Tree — a mango tree with a small robot sitting under it. A local-first, single-owner agent platform: eight self-hosted apps and a LangGraph agent reach the same services, all on your own machine. Written in Python, TypeScript and CSS, on Django, DRF, LangGraph, React, SQLite and uv." />
 </p>
 
-# Mango Tree
+<!-- The sentence below is also the banner's tagline. If you change it, edit
+     TAGLINE in tools/make_header.py and re-run the script. -->
 
 Mango Tree is a **local-first, single-owner agent platform**. A React workspace
 and a LangGraph agent loop both reach the same Django services — the UI through
